@@ -1,0 +1,24 @@
+name: Zeus brand unit tests
+
+on:
+  pull_request:
+    paths:
+      - '.zeus/**'
+      - '.github/workflows/zeus-brand-unit.yml'
+  push:
+    branches:
+      - 'work/ZEUS-001-import-brand'
+
+permissions:
+  contents: read
+
+jobs:
+  brand-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test Zeus branding helpers
+        run: python3 -m unittest discover -s .zeus/tests -p 'test_*.py' -v
+      - name: Compile brand tool
+        run: python3 -m py_compile .zeus/tools/rebrand.py
