@@ -28,11 +28,7 @@ REPLACEMENTS = {
         ("favicon: 'img/favicon.ico',", "favicon: 'img/zeus-mark.svg',"),
         ("image: 'img/hermes-agent-banner.png',", "image: 'img/zeus-banner.svg',"),
     ),
-    "README.md": (
-        ('<img src="assets/banner.png" alt="Hermes Agent" width="100%">',
-         '<img src="assets/zeus-banner.svg" alt="Zeus Agent" width="100%">'),
-        ('# Hermes Agent ☤', '# Zeus Agent ⚡'),
-    ),
+    # README now has a Zeus-owned structure; do not overwrite it with upstream anchors.
 }
 
 
