@@ -24,7 +24,7 @@ def bolt(x, y):
 
 
 def png(width, height, transparent=False):
-    if min(width, height) < 1 or max(width, height) > 1024:
+    if min(width, height) < 1 or max(width, height) > 2048:
         raise ValueError("invalid icon dimensions")
     side = min(width, height)
     cx, cy = (width - side) / 2, (height - side) / 2
