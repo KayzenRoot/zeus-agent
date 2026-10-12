@@ -617,9 +617,10 @@ export default function App() {
                 )}
               >
                 <PluginSlot name="header-left" />
+                <img src="/zeus-mark.svg" alt="" aria-hidden="true" className="h-8 w-8 rounded-lg" />
 
                 <Typography className="font-bold text-[1.125rem] leading-[0.95] tracking-[0.0525rem] text-midground uppercase">
-                  Hermes
+                  Zeus
                   <br />
                   Agent
                 </Typography>
