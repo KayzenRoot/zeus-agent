@@ -55,3 +55,5 @@ jobs:
           echo 'Native icon/logo and surface localization update committed to the existing ZEUS-001 PR.' >> "$GITHUB_STEP_SUMMARY"
           echo "HEAD: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
           echo 'Windows/macOS actual installation not validated by this Linux-based generator.' >> "$GITHUB_STEP_SUMMARY"
+
+# Correction: allow high-density wide MSIX tiles.
