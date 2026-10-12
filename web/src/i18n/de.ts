@@ -51,7 +51,7 @@ export const de: Translations = {
 
   app: {
     brand: "Zeus Agent",
-    brandShort: "HA",
+    brandShort: "ZA",
     closeNavigation: "Navigation schließen",
     closeModelTools: "Modell und Werkzeuge schließen",
     footer: {
@@ -121,8 +121,8 @@ export const de: Translations = {
     starting: "Startet",
     startedInBackground: "Im Hintergrund gestartet — siehe Protokolle für den Fortschritt",
     stopped: "Gestoppt",
-    updateHermes: "Hermes aktualisieren",
-    updatingHermes: "Hermes wird aktualisiert…",
+    updateHermes: "Zeus aktualisieren",
+    updatingHermes: "Zeus wird aktualisiert…",
     waitingForOutput: "Warte auf Ausgabe…",
   },
 
@@ -334,7 +334,7 @@ export const de: Translations = {
       "Gespeichert — Gateway neu starten, um die Änderung anzuwenden.",
     forceReinstall: "Neuinstallation erzwingen (bestehenden Ordner zuerst löschen)",
     headline:
-      "Hermes-Plugins entdecken, installieren, aktivieren und aktualisieren (entspricht `hermes plugins`).",
+      "Zeus-Plugins entdecken, installieren, aktivieren und aktualisieren (entspricht `hermes plugins`).",
     identifierLabel: "Git-URL oder owner/repo",
     inactive: "inaktiv",
     installBtn: "Installieren",
@@ -448,7 +448,7 @@ export const de: Translations = {
     showValue: "Echten Wert anzeigen",
     hideValue: "Wert ausblenden",
     customTitle: "Benutzerdefinierte Schlüssel",
-    customHint: "Beliebige Umgebungsvariablen in deiner .env, die Hermes nicht erkennt. Verwende sie, um Umgebungsvariablen für Skills, MCP-Server oder eigene Tools einzuschleusen.",
+    customHint: "Beliebige Umgebungsvariablen in deiner .env, die Zeus nicht erkennt. Verwende sie, um Umgebungsvariablen für Skills, MCP-Server oder eigene Tools einzuschleusen.",
     customConfigured: "{count} benutzerdefinierte Schlüssel gesetzt",
     addCustomKey: "Benutzerdefinierten Schlüssel hinzufügen",
     customKeyName: "Variablenname",
@@ -512,11 +512,11 @@ export const de: Translations = {
   achievements: {
     hero: {
       kicker: "Agentic Gamerscore",
-      title: "Hermes Achievements",
+      title: "Zeus Achievements",
       subtitle:
-        "Sammelbare Hermes-Abzeichen, verdient durch echten Sitzungsverlauf. Bekannte, noch nicht abgeschlossene Achievements werden als Entdeckt angezeigt; geheime Achievements bleiben verborgen, bis das erste passende Verhalten auftritt.",
+        "Sammelbare Zeus-Abzeichen, verdient durch echten Sitzungsverlauf. Bekannte, noch nicht abgeschlossene Achievements werden als Entdeckt angezeigt; geheime Achievements bleiben verborgen, bis das erste passende Verhalten auftritt.",
       scan_subtitle:
-        "Hermes-Sitzungsverlauf wird gescannt. Der erste Scan kann bei umfangreichem Verlauf 5–10 Sekunden dauern.",
+        "Zeus-Sitzungsverlauf wird gescannt. Der erste Scan kann bei umfangreichem Verlauf 5–10 Sekunden dauern.",
     },
     actions: {
       rescan: "Neu scannen",
@@ -531,7 +531,7 @@ export const de: Translations = {
       highest_tier: "Höchste Stufe",
       highest_tier_hint: "Copper → Silver → Gold → Diamond → Olympian",
       latest: "Neueste",
-      latest_hint_empty: "nutze Hermes mehr",
+      latest_hint_empty: "nutze Zeus mehr",
       none_yet: "Noch keine",
     },
     state: {
@@ -562,10 +562,10 @@ export const de: Translations = {
       tiers_header: "Stufen",
       secret_header: "Geheime Achievements",
       secret_body:
-        "Geheimnisse verbergen ihren genauen Auslöser. Sobald Hermes ein verwandtes Signal erkennt, wird die Karte zu Entdeckt und zeigt ihre Anforderung an.",
+        "Geheimnisse verbergen ihren genauen Auslöser. Sobald Zeus ein verwandtes Signal erkennt, wird die Karte zu Entdeckt und zeigt ihre Anforderung an.",
       scan_status_header: "Scan-Status",
       scan_status_body:
-        "Hermes scannt den lokalen Verlauf einmalig, danach erscheinen die Karten automatisch. Es ist nichts hängengeblieben, wenn dies ein paar Sekunden dauert.",
+        "Zeus scannt den lokalen Verlauf einmalig, danach erscheinen die Karten automatisch. Es ist nichts hängengeblieben, wenn dies ein paar Sekunden dauert.",
       what_scanned_header: "Was gescannt wird",
       what_scanned_body:
         "Sitzungen, Tool-Aufrufe, Modell-Metadaten, Fehler, Achievements und lokaler Freischaltstatus.",

@@ -125,7 +125,7 @@ const config: Config = {
     navbar: {
       title: 'Zeus Agent',
       logo: {
-        alt: 'Hermes Agent',
+        alt: 'Zeus Agent',
         src: 'img/logo.png',
         srcDark: 'img/logo-dark.png',
       },
