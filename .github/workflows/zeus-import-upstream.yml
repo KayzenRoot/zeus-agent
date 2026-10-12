@@ -54,7 +54,16 @@ jobs:
           if git merge-base --is-ancestor "${PINNED_UPSTREAM}" HEAD; then
             echo "Upstream revision already in history; skipping repeat merge."
           else
-            git merge --allow-unrelated-histories --no-ff --no-edit "${PINNED_UPSTREAM}"
+            # Merge commit retains upstream as parent, but the destination does
+            # not import upstream Actions workflows. GITHUB_TOKEN lacks
+            # the separate workflows permission needed to write those paths.
+            git merge --allow-unrelated-histories --no-ff --no-commit "${PINNED_UPSTREAM}"
+            git restore --source=HEAD --staged --worktree -- .github/workflows
+            if ! git diff --cached --quiet -- .github/workflows; then
+              echo "Refusing to commit foreign workflow files." >&2
+              exit 1
+            fi
+            git commit -m "chore(zeus): import pinned Hermes source with ancestry, retain Zeus CI"
           fi
 
       - name: Apply Zeus branding without changing internal API names
