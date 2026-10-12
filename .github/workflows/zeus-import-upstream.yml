@@ -1,0 +1,94 @@
+name: ZEUS-001 import upstream and apply first Zeus brand
+
+# Runs only on the existing work branch, never on main.
+# A GITHUB_TOKEN push does not retrigger this workflow (no endless loop).
+on:
+  push:
+    branches:
+      - 'work/ZEUS-001-import-brand'
+    paths:
+      - '.github/workflows/zeus-import-upstream.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zeus-import-001
+  cancel-in-progress: false
+
+jobs:
+  import-and-brand:
+    if: github.repository == 'KayzenRoot/zeus-agent' && github.ref == 'refs/heads/work/ZEUS-001-import-brand'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PINNED_UPSTREAM: 53df274b08f2bbbe82bb67bb50c7571952e95809
+      WORK_BRANCH: work/ZEUS-001-import-brand
+    steps:
+      - name: Checkout destination with full local history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Verify exact destination and clean worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REPOSITORY}" = "KayzenRoot/zeus-agent"
+          test "${GITHUB_REF}" = "refs/heads/${WORK_BRANCH}"
+          test -z "$(git status --porcelain)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch pinned source and preserve original Git ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          git remote add upstream https://github.com/NousResearch/hermes-agent.git
+          git fetch --no-tags upstream main
+          git cat-file -e "${PINNED_UPSTREAM}^{commit}"
+          git merge-base --is-ancestor "${PINNED_UPSTREAM}" upstream/main
+          git show "${PINNED_UPSTREAM}:LICENSE" | grep -Fq 'Nous Research'
+          if git merge-base --is-ancestor "${PINNED_UPSTREAM}" HEAD; then
+            echo "Upstream revision already in history; skipping repeat merge."
+          else
+            git merge --allow-unrelated-histories --no-ff --no-edit "${PINNED_UPSTREAM}"
+          fi
+
+      - name: Apply Zeus branding without changing internal API names
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .zeus/tools/rebrand.py --apply
+          python3 -m unittest discover -s .zeus/tests -p 'test_*.py' -v
+          python3 -m py_compile .zeus/tools/rebrand.py
+          git diff --check
+          test -f LICENSE
+          git merge-base --is-ancestor "${PINNED_UPSTREAM}" HEAD
+
+      - name: Commit brand delta and publish work branch only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -- web/index.html web/public apps/desktop/index.html apps/desktop/package.json apps/desktop/public website/docusaurus.config.ts website/static/img README.md assets web/src/i18n apps/desktop/src/i18n
+          if ! git diff --cached --quiet; then
+            git commit -m "feat(zeus): apply first-pass visual identity to imported Hermes"
+          fi
+          git push origin "HEAD:refs/heads/${WORK_BRANCH}"
+
+      - name: Print evidence and outstanding local checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo '### ZEUS-001 upstream import evidence'
+            echo "- Upstream revision: \`${PINNED_UPSTREAM}\`"
+            echo "- Branch: \`${WORK_BRANCH}\`"
+            echo "- Pushed head: \`$(git rev-parse HEAD)\`"
+            echo "- MIT copyright: \`$(grep -m1 'Copyright' LICENSE)\`"
+            echo '- Zeus branding unit tests executed in workflow.'
+            echo '- REMAINING: JS workspace checks, Python integration, browser & desktop smoke, logo audit, security, and PR review.'
+            echo '- No deployment and no main branch merge.'
+          } >> "$GITHUB_STEP_SUMMARY"
