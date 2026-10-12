@@ -40,8 +40,11 @@ export function channelBuildRequest(env = process.env) {
 // what Windows compares against the package manifest publisher at install.
 // Mirrored from electron-builder.config.cjs so the .appinstaller and the
 // manifest can never drift.
+// Zeus does not ship a Nous Research-signed MSIX. This declaration is an
+// identity placeholder only; distribution requires a matching owned code
+// signing certificate, external signature verification and local install test.
 export const OUT_OF_STORE_PUBLISHER =
-  'CN=Nous Research Inc., O=Nous Research Inc., L=Austin, S=Texas, C=US'
+  'CN=KayzenRoot'
 
 // Content-Type for MSIX / App Installer artifacts. Without the right MIME the
 // browser cannot hand a clicked .appinstaller / .msixbundle to the OS App
