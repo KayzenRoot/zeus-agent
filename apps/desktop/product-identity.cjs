@@ -9,14 +9,14 @@
 'use strict'
 
 const variants = {
-  '': { display: 'Zeus', kebab: 'zeus', pascal: 'Zeus' },
+  '': { display: 'Zeus Agent', kebab: 'zeus-agent', pascal: 'ZeusAgent' },
   light: {
     display: 'Zeus Light',
     kebab: 'zeus-light',
     pascal: 'ZeusLight'
   },
   bundled: {
-    display: 'Zeus Agent',
+    display: 'Zeus Agent Bundled',
     kebab: 'zeus-bundled',
     pascal: 'ZeusBundled'
   }
