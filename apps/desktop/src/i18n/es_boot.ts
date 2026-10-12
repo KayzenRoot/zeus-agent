@@ -3,7 +3,7 @@ import type { TranslationOverrides } from './define-locale'
 // The boot screen's copy (including the update-hold screen), composed by es.ts.
 export const esBoot = {
   boot: {
-    ready: 'Hermes Desktop está listo',
+    ready: 'Zeus Desktop está listo',
     desktopBootFailedWithMessage: message => `Falló el arranque del escritorio: ${message}`,
     steps: {
       connectingGateway: 'Conectando el gateway de escritorio en vivo',
@@ -11,7 +11,7 @@ export const esBoot = {
       loadingSessions: 'Cargando sesiones recientes',
       retryingRemoteBackend: 'Reconectando al backend remoto de Hermes…',
       startingDesktopConnection: 'Iniciando la conexión de escritorio',
-      startingHermesDesktop: 'Iniciando Hermes Desktop…'
+      startingHermesDesktop: 'Iniciando Zeus Desktop…'
     },
     errors: {
       backgroundExited:
@@ -29,7 +29,7 @@ export const esBoot = {
       gatewaySignInRequired: 'Tu Hermes remoto cerró tu sesión',
       gatewaySignInRequiredDetail: 'Vuelve a iniciar sesión para reconectar. Tus chats y ajustes están a salvo.',
       signInAgain: 'Volver a iniciar sesión',
-      ipcBridgeUnavailable: 'Hermes Desktop no pudo comunicarse con su propia capa en segundo plano. Reinicia la app.'
+      ipcBridgeUnavailable: 'Zeus Desktop no pudo comunicarse con su propia capa en segundo plano. Reinicia la app.'
     },
     causes: {
       exitedEarly: 'El servicio en segundo plano de Hermes se detuvo justo después de iniciarse.',

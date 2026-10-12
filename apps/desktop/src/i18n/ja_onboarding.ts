@@ -1,7 +1,7 @@
 import type { TranslationOverrides } from './define-locale'
 
 export const jaOnboarding: TranslationOverrides['onboarding'] = {
-  headerTitle: 'Hermes Agent のセットアップをしましょう',
+  headerTitle: 'Zeus Agent のセットアップをしましょう',
   headerDesc: 'チャットを始めるにはモデルプロバイダーを接続してください。ほとんどのオプションはワンクリックです。',
   preparingInstall: 'Hermes はインストールを完了中です。初回実行では通常 1 分以内に完了します。',
   starting: 'Hermes を起動中…',

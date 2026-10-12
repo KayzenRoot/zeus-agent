@@ -4,9 +4,9 @@ import type * as Preset from '@docusaurus/preset-classic';
 import relativeDocLinks from './src/remark/relativeDocLinks';
 
 const config: Config = {
-  title: 'Hermes Agent',
+  title: 'Zeus Agent',
   tagline: 'The self-improving AI agent',
-  favicon: 'img/favicon.ico',
+  favicon: 'img/zeus-mark.svg',
 
   url: 'https://hermes-agent.nousresearch.com',
   baseUrl: '/docs/',
@@ -97,7 +97,7 @@ const config: Config = {
   ],
 
   themeConfig: {
-    image: 'img/hermes-agent-banner.png',
+    image: 'img/zeus-banner.svg',
     // Algolia DocSearch (replaces @easyops-cn/docusaurus-search-local).
     // The local plugin shipped a ~16 MB client-side lunr index that every
     // visitor downloaded and hydrated before their first result; DocSearch
@@ -123,7 +123,7 @@ const config: Config = {
       },
     },
     navbar: {
-      title: 'Hermes Agent',
+      title: 'Zeus Agent',
       logo: {
         alt: 'Hermes Agent',
         src: 'img/logo.png',

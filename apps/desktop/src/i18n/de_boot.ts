@@ -3,7 +3,7 @@ import type { TranslationOverrides } from './define-locale'
 // The boot screen's copy (including the update-hold screen), composed by de.ts.
 export const deBoot = {
   boot: {
-    ready: 'Hermes Desktop ist bereit',
+    ready: 'Zeus Desktop ist bereit',
     desktopBootFailedWithMessage: message => `Desktop-Start fehlgeschlagen: ${message}`,
     steps: {
       connectingGateway: 'Live-Desktop-Gateway wird verbunden',
@@ -11,7 +11,7 @@ export const deBoot = {
       loadingSessions: 'Letzte Sessions werden geladen',
       retryingRemoteBackend: 'Wird mit dem Remote-Hermes-Backend neu verbunden…',
       startingDesktopConnection: 'Desktop-Verbindung wird gestartet',
-      startingHermesDesktop: 'Hermes Desktop wird gestartet…'
+      startingHermesDesktop: 'Zeus Desktop wird gestartet…'
     },
     errors: {
       backgroundExited: 'Der Hermes-Hintergrundprozess wurde beendet.',
