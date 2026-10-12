@@ -1,0 +1,45 @@
+name: Zeus dashboard validation
+
+on:
+  pull_request:
+    paths:
+      - 'web/**'
+      - 'apps/shared/**'
+      - '.zeus/**'
+      - '.github/workflows/zeus-dashboard-validation.yml'
+  push:
+    branches:
+      - 'work/ZEUS-001-import-brand'
+    paths:
+      - '.github/workflows/zeus-dashboard-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dashboard-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install exactly locked Node dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Check dashboard type safety, tests, and lint
+        run: npm run --workspace web check
+      - name: Build production dashboard
+        run: npm run --workspace web build
+      - name: Verify Zeus HTML and assets are present
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'Zeus Agent - Dashboard' web/index.html
+          test -s web/public/zeus-mark.svg
+          test -s web/public/favicon.ico
+          test -s LICENSE
+          grep -Fq 'Nous Research' LICENSE
+          echo 'Dashboard static brand checks passed.'
