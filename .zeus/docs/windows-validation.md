@@ -35,20 +35,43 @@ npm run --workspace apps/desktop test:ui
 Record commands, exit codes, OS versions and sanitized evidence. Passing only
 this stage is **not** enough to approve ZEUS-001.
 
-## Stage 2 | Isolated native smoke (Windows, not an MSIX install)
+## Stage 2 | Native desktop safety preflight (Windows, no unsigned MSIX)
 
-After Stage 1 passes, follow the existing desktop harness:
+**STOP: do not automatically run `test:desktop:fresh` on a personal Windows
+profile.** Source inspection of `apps/desktop/scripts/test-desktop.mjs` found
+that its `fresh` mode builds a package, launches a detached Electron process
+and may encounter the first-run bootstrap path. Although it sets an isolated
+`HERMES_HOME` and Electron userData, that alone is not proof the OS environment
+and all backend discovery/bootstrap paths are isolated. The Zeus fork now
+denies first-run bootstrap before installer download, subprocess and log I/O,
+but this refusal is not an installed-app end-to-end security assessment.
 
-```powershell
-npm run --workspace apps/desktop test:desktop:fresh
-```
+Before any native smoke, independently verify at the **same HEAD**:
+- All tests in `apps/desktop/electron/bootstrap-runner.test.ts` pass. In
+  particular, `runBootstrap` must return `zeus-release-unapproved` without
+  making an upstream HTTP request, writing any profile/marker/log or spawning
+  an installer. Tests of mocked code alone do not prove host isolation.
+- The OS, the checkout, the selected executable, its digest and any install
+  stamp belong to Zeus and not to an existing Hermes desktop/profile.
+- The tested runtime backend root is an **explicitly isolated, reviewed
+  local source checkout**. Never fall back to downloading Hermes installer
+  scripts. Do not use personal tokens, existing Hermes installs or a real
+  default user profile.
+- The native tester has a controlled shutdown and rollback procedure, with
+  process ownership and paths verified before cleanup. Do not use unsigned
+  MSIX, OS-level sideloading or a real upstream update feed.
 
-The upstream harness is expected to produce an isolated sandbox; confirm that
-it actually launches the Zeus-branded executable and does not touch the current
-Hermes installation or user profile. If the harness requires untrusted
-credentials, elevated access or real user state, stop and record BLOCKED instead
-of weakening isolation. Record stdout/stderr only after redacting tokens, local
-paths and user data.
+Until these preconditions have objective evidence, record Stage 2 as
+**BLOCKED / NOT RUN**, rather than trying the previous `fresh` command.
+The `test:desktop:lifecycle` harness is also **not** automatically authorized:
+its backend root, fallback behavior, process scope and cleanup must be audited
+on the intended host first. The original installer protocol queries
+(`--manifest`, `-Manifest`) remain informational only.
+
+Once reviewed, conduct a supervised, isolated native source-dev run with an
+explicit backend root, capture exit codes and redacted logs, and validate
+launch, shutdown and profile integrity. Native smoke is separate from the
+Windows JS test matrix and any future signed MSIX release gate.
 
 ## Stage 3 | Backend + dashboard WSL2
 
