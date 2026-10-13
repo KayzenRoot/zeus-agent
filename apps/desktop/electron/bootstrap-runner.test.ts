@@ -296,26 +296,54 @@ test('installer log lines reach the emitter without escape sequences; \\r redraw
   assert.equal(cleanInstallerLogLine('Ready — café ✓ 中文'), 'Ready — café ✓ 中文')
 })
 
-test.skipIf(process.platform === 'win32')(
-  'a manifest-step failure surfaces the installer tail without escape sequences',
-  async () => {
-    const home = mkTmpHome()
-    fs.mkdirSync(path.join(home, 'scripts'))
-    fs.writeFileSync(
-      path.join(home, 'scripts', 'install.sh'),
-      '#!/usr/bin/env bash\nprintf "\\033[0;31m\\xe2\\x9c\\x97\\033[0m manifest broke\\n" >&2\nexit 3\n'
-    )
+test('Zeus bootstrap denies before local installer resolution, log creation or a subprocess', async () => {
+  const home = mkTmpHome()
+  const scripts = path.join(home, 'scripts')
+  const logRoot = path.join(home, 'log-dir')
+  const forbiddenMarker = path.join(home, 'installer-executed')
+  fs.mkdirSync(scripts)
+  fs.writeFileSync(
+    path.join(scripts, SCRIPT_NAME),
+    process.platform === 'win32'
+      ? 'Set-Content -Path "' + forbiddenMarker + '" -Value "executed"'
+      : '#!/usr/bin/env bash\\ntouch "' + forbiddenMarker + '"\\n'
+  )
 
+  const events = []
+  try {
     const result = await runBootstrap({
-      installStamp: null,
+      installStamp: { commit: 'a'.repeat(40), branch: 'main' },
       activeRoot: home,
       sourceRepoRoot: home,
       hermesHome: home,
-      logRoot: home,
-      onEvent: () => {}
+      logRoot,
+      onEvent: ev => events.push(ev)
     })
 
-    assert.equal(result.ok, false)
-    assert.equal(result.error, 'install.sh --manifest failed: exit 3\n✗ manifest broke')
+    assert.deepEqual(result, { ok: false, error: 'zeus-release-unapproved' })
+    assert.deepEqual(events, [{ type: 'failed', error: 'zeus-release-unapproved' }])
+    assert.equal(fs.existsSync(forbiddenMarker), false)
+    assert.equal(fs.existsSync(logRoot), false)
+    assert.deepEqual(fs.readdirSync(home), ['scripts'])
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true })
   }
-)
+})
+
+test('Zeus packaged installer refuses download before creating a cache', async () => {
+  const home = mkTmpHome()
+  try {
+    await assert.rejects(
+      resolveInstallScript({
+        installStamp: { commit: 'a'.repeat(40), branch: 'main' },
+        sourceRepoRoot: null,
+        hermesHome: home,
+        emit: () => {}
+      }),
+      /zeus-release-unapproved/
+    )
+    assert.deepEqual(fs.readdirSync(home), [])
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true })
+  }
+})
