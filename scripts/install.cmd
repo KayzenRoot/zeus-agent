@@ -1,28 +1,11 @@
 @echo off
-REM ============================================================================
-REM Hermes Agent Installer for Windows (CMD wrapper)
-REM ============================================================================
-REM This batch file launches the PowerShell installer for users running CMD.
-REM
-REM Usage:
-REM   curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.cmd -o install.cmd && install.cmd && del install.cmd
-REM
-REM Or if you're already in PowerShell, use the direct command instead:
-REM   iex (irm https://hermes-agent.nousresearch.com/install.ps1)
-REM ============================================================================
+setlocal
+REM ZEUS-001: Fail-closed Windows CMD entrypoint for this fork.
+REM The inherited Hermes installer used remote PowerShell execution.
+REM This wrapper must never execute upstream code or mutate a user profile.
+REM A verified Zeus-owned installer will be implemented and tested separately.
 
-echo.
-echo  Hermes Agent Installer
-echo  Launching PowerShell installer...
-echo.
-
-powershell -ExecutionPolicy ByPass -NoProfile -Command "iex (irm https://hermes-agent.nousresearch.com/install.ps1)"
-
-if %ERRORLEVEL% NEQ 0 (
-    echo.
-    echo  Installation failed. Please try running PowerShell directly:
-    echo    powershell -ExecutionPolicy ByPass -c "iex (irm https://hermes-agent.nousresearch.com/install.ps1)"
-    echo.
-    pause
-    exit /b 1
-)
+1>&2 echo zeus-release-unapproved: Zeus Windows installation is not yet available.
+1>&2 echo Use the isolated source-development instructions in .zeus\docs\windows-validation.md.
+1>&2 echo Do not run third-party Hermes installers to install Zeus.
+exit /b 2
