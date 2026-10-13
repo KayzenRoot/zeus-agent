@@ -11,3 +11,13 @@ TESTS: baseline and delta targeted tests, npm checks, visual browser smoke, auth
 DELIVERABLES: code, design assets, evidence, PR, proposed checkpoint delta.
 REVIEW FORMAT: Portuguese, APPROVED/CORRECTION REQUIRED/BLOCKED, with failures and concrete paths.
 STOP CONDITION: stop until any high severity error corrected and work order objectively approved.
+
+
+## CI WINDOWS FOLLOW-UP 2026-10-13 | Acceptance gate reconciliation
+
+- Latest independently verified implementation snapshot: `1766684270e4c96dfa47fd7190cedf45186c80bb`, PR #1 still draft; `main` base `23145d788a39453fcb6d81a6a53415a822b4655f`. [Dashboard + desktop CI success](https://github.com/KayzenRoot/zeus-agent/actions/runs/38414479477), [brand CI success](https://github.com/KayzenRoot/zeus-agent/actions/runs/38414481832).
+- Static/typecheck/lint/CI UI: **PASS in hosted Linux Node 24**; local Windows Node 26.4 UI and web tests: **FAIL/FLAKY REPORTED**, no independently collected failure logs; do not mark as passed.
+- Actual Windows/WSL2 runtime, gateway/model/PTY/auth and OS deep links: **NOT RUN**. Windows MSIX signing Publisher/certificate/install/rollback: **BLOCKED**. macOS DMG legacy assets/notarization: **NOT RUN**. Full release/update routes beyond fail-closed CLI and Electron UI gates: **AUDIT INCOMPLETE**.
+- **Next execution:** first capture exact failing tests/logs on Windows using Node 24 parity; compare isolated vs suite runs, worker concurrency and JS DOM cleanup without relaxing timeouts. Then isolated native Windows/WSL2 smoke (no unsigned MSIX), regression audit of OS-managed update surfaces, visual TIFF/ICNS review, and genuine publisher verification. Document outcome/exit codes in a future checkpoint.
+- Tracking and precise evidence: [ZEUS-001 audit](../audits/ZEUS-001-2026-10-13-ci-windows-update-dmg.md), [Windows validation runbook](../windows-validation.md).
+- **Gate decision stays CORRECTION REQUIRED / NO-GO merge and release.** No merge/force push/VPS/distribution while any native/high-risk gate lacks evidence.

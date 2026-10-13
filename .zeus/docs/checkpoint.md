@@ -87,3 +87,12 @@ installation, publisher approval or VPS changes.
 the same ZEUS-001 PR, run isolated native Windows/WSL2 validation
 and complete release signature/visual security evidence. Preserve
 the **CORRECTION REQUIRED** verdict until independent audit confirms DoD.
+
+
+## CI WINDOWS FOLLOW-UP 2026-10-13 | Verified HEAD `1766684270e4c96dfa47fd7190cedf45186c80bb`
+
+**Current decisive evidence for implementation SHA `1766684270e4c96dfa47fd7190cedf45186c80bb` (supersedes earlier "CI pending" status above):** [run 38414479477](https://github.com/KayzenRoot/zeus-agent/actions/runs/38414479477) = **dashboard-checks SUCCESS, desktop-static-checks SUCCESS**, including desktop lint, UI tests, native update-policy tests, release-config tests and static OS protocol checks. [Zeus brand tests 38414481832](https://github.com/KayzenRoot/zeus-agent/actions/runs/38414481832) = **SUCCESS**. Fix commits: `fc6a3c870ce518751c9062356c4e77edb28021c0`, `1766684270e4c96dfa47fd7190cedf45186c80bb`; no rule disabled. Base main remains `23145d788a39453fcb6d81a6a53415a822b4655f`. PR #1 still DRAFT.
+
+**Local Windows evidence (reported, not independently reproduced here):** Node 26.4, desktop lint exit 0 with 269 warnings, policy 5/5, update policy 2/2, web build/branding passed; `web check` timeout in SessionsPage tests, `test:ui` returned inconsistent failing sets (15 failures/6 files then 4 failures in other files). No complete local UI PASS is accepted. Linux CI and local Windows are not interchangeable. Review [audit & reproduction matrix](audits/ZEUS-001-2026-10-13-ci-windows-update-dmg.md).
+
+**Remaining stop gates:** native Windows/WSL2 smoke with model, gateway, PTY and auth; deterministic diagnosis of test instability; MSIX real Publisher/signature/install/uninstall/rollback; updater route audit beyond UI gate, including OS-owned registrations; `zeus://` OS activation; inherited DMG TIFF/ICNS visual/legal inspection and Mac build. No independent proof of these exists. **Verdict: CORRECTION REQUIRED, NO-GO merge/release; do not deploy to VPS.** This checkpoint commit itself is a newer HEAD and must receive its own CI before claiming that newer HEAD green.
