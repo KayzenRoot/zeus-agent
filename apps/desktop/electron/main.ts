@@ -728,6 +728,7 @@ import { readWindowsUserEnvVar } from './windows-user-env'
 import { isPackagedInstallPath as isPackagedInstallPathUnderRoots } from './workspace-cwd'
 import { readWslWindowsClipboardImage } from './wsl-clipboard-image'
 import { resolvePickerDefaultPath, setActiveGatewayProfile, setWslBridgeProfileState } from './wsl-path-bridge'
+import { isZeusDesktopBootstrapApproved, ZEUS_DESKTOP_BOOTSTRAP_DENIAL } from './zeus-bootstrap-policy'
 import {
   ZEUS_NATIVE_UPDATES_APPROVED,
   ZEUS_UPDATE_BLOCKED_MESSAGE,
@@ -4794,7 +4795,7 @@ async function handOffWindowsBootstrapRecovery(reason) {
   // Zeus has no approved installer/update publisher. The inherited recovery
   // path can spawn an updater before runBootstrap(), so refuse before
   // resolving executables, reading update state, creating markers or I/O.
-  if (!ZEUS_NATIVE_UPDATES_APPROVED) {
+  if (!isZeusDesktopBootstrapApproved() || !ZEUS_NATIVE_UPDATES_APPROVED) {
     return false
   }
 
@@ -15911,6 +15912,12 @@ ipcMain.handle('hermes:bootstrap:reset', async () => {
   return { ok: true }
 })
 ipcMain.handle('hermes:bootstrap:repair', async (): Promise<{ ok: boolean; bundled?: boolean; error?: string }> => {
+  // No repair transition may stop a healthy backend or force a legacy install
+  // before a Zeus-owned bootstrap channel has been approved.
+  if (!isZeusDesktopBootstrapApproved()) {
+    return { ok: false, error: ZEUS_DESKTOP_BOOTSTRAP_DENIAL }
+  }
+
   // A bundled install's payload is immutable and sealed at build time —
   // "repair" would re-run the installer against a separate
   // %LOCALAPPDATA%\hermes tree the app doesn't own. The only repair for a
@@ -15985,6 +15992,11 @@ registerUpdateHoldIpc(ipcMain, {
 })
 
 ipcMain.handle('hermes:bootstrap:continue-local', async () => {
+  // First-run confirmation must never authorize Hermes bootstrap in Zeus.
+  if (!isZeusDesktopBootstrapApproved()) {
+    return { ok: false, error: ZEUS_DESKTOP_BOOTSTRAP_DENIAL }
+  }
+
   rememberLog('[bootstrap] local install selected by renderer; continuing first-launch bootstrap')
   continueFirstRunLocalBootstrap()
 
