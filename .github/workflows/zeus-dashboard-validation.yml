@@ -66,6 +66,8 @@ jobs:
         run: npm run --workspace apps/desktop check:lint
       - name: Electron native update gate unit tests
         run: npm run --workspace apps/desktop test:desktop:platforms -- electron/zeus-update-policy.test.ts
+      - name: Desktop bootstrap fail-closed regression tests
+        run: npm run --workspace apps/desktop test:desktop:platforms -- electron/bootstrap-runner.test.ts
       - name: Check Windows native smoke harness JavaScript
         run: node --check apps/desktop/scripts/test-desktop.mjs
       - name: Desktop UI unit tests
