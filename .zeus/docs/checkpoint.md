@@ -21,7 +21,7 @@
 ## BLOCKERS / CORRECTION REQUIRED
 1. Windows/WSL2 local runtime not validated (backend start, model, gateway, chat, PTY, auth and UI walkthrough); keep all tests local-first; VPS strictly out of scope.
 2. Windows MSIX signature and actual Publisher certificate NOT validated. `CN=KayzenRoot` is only a provisional manifest value, not proof of any signing key. Do not publish installers.
-3. Desktop OS URI handler still registers `hermes://`, risking collision with an independently installed Hermes; investigate controlled switch to `zeus://` plus end-to-end tests before distribution. Internal `hermes:` IPC messages must not be blindly renamed.
+3. Desktop OS URI registration is now `zeus://` (plus `zeus-dev://` in development) in commit `42091e483aecb375c2374f5fb343f0178728c0ff`; Electron `hermes:` IPC remains intact and forwarded legacy Hermes deep links may still be parsed. **Typecheck, desktop UI tests and a real Windows deep-link activation are pending for this change.** Internal `hermes:` IPC messages must not be blindly renamed.
 4. Installer DMG packaging still references Nous-era background/icons (`packaging/nous-dmg-2b.tiff`, `packaging/dmg-volume.icns`). Replace only after asset inspection and native build tests.
 5. No vetted Zeus-owned release distribution/update manifest, signature verification, forward/rollback pipeline or source publisher. Source updates are temporarily blocked by the guard; further packaged updater paths require audit.
 6. Python regression suite, Electron platform-specific integration tests, macOS dmg/MSIX native packaging, image visual verification and authenticated dashboard security smoke still outstanding.

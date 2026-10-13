@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'web/**'
+      - 'apps/desktop/**'
       - 'apps/shared/**'
       - '.zeus/**'
       - '.github/workflows/zeus-dashboard-validation.yml'
@@ -71,3 +72,11 @@ jobs:
           grep -Fq '<title>Zeus Agent</title>' apps/desktop/index.html
           test -s apps/desktop/public/zeus-mark.svg
           test -s apps/desktop/public/apple-touch-icon.png
+      - name: Verify Zeus owns the OS protocol
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "const ZEUS_PROTOCOL = DEV_SERVER ? 'zeus-dev' : 'zeus'" apps/desktop/electron/main.ts
+          grep -Fq "schemes: ['zeus']" apps/desktop/electron-builder.config.cjs
+          grep -Fq '<SingleTap>zeus://copilot-key/start' apps/desktop/scripts/before-build.mjs
+          echo 'Zeus OS deep-link scheme is consistent in Electron and Windows MSIX.'
