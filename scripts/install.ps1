@@ -1401,6 +1401,19 @@ if ($script:IsDotSourced) {
     return
 }
 
+# ZEUS-001: source installer is deliberately disabled in this fork.
+# Keep the existing informational protocol (manifest/version/resolved paths)
+# and dot-sourced function definitions available to integration tests.
+# Every installing stage and the default install ladder must fail before
+# profile normalization, downloads, subprocesses, or filesystem mutation.
+if (-not ($ProtocolVersion -or $Manifest -or $ShowResolvedPaths)) {
+    [Console]::Error.WriteLine("zeus-release-unapproved: Zeus installer stages are disabled until a verified Zeus-owned installer is available.")
+    if ($script:RunAsFile) { exit 2 }
+    # Under iex: return instead of terminating the caller's PowerShell session.
+    $global:LASTEXITCODE = 2
+    return
+}
+
 # The normalization prologue runs exactly once per real entry, before any
 # switch is honored, so every contract below sees long-form paths.
 Initialize-ResolvedPaths
