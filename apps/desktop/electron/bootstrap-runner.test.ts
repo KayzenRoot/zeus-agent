@@ -306,7 +306,7 @@ test('Zeus bootstrap denies before local installer resolution, log creation or a
     path.join(scripts, SCRIPT_NAME),
     process.platform === 'win32'
       ? 'Set-Content -Path "' + forbiddenMarker + '" -Value "executed"'
-      : '#!/usr/bin/env bash\\ntouch "' + forbiddenMarker + '"\\n'
+      : '#!/usr/bin/env bash\ntouch "' + forbiddenMarker + '"\n'
   )
 
   const events = []
