@@ -775,6 +775,12 @@ function openRunLog(logRoot) {
 // Public entrypoint
 // ---------------------------------------------------------------------------
 
+// Pending an independently verified Zeus-owned distribution channel, all
+// startup installers are disabled. This is source-controlled, never env-driven.
+function zeusBootstrapReleaseApproved(): boolean {
+  return false
+}
+
 async function runBootstrap(opts) {
   const {
     installStamp,
@@ -806,13 +812,15 @@ async function runBootstrap(opts) {
   // ZEUS-001 fail-closed admission. Do not resolve/download installers,
   // create logs/markers, or spawn a platform stage before Zeus distribution
   // is independently approved. Do not honor env-based bypasses.
-  const error = 'zeus-release-unapproved'
-  try {
-    onEvent?.({ type: 'failed', error })
-  } catch {
-    // Reporting failures cannot authorize an installer fallback.
+  if (!zeusBootstrapReleaseApproved()) {
+    const error = 'zeus-release-unapproved'
+    try {
+      onEvent?.({ type: 'failed', error })
+    } catch {
+      // Reporting failures cannot authorize an installer fallback.
+    }
+    return { ok: false, error }
   }
-  return { ok: false, error }
 
   const runLog = openRunLog(logRoot || path.join(hermesHome, 'logs'))
 
