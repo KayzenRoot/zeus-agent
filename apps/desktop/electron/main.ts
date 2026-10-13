@@ -4791,6 +4791,13 @@ async function applyUpdates(): Promise<UpdaterApplyResultWire> {
 }
 
 async function handOffWindowsBootstrapRecovery(reason) {
+  // Zeus has no approved installer/update publisher. The inherited recovery
+  // path can spawn an updater before runBootstrap(), so refuse before
+  // resolving executables, reading update state, creating markers or I/O.
+  if (!ZEUS_NATIVE_UPDATES_APPROVED) {
+    return false
+  }
+
   if (!IS_WINDOWS || !IS_PACKAGED) {
     return false
   }
