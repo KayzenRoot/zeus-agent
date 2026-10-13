@@ -1,0 +1,37 @@
+name: Zeus brand unit tests
+
+on:
+  pull_request:
+    paths:
+      - '.zeus/**'
+      - 'hermes_cli/zeus_update_guard.py'
+      - 'hermes_cli/update_cmd.py'
+      - 'hermes_cli/main.py'
+      - 'scripts/desktop-update/repro.sh'
+      - 'scripts/desktop-update/posix.sh'
+      - 'scripts/desktop-update/windows.ps1'
+      - 'scripts/desktop-update.ps1'
+      - '.github/workflows/zeus-brand-unit.yml'
+  push:
+    branches:
+      - 'work/ZEUS-001-import-brand'
+
+permissions:
+  contents: read
+
+jobs:
+  brand-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test Zeus branding and update safety
+        run: python3 -m unittest discover -s .zeus/tests -p 'test_*.py' -v
+      - name: Compile public branding and source updater boundaries
+        run: |
+          python3 -m py_compile .zeus/tools/rebrand.py .zeus/tools/brand_os_icons.py .zeus/tools/brand_surfaces.py \
+            hermes_cli/zeus_update_guard.py hermes_cli/update_cmd.py hermes_cli/main.py
+      - name: Verify source notices
+        run: |
+          test -s LICENSE
+          grep -Fq 'Nous Research' LICENSE

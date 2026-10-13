@@ -1,0 +1,96 @@
+# ZEUS-001 diagnostic-only Windows test lane.
+# Relevant frontend changes and this workflow run Node 26.4.0 to reproduce
+# the local Windows regression; workflow_dispatch can compare Node 24.
+# Does not build/install unsigned MSIX, run Electron runtime, touch VPS or release.
+name: Zeus Windows test diagnostics
+
+on:
+  workflow_dispatch:
+    inputs:
+      node_major:
+        description: 'Node major to compare with local Windows'
+        type: choice
+        options:
+          - '24'
+          - '26'
+          - '26.4.0'
+        default: '26.4.0'
+        required: true
+  push:
+    branches:
+      - 'work/ZEUS-001-import-brand'
+    paths:
+      - '.github/workflows/zeus-windows-test-diagnostics.yml'
+      - 'apps/desktop/src/**'
+      - 'apps/desktop/vitest.config.ts'
+      - 'web/src/**'
+      - 'web/vitest.config.ts'
+      - 'package-lock.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zeus-win-diagnostics-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-js-tests:
+    runs-on: windows-latest
+    timeout-minutes: 55
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_major || '26.4.0' }}
+          cache: npm
+      - name: Capture environment and commit (no secrets)
+        run: |
+          set -euo pipefail
+          mkdir -p zeus-ci-evidence
+          { echo "SHA=$(git rev-parse HEAD)"; echo "Node=$(node --version)"; echo "npm=$(npm --version)"; echo "OS=$RUNNER_OS"; echo "Arch=$RUNNER_ARCH"; } | tee zeus-ci-evidence/environment.txt
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Reproduce isolated SessionsPage tests
+        id: isolated_sessions
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm run --workspace web test -- src/pages/SessionsPage.test.tsx --reporter=verbose 2>&1 | tee zeus-ci-evidence/sessions-isolated.log
+      - name: Reproduce full web test suite
+        id: full_web
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm run --workspace web test -- --reporter=verbose 2>&1 | tee zeus-ci-evidence/web-full.log
+      - name: Reproduce full desktop UI test suite
+        id: desktop_ui
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm run --workspace apps/desktop test:ui -- --reporter=verbose 2>&1 | tee zeus-ci-evidence/desktop-ui-full.log
+      - name: Save Windows diagnostics even when tests fail
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeus-win-js-tests-${{ inputs.node_major || '26.4.0' }}-${{ github.run_id }}
+          path: zeus-ci-evidence/
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Fail the job if any regression suite failed
+        if: always()
+        env:
+          ISOLATED_RESULT: ${{ steps.isolated_sessions.outcome }}
+          WEB_RESULT: ${{ steps.full_web.outcome }}
+          DESKTOP_RESULT: ${{ steps.desktop_ui.outcome }}
+        run: |
+          echo "SessionsPage: $ISOLATED_RESULT"
+          echo "Web suite:    $WEB_RESULT"
+          echo "Desktop UI:   $DESKTOP_RESULT"
+          if [[ "$ISOLATED_RESULT" != 'success' || "$WEB_RESULT" != 'success' || "$DESKTOP_RESULT" != 'success' ]]; then
+            echo "ZEUS-001 Windows JS verification FAILED or did not run. Inspect the saved artifact; do not promote the release."
+            exit 1
+          fi

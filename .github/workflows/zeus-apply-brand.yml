@@ -1,0 +1,59 @@
+name: ZEUS-001 apply visible branding and native icon assets
+
+on:
+  push:
+    branches:
+      - 'work/ZEUS-001-import-brand'
+    paths:
+      - '.github/workflows/zeus-apply-brand.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zeus-brand-001
+  cancel-in-progress: false
+
+jobs:
+  brand-safely:
+    if: github.repository == 'KayzenRoot/zeus-agent' && github.ref == 'refs/heads/work/ZEUS-001-import-brand'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply Zeus UI labels and native icons
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          python3 -m py_compile .zeus/tools/brand_surfaces.py .zeus/tools/brand_os_icons.py
+          python3 .zeus/tools/brand_surfaces.py --apply
+          python3 .zeus/tools/brand_os_icons.py --apply
+          python3 -m unittest discover -s .zeus/tests -p 'test_*.py' -v
+          git diff --check
+          test -s apps/desktop/assets/icon.ico
+          test -s apps/desktop/assets/icon.icns
+          test -s apps/desktop/assets/appx/Square150x150Logo.png
+          grep -Fq 'Nous Research' LICENSE
+      - name: Commit only branding changes on existing PR branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- apps/desktop/assets apps/desktop/src/i18n web/src/i18n web/src/App.tsx website/docusaurus.config.ts
+          if ! git diff --cached --quiet; then
+            git commit -m "feat(zeus): brand native installation assets and interface localizations"
+          fi
+          git push origin HEAD:refs/heads/work/ZEUS-001-import-brand
+      - name: Evidence
+        shell: bash
+        run: |
+          echo 'Native icon/logo and surface localization update committed to the existing ZEUS-001 PR.' >> "$GITHUB_STEP_SUMMARY"
+          echo "HEAD: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Windows/macOS actual installation not validated by this Linux-based generator.' >> "$GITHUB_STEP_SUMMARY"
+
+# Correction: allow high-density wide MSIX tiles.
