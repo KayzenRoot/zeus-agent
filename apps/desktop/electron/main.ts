@@ -630,11 +630,6 @@ import {
   type UpdaterStrategy
 } from './updater'
 import {
-  ZEUS_NATIVE_UPDATES_APPROVED,
-  zeusUpdatesBlockedApply,
-  zeusUpdatesBlockedStatus
-} from './zeus-update-policy'
-import {
   observeUpdaterHandoff,
   repairMacUpdaterHelper,
   resolveInstallationLauncher,
@@ -644,6 +639,11 @@ import {
   stagedUpdaterSupportsPrewrittenMarker,
   userLauncherInstallRoot
 } from './updater-process'
+import {
+  ZEUS_NATIVE_UPDATES_APPROVED,
+  zeusUpdatesBlockedApply,
+  zeusUpdatesBlockedStatus
+} from './zeus-update-policy'
 import { AppInstallerStrategy } from './updater/app-installer'
 import { createChannelAppInstallerStrategy } from './updater/app-installer'
 import { ChannelResolver, type ChannelTarget } from './updater/channel'
@@ -3708,7 +3708,9 @@ function emitUpdateProgress(payload) {
 async function checkUpdates(opts: { force?: boolean } = {}): Promise<UpdaterStatusWire> {
   // ZEUS-001: no source or packaged native update is authorized yet.
   // Short-circuit before any feed query or checkout read can execute.
-  if (!ZEUS_NATIVE_UPDATES_APPROVED) return zeusUpdatesBlockedStatus()
+  if (!ZEUS_NATIVE_UPDATES_APPROVED) {
+    return zeusUpdatesBlockedStatus()
+  }
   // A packaged install delegates to the update owner named by its stamp.
   let strategy: UpdaterStrategy | null = null
 
@@ -4751,7 +4753,9 @@ async function releaseBackendLock(updateRoot: string, tag: string): Promise<{ un
 // only this apply action changed.
 async function applyUpdates(): Promise<UpdaterApplyResultWire> {
   // The release gate must run before handoff markers, backend shutdown or I/O.
-  if (!ZEUS_NATIVE_UPDATES_APPROVED) return zeusUpdatesBlockedApply()
+  if (!ZEUS_NATIVE_UPDATES_APPROVED) {
+    return zeusUpdatesBlockedApply()
+  }
   return updateOperation.apply(async (): Promise<UpdaterApplyResultWire> => {
     updateInFlight = true
     let handedOff: boolean = false
@@ -18672,7 +18676,9 @@ ipcMain.handle('hermes:updates:apply', async (_event, payload) =>
 // About ▸ Updates channel selector; source checkouts only (packages bake their channel).
 ipcMain.handle('hermes:updates:channel:set', async (_event, name: unknown): Promise<UpdaterStatusWire> => {
   // Switching channels must not bypass the Zeus release gate.
-  if (!ZEUS_NATIVE_UPDATES_APPROVED) return zeusUpdatesBlockedStatus()
+  if (!ZEUS_NATIVE_UPDATES_APPROVED) {
+    return zeusUpdatesBlockedStatus()
+  }
   assertSourceUpdateChannel(INSTALL_STAMP)
 
   return resolveCheckoutUpdateStrategy().check({ force: true, setChannel: sourceChannelName(name) })
