@@ -1,27 +1,33 @@
 # ZEUS-001: focused fail-closed Windows CMD installer guard.
 # The test invokes only the wrapper that is supposed to refuse. It never
 # downloads, builds, signs or installs Zeus/Hermes artifacts.
-name: Zeus Windows CMD installer safety
+name: Zeus Windows installer safety
 
 on:
   pull_request:
     paths:
       - 'scripts/install.cmd'
+      - 'scripts/install.ps1'
+      - 'scripts/install.sh'
       - '.zeus/tests/test_zeus_install_cmd_guard.py'
+      - '.zeus/tests/test_zeus_install_stage_guard.py'
       - '.github/workflows/zeus-windows-install-cmd-safety.yml'
   push:
     branches:
       - 'work/ZEUS-001-import-brand'
     paths:
       - 'scripts/install.cmd'
+      - 'scripts/install.ps1'
+      - 'scripts/install.sh'
       - '.zeus/tests/test_zeus_install_cmd_guard.py'
+      - '.zeus/tests/test_zeus_install_stage_guard.py'
       - '.github/workflows/zeus-windows-install-cmd-safety.yml'
 
 permissions:
   contents: read
 
 jobs:
-  windows-cmd-deny:
+  windows-installer-deny:
     runs-on: windows-latest
     timeout-minutes: 8
     steps:
@@ -29,5 +35,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Prove inherited CMD wrapper refuses safely
-        run: python -m unittest discover -s .zeus/tests -p 'test_zeus_install_cmd_guard.py' -v
+      - name: Prove inherited installer entrypoints refuse safely
+        run: |
+          python -m unittest discover -s .zeus/tests -p 'test_zeus_install_cmd_guard.py' -v
+          python -m unittest discover -s .zeus/tests -p 'test_zeus_install_stage_guard.py' -v
