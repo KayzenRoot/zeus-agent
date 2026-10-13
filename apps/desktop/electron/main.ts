@@ -639,11 +639,6 @@ import {
   stagedUpdaterSupportsPrewrittenMarker,
   userLauncherInstallRoot
 } from './updater-process'
-import {
-  ZEUS_NATIVE_UPDATES_APPROVED,
-  zeusUpdatesBlockedApply,
-  zeusUpdatesBlockedStatus
-} from './zeus-update-policy'
 import { AppInstallerStrategy } from './updater/app-installer'
 import { createChannelAppInstallerStrategy } from './updater/app-installer'
 import { ChannelResolver, type ChannelTarget } from './updater/channel'
@@ -733,6 +728,11 @@ import { readWindowsUserEnvVar } from './windows-user-env'
 import { isPackagedInstallPath as isPackagedInstallPathUnderRoots } from './workspace-cwd'
 import { readWslWindowsClipboardImage } from './wsl-clipboard-image'
 import { resolvePickerDefaultPath, setActiveGatewayProfile, setWslBridgeProfileState } from './wsl-path-bridge'
+import {
+  ZEUS_NATIVE_UPDATES_APPROVED,
+  zeusUpdatesBlockedApply,
+  zeusUpdatesBlockedStatus
+} from './zeus-update-policy'
 
 const IDENTITY_APP_NAME: string | null = applyDesktopIdentity(app)
 const USER_DATA_OVERRIDE: string | undefined = process.env.HERMES_DESKTOP_USER_DATA_DIR
