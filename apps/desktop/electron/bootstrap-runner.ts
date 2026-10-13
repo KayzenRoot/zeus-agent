@@ -34,7 +34,6 @@
 
 import { execFileSync, spawn } from 'node:child_process'
 import fs from 'node:fs'
-import https from 'node:https'
 import path from 'node:path'
 
 // Relative, not `@hermes/shared/ansi`: the electron bundle is built by esbuild
@@ -224,90 +223,13 @@ function cachedScriptPath(hermesHome, cacheKey) {
   return path.join(bootstrapCacheDir(hermesHome), `install-${cacheKey}.${process.platform === 'win32' ? 'ps1' : 'sh'}`)
 }
 
-function downloadInstallScript(ref, destPath) {
-  // Fetch from GitHub raw at the install ref: the packaged SHA for a fresh
-  // install, the branch for an existing checkout or a non-git fallback stamp
-  // (never the all-zero placeholder, which is not a real GitHub commit).
-  const scriptName = installScriptName()
-  const url = `https://raw.githubusercontent.com/NousResearch/hermes-agent/${ref}/scripts/${scriptName}`
-
-  return new Promise((resolve, reject) => {
-    fs.mkdirSync(path.dirname(destPath), { recursive: true })
-    const tmpPath = destPath + '.tmp'
-    const out = fs.createWriteStream(tmpPath)
-    https
-      .get(url, res => {
-        if (res.statusCode === 301 || res.statusCode === 302) {
-          // GitHub raw shouldn't redirect for a SHA URL, but follow once
-          // defensively.
-          out.close()
-          fs.unlinkSync(tmpPath)
-          https
-            .get(res.headers.location, res2 => {
-              if (res2.statusCode !== 200) {
-                reject(
-                  new Error(
-                    `Failed to download ${scriptName}: HTTP ${res2.statusCode} from redirect ${res.headers.location}`
-                  )
-                )
-
-                return
-              }
-
-              const out2 = fs.createWriteStream(tmpPath)
-              res2.pipe(out2)
-              out2.on('finish', () => {
-                out2.close()
-                fs.renameSync(tmpPath, destPath)
-                resolve(destPath)
-              })
-              out2.on('error', reject)
-            })
-            .on('error', reject)
-
-          return
-        }
-
-        if (res.statusCode !== 200) {
-          out.close()
-
-          try {
-            fs.unlinkSync(tmpPath)
-          } catch {
-            void 0
-          }
-
-          reject(new Error(`Failed to download ${scriptName}: HTTP ${res.statusCode} from ${url}`))
-
-          return
-        }
-
-        res.pipe(out)
-        out.on('finish', () => {
-          out.close()
-          fs.renameSync(tmpPath, destPath)
-          resolve(destPath)
-        })
-        out.on('error', err => {
-          try {
-            fs.unlinkSync(tmpPath)
-          } catch {
-            void 0
-          }
-
-          reject(err)
-        })
-      })
-      .on('error', err => {
-        try {
-          fs.unlinkSync(tmpPath)
-        } catch {
-          void 0
-        }
-
-        reject(err)
-      })
-  })
+/**
+ * Zeus-owned bootstrap distribution is not yet audited. Never download the
+ * inherited Hermes installer or write a cached script for this fork. A future
+ * implementation needs signed Zeus artifacts, digest verification and rollback.
+ */
+function downloadInstallScript(_ref: string, _destPath: string): Promise<string> {
+  return Promise.reject(new Error('zeus-release-unapproved'))
 }
 
 async function resolveInstallScript({
@@ -880,6 +802,17 @@ async function runBootstrap(opts) {
 
     return { ok: false, cancelled: true }
   }
+
+  // ZEUS-001 fail-closed admission. Do not resolve/download installers,
+  // create logs/markers, or spawn a platform stage before Zeus distribution
+  // is independently approved. Do not honor env-based bypasses.
+  const error = 'zeus-release-unapproved'
+  try {
+    onEvent?.({ type: 'failed', error })
+  } catch {
+    // Reporting failures cannot authorize an installer fallback.
+  }
+  return { ok: false, error }
 
   const runLog = openRunLog(logRoot || path.join(hermesHome, 'logs'))
 
