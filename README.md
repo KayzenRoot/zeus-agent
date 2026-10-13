@@ -55,7 +55,7 @@ Esses comandos **validam código e build**, mas não equivalem a testar uma sess
 
 **Compatibilidade temporária:** comandos `hermes`, nomes de pacotes, variáveis `HERMES_*`, caminhos de dados, endpoints e chaves de configuração podem continuar com nomes originais para não quebrar integrações. A interface pública deverá usar a marca Zeus. Não renomeie esses identificadores sem migração e testes.
 
-**Proteção de atualização:** até existir um canal Zeus com origem, assinatura e rollback auditados, `zeus update` e `hermes update` são bloqueados preventivamente neste checkout. Isso evita importar uma versão upstream não revisada para o Zeus. Para consultar commits da própria branch, use `git fetch origin` e faça revisão antes de qualquer integração. Nunca execute o instalador ou o atualizador oficial do Hermes para "atualizar" o Zeus.
+**Proteção de atualização:** até existir um canal Zeus com origem, assinatura e rollback auditados, `zeus update` e `hermes update` são bloqueados preventivamente neste checkout; a interface desktop também recusa consulta, aplicação e troca de canal, e novos builds não embutem feeds de atualização. Isso evita importar uma versão upstream não revisada para o Zeus. Para consultar commits da própria branch, use `git fetch origin` e faça revisão antes de qualquer integração. Nunca execute o instalador ou o atualizador oficial do Hermes para "atualizar" o Zeus.
 
 ## Segurança e licença
 
@@ -71,5 +71,6 @@ A base original é [NousResearch/hermes-agent](https://github.com/NousResearch/h
 - [Definition of Done](.zeus/docs/definition-of-done.md)
 - [Checkpoint verificado](.zeus/docs/checkpoint.md)
 - [Work Order ZEUS-001](.zeus/docs/work-orders/ZEUS-001.md)
+- [Matriz de validação Windows/WSL2 e distribuição](.zeus/docs/windows-validation.md)
 
 **Próxima etapa:** terminar a identidade e a validação local da ZEUS-001 antes de integrar na `main`. Implantação na VPS está fora do escopo atual.
