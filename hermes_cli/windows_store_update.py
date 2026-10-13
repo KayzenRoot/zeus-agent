@@ -67,6 +67,16 @@ def _execute(mode: str, window_handle: int | None) -> dict:
 
 
 def main(argv=None) -> int:
+    # ZEUS-001: the bundled helper can be launched independently of Electron.
+    # Block before argument processing, PYTHONPATH .pth hooks, WinRT/COM imports
+    # or StoreContext activation. OS-managed updates remain a separate gate.
+    print(json.dumps({
+        "available": None, "ok": False,
+        "error": "zeus-release-unapproved",
+        "message": "Zeus Store updates require an audited signed release channel.",
+    }), flush=True)
+    return 1
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=("check", "download", "install"), default="check")
     parser.add_argument("--hwnd", type=int)

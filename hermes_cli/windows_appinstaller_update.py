@@ -38,6 +38,16 @@ def _load_projection():
 
 
 def main() -> int:
+    # ZEUS-001: this helper runs in a separate bundled Python process,
+    # independently of Electron's guarded IPC. Refuse before WinRT imports,
+    # querying OS-registered App Installer feeds or disclosing source URIs.
+    print(json.dumps({
+        "available": None, "ok": False,
+        "error": "zeus-release-unapproved",
+        "message": "Zeus App Installer updates require an audited signed release channel.",
+    }), flush=True)
+    return 1
+
     try:
         Package, PackageUpdateAvailability = _load_projection()
     except ImportError as exc:
