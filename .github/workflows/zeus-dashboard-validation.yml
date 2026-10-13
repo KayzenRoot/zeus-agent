@@ -64,6 +64,10 @@ jobs:
         run: node --test .zeus/tests/test_desktop_release_policy.cjs
       - name: Electron renderer and main process typecheck and lint
         run: npm run --workspace apps/desktop check:lint
+      - name: Electron native update gate unit tests
+        run: npm run --workspace apps/desktop test:desktop:platforms -- electron/zeus-update-policy.test.ts
+      - name: Check Windows native smoke harness JavaScript
+        run: node --check apps/desktop/scripts/test-desktop.mjs
       - name: Desktop UI unit tests
         run: npm run --workspace apps/desktop test:ui
       - name: Verify display branding without changing package identifier
