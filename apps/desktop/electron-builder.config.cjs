@@ -12,7 +12,6 @@
 
 const fs = require('node:fs')
 const path = require('node:path')
-const feedContract = require('./update-feed.cjs')
 const { createMacSigner } = require('./scripts/mac-sign.mjs')
 
 const {
@@ -24,7 +23,6 @@ const {
   appNamePascal,
   artifactNamePascal,
   windowsExecutableName,
-  channel,
   msixAppIdWithOrg,
   token
 } = require('./product-identity.cjs')
@@ -57,17 +55,11 @@ const channelRequest = channelBuildRequest()
 
 /** @typedef {import("app-builder-lib").Configuration} Configuration */
 
-const [owner, repo] = (process.env.GITHUB_REPOSITORY || 'KayzenRoot/zeus-agent').split('/')
-if (!owner || !repo) {
-  throw new Error(`invalid GITHUB_REPOSITORY ${process.env.GITHUB_REPOSITORY}`)
-}
 const electronVersion = require('./package.json').devDependencies.electron
 if (!/^\d+\.\d+\.\d+$/.test(electronVersion)) {
   throw new Error(`invalid electron version ${electronVersion} in package.json`)
 }
 
-const macFeed = channelRequest ? null : feedContract.darwinFeed(channel === 'canary' || channel === 'light-canary' ? 'canary' : 'stable', light)
-const publicUrl = feedContract.feedBaseUrl(process.env.CLOUDFLARE_R2_PUBLIC_URL)
 
 /** @satisfies {Configuration} */
 module.exports = {
@@ -86,20 +78,11 @@ module.exports = {
   // the release pipeline can keep the two apart.
   artifactName: `${store ? 'Store-' : ''}${artifactNamePascal}-\${version}-\${os}-\${arch}.\${ext}`,
   icon: 'assets/icon',
-  // The electron-updater feed. CI builds set CLOUDFLARE_R2_PUBLIC_URL (the R2
-  // public bucket / custom domain) and publish there — the feed yml, blockmaps
-  // and installers all live in the same flat R2 bucket, and electron-updater
-  // resolves the yml's relative artifact paths against it. Builds without the
-  // var (local, or a fork without the R2 vars) keep the github provider, which
-  // is exactly today's behavior. The store build has no feed at all (the Store
-  // owns its distribution and updates).
-  publish: channelRequest ? null : !channel
-    ? null
-    : [
-        publicUrl
-          ? { provider: 'generic', url: publicUrl, channel }
-          : { provider: 'github', owner, repo, channel }
-      ],
+  // ZEUS-001: no audited Zeus release feed, signing identity or rollback
+  // channel exists. Do not embed an updater provider into any build variant.
+  // Publishing and packaged auto-update must remain disabled until a separate
+  // reviewed release work order explicitly introduces a trusted Zeus feed.
+  publish: null,
   extraMetadata: {
     name: appNamePascal,
     // Electron bootstrap reads package.productName before main.ts. Keep the
@@ -150,14 +133,8 @@ module.exports = {
     icon: macIconResource(__dirname),
     // The afterSign hook owns notarization, including keychain-profile builds.
     notarize: false,
-    // The packaged client reads this generated app-update.yml by default.
-    publish: channelRequest?.receiverCandidate
-      ? [{ provider: 'generic', url: `${channelRequest.publicBase}/releases/darwin/stable/`, channel: 'stable' }]
-      : channelRequest
-      ? [{ provider: 'generic', url: `${channelRequest.publicBase}/releases/channel-builds/${channelRequest.buildId}/darwin/`, channel: 'latest' }]
-      : publicUrl && channel && macFeed
-      ? [{ provider: 'generic', url: `${publicUrl}/${macFeed.directory}/`, channel: macFeed.channel }]
-      : null,
+    // Refuse to embed a legacy or environment-injected macOS update feed.
+    publish: null,
     category: 'public.app-category.developer-tools',
     extendInfo: {
       CFBundleDisplayName: displayName,
@@ -203,7 +180,7 @@ module.exports = {
     // paste onto the stock removable-drive icon). It lives in packaging/ with
     // the background so the `files` whitelist keeps it out of the app bundle.
     icon: 'packaging/dmg-volume.icns',
-    title: 'Hermes Agent Installer',
+    title: `${displayName} Installer`,
     // A prebuilt .tiff on purpose, not a PNG plus a @2x sibling: dmg-builder's
     // PNG path runs `tiffutil -cathidpicheck`, which on macOS 26 rewrites both
     // frames to 72 dpi and silently drops the 2x representation. A .tiff is
@@ -280,8 +257,8 @@ module.exports = {
     category: 'Development',
     maintainer: 'KayzenRoot <https://github.com/KayzenRoot/zeus-agent>',
     synopsis: light
-      ? 'Remote-only desktop client for Hermes Agent.'
-      : 'Native desktop shell for Hermes Agent.',
+      ? 'Remote-only desktop client for Zeus Agent.'
+      : 'Native desktop shell for Zeus Agent.',
     target: ['AppImage']
   }
 }
