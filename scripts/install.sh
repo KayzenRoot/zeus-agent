@@ -1018,6 +1018,12 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
         exit 0
     fi
 
+    # ZEUS-001: keep the read-only manifest query, but never run an
+    # inherited Hermes install stage or clone upstream for this Zeus fork.
+    # Refuse before traps, receipts, subprocesses, downloads or disk writes.
+    printf '%s\n' 'zeus-release-unapproved: Zeus installer stages are disabled until a verified Zeus-owned installer is available.' >&2
+    exit 2
+
     if [ -n "$STAGE" ] && [ "$JSON" = true ]; then
         trap 'stage_result "$?"' EXIT
     elif [ -z "$STAGE" ]; then
