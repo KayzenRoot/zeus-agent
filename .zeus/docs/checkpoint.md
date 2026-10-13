@@ -34,3 +34,56 @@
 - Only promote ZEUS-001 to APPROVED after all DoD evidence; otherwise keep the PR draft and record the exact blocked criteria.
 
 **STOP CONDITION: do not merge or distribute until all critical acceptance gates have factual evidence.**
+
+
+## 2026-10-13 | ZEUS-001 Correction Delta (NOT APPROVED)
+
+**Base:** `23145d788a39453fcb6d81a6a53415a822b4655f`.
+**Implementation snapshot before this checkpoint:** `59c0650bb070bed5357123f3c7738cb799546b5c`.
+PR remains **DRAFT / CORRECTION REQUIRED**. No merge, deploy, Windows
+installation, publisher approval or VPS changes.
+
+### Newly verified
+
+- Earlier implementation HEAD `f3272786e9b82a7fa810e3dd8e5a0b21e5c63569`
+  passed [Zeus brand tests](https://github.com/KayzenRoot/zeus-agent/actions/runs/38338428085)
+  and [dashboard + desktop static/UI checks](https://github.com/KayzenRoot/zeus-agent/actions/runs/38338427952).
+- Subsequent correction commits on the same PR added a fail-closed
+  desktop update admission policy, refusing native update check/apply and
+  channel selection before feed/network/handoff I/O
+  (`apps/desktop/electron/zeus-update-policy.ts`,
+  `apps/desktop/electron/main.ts`). Product packaging explicitly omits
+  native updater feeds in all variants
+  (`apps/desktop/electron-builder.config.cjs`).
+- Added real-config Node regression cases for stable/light/bundled/store
+  and release-like environment. The **specific packaging-policy step**
+  succeeded in the intermediate
+  [desktop CI run 38395118328](https://github.com/KayzenRoot/zeus-agent/actions/runs/38395118328).
+  This is NOT a claim that the whole run succeeded.
+- Updated desktop source repository metadata while retaining original
+  Nous Research author and MIT attribution. Replaced DMG title and
+  Linux summary strings, not uninspected DMG binary graphics.
+- Updated `apps/desktop/scripts/test-desktop.mjs` to derive app/executable
+  and DMG names from Zeus product identity. Added
+  [Windows/WSL2 validation matrix](windows-validation.md).
+  The harness has **not** been exercised on a real Windows machine.
+
+### Explicitly unverified at this checkpoint
+
+- Full latest HEAD dashboard/desktop CI, UI suite, typecheck and lint:
+  running/pending; read the current PR head and its checks before
+  declaring green. Re-runs cancelled by subsequent commits are not
+  evidence of passing.
+- Independent review of all native updater/OS-managed update routes,
+  actual Windows MSIX Publisher certificate/signing, installation,
+  `zeus://` OS handler, macOS notarized DMG, local gateway/model/PTY,
+  authenticated UI and Python backend regressions.
+- No native distribution channel, auto-update, release artifact or
+  merge is authorized or validated. Package-level protection does not
+  claim to cancel update registrations of any previously installed
+  OS-managed packages.
+
+**Next necessary gate:** finish the HEAD CI, correct failures on
+the same ZEUS-001 PR, run isolated native Windows/WSL2 validation
+and complete release signature/visual security evidence. Preserve
+the **CORRECTION REQUIRED** verdict until independent audit confirms DoD.
