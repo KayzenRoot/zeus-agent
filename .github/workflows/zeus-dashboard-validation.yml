@@ -60,6 +60,8 @@ jobs:
           cache: npm
       - name: Install exactly locked dependencies
         run: npm ci --no-audit --no-fund
+      - name: Prove Zeus native build has no unaudited update feed
+        run: node --test .zeus/tests/test_desktop_release_policy.cjs
       - name: Electron renderer and main process typecheck and lint
         run: npm run --workspace apps/desktop check:lint
       - name: Desktop UI unit tests
