@@ -1,4 +1,4 @@
-# ZEUS-001: focused fail-closed Windows CMD installer guard.
+# ZEUS-001: focused fail-closed Windows installer entrypoint guards.
 # The test invokes only the wrapper that is supposed to refuse. It never
 # downloads, builds, signs or installs Zeus/Hermes artifacts.
 name: Zeus Windows installer safety
@@ -36,6 +36,4 @@ jobs:
         with:
           python-version: '3.11'
       - name: Prove inherited installer entrypoints refuse safely
-        run: |
-          python -m unittest discover -s .zeus/tests -p 'test_zeus_install_cmd_guard.py' -v
-          python -m unittest discover -s .zeus/tests -p 'test_zeus_install_stage_guard.py' -v
+        run: python -m unittest discover -s .zeus/tests -p 'test_zeus_install*_guard.py' -v
