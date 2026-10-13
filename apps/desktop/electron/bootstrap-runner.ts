@@ -42,6 +42,7 @@ import { stripAnsi } from '../../shared/src/ansi'
 
 import { pathEnvKey, storeFirstPath } from './backend-env'
 import { hiddenWindowsChildOptions } from './windows-child-options'
+import { isZeusDesktopBootstrapApproved, ZEUS_DESKTOP_BOOTSTRAP_DENIAL } from './zeus-bootstrap-policy'
 
 const IS_WINDOWS = process.platform === 'win32'
 
@@ -229,7 +230,7 @@ function cachedScriptPath(hermesHome, cacheKey) {
  * implementation needs signed Zeus artifacts, digest verification and rollback.
  */
 function downloadInstallScript(_ref: string, _destPath: string): Promise<string> {
-  return Promise.reject(new Error('zeus-release-unapproved'))
+  return Promise.reject(new Error(ZEUS_DESKTOP_BOOTSTRAP_DENIAL))
 }
 
 async function resolveInstallScript({
@@ -775,12 +776,6 @@ function openRunLog(logRoot) {
 // Public entrypoint
 // ---------------------------------------------------------------------------
 
-// Pending an independently verified Zeus-owned distribution channel, all
-// startup installers are disabled. This is source-controlled, never env-driven.
-function zeusBootstrapReleaseApproved(): boolean {
-  return false
-}
-
 async function runBootstrap(opts) {
   const {
     installStamp,
@@ -812,8 +807,8 @@ async function runBootstrap(opts) {
   // ZEUS-001 fail-closed admission. Do not resolve/download installers,
   // create logs/markers, or spawn a platform stage before Zeus distribution
   // is independently approved. Do not honor env-based bypasses.
-  if (!zeusBootstrapReleaseApproved()) {
-    const error = 'zeus-release-unapproved'
+  if (!isZeusDesktopBootstrapApproved()) {
+    const error = ZEUS_DESKTOP_BOOTSTRAP_DENIAL
     try {
       onEvent?.({ type: 'failed', error })
     } catch {
