@@ -7,6 +7,10 @@ on:
       - 'hermes_cli/zeus_update_guard.py'
       - 'hermes_cli/update_cmd.py'
       - 'hermes_cli/main.py'
+      - 'scripts/desktop-update/repro.sh'
+      - 'scripts/desktop-update/posix.sh'
+      - 'scripts/desktop-update/windows.ps1'
+      - 'scripts/desktop-update.ps1'
       - '.github/workflows/zeus-brand-unit.yml'
   push:
     branches:
