@@ -1,17 +1,20 @@
-"""Fail-closed update admission for a Zeus-branded source checkout.
+"""Fail-closed update admission for all Zeus fork runtimes.
 
-The fork imports the Hermes core for compatibility, but its updater remains
-configured for upstream releases, signing and fork-sync. No automatic update
-is safe until Zeus has a reviewed publisher, release feed and rollback path.
-Only disables source update flows for a checkout carrying ZEUS-001 markers.
+A Zeus runtime must not identify itself using optional checkout docs or
+branding assets: these may be absent from sealed snapshots and recovery
+environments. Upstream Hermes code does not contain this fork-specific guard.
+No automatic updates until Zeus has a verified signed feed and rollback.
 """
 from pathlib import Path
 
 
 def is_zeus_checkout(root: Path) -> bool:
-    root = Path(root)
-    return ((root / ".zeus" / "brand" / "zeus-mark.svg").is_file()
-            and (root / ".zeus" / "docs" / "work-orders" / "ZEUS-001.md").is_file())
+    """Compatibility predicate: the executable code identifies this Zeus fork.
+
+    The root argument is kept for call-site compatibility but is intentionally
+    not checked. Missing branding files must never permit upstream updates.
+    """
+    return True
 
 
 def refuse_zeus_unverified_update(root: Path) -> None:

@@ -43,14 +43,28 @@ class ZeusUpdateGuardTest(unittest.TestCase):
                 refuse_zeus_unverified_update(root)
             self.assertEqual(raised.exception.code, 2)
 
-    def test_only_one_marker_does_not_impact_original(self):
+    def test_partial_or_missing_markers_do_not_enable_upstream_updates(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            path = root / ".zeus/brand/zeus-mark.svg"
-            path.parent.mkdir(parents=True)
-            path.write_text("Zeus", encoding="utf-8")
-            self.assertFalse(is_zeus_checkout(root))
-            self.assertIsNone(refuse_zeus_unverified_update(root))
+            for marker in (None, ".zeus/brand/zeus-mark.svg"):
+                if marker:
+                    path = root / marker
+                    path.parent.mkdir(parents=True)
+                    path.write_text("Zeus", encoding="utf-8")
+                self.assertTrue(is_zeus_checkout(root))
+                with self.assertRaises(SystemExit) as raised:
+                    refuse_zeus_unverified_update(root)
+                self.assertEqual(raised.exception.code, 2)
+
+    def test_packaged_layout_without_source_docs_is_blocked(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            payload = Path(temporary) / "agent-payload" / "hermes-agent"
+            payload.mkdir(parents=True)
+            self.assertFalse((payload / ".zeus").exists())
+            self.assertTrue(is_zeus_checkout(payload))
+            with self.assertRaises(SystemExit) as raised:
+                refuse_zeus_unverified_update(payload)
+            self.assertEqual(raised.exception.code, 2)
 
     def test_emergency_recovery_is_independent_of_zeus_guard_import(self):
         """The early recovery closure must work if other modules are torn."""
@@ -108,6 +122,19 @@ class ZeusUpdateGuardTest(unittest.TestCase):
                 restore_interrupted_pull(root)
             self.assertEqual(marker.read_bytes(), unchanged)
 
+    def test_packaged_runtime_without_source_markers_refuses_legacy_recovery(self):
+        from hermes_cli._early_recovery import INTERRUPTED_PULL_MARKER, restore_interrupted_pull
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "agent-payload" / "hermes-agent"
+            marker = root / ".git" / INTERRUPTED_PULL_MARKER
+            marker.parent.mkdir(parents=True)
+            marker.write_text("legacy leftover", encoding="utf-8")
+            self.assertFalse((root / ".zeus").exists())
+            with self.assertRaisesRegex(SystemExit, "legacy Hermes update recovery is blocked"):
+                restore_interrupted_pull(root)
+            self.assertEqual(marker.read_text(encoding="utf-8"), "legacy leftover")
+
     def test_zeus_startup_refuses_inherited_zip_recovery_without_mutation(self):
         from hermes_cli._early_recovery import ZIP_SWAP_JOURNAL, restore_interrupted_pull
 
@@ -124,11 +151,14 @@ class ZeusUpdateGuardTest(unittest.TestCase):
                 restore_interrupted_pull(root)
             self.assertEqual(journal.read_bytes(), unchanged)
 
-    def test_upstream_checkout_is_unaffected(self):
+    def test_arbitrary_root_does_not_weaken_this_fork_guard(self):
+        # Real upstream Hermes does not ship this fork-specific code.
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            self.assertFalse(is_zeus_checkout(root))
-            self.assertIsNone(refuse_zeus_unverified_update(root))
+            self.assertTrue(is_zeus_checkout(root))
+            with self.assertRaises(SystemExit) as raised:
+                refuse_zeus_unverified_update(root)
+            self.assertEqual(raised.exception.code, 2)
 
 
 if __name__ == "__main__":
