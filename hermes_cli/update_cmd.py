@@ -640,6 +640,9 @@ def _cmd_update_check(branch: str = "main", *, branch_explicit: bool = False, ch
     Installs that can't honor non-default branches (e.g. Docker) surface a
     one-line notice instead of silently dropping the flag.
     """
+    from hermes_cli.zeus_update_guard import refuse_zeus_unverified_update
+    refuse_zeus_unverified_update(_m().PROJECT_ROOT)
+
     # Shared admission gate (#91277 Phase 3): same marker-first decision as
     # the apply path, so --check can never report git state for an install
     # whose real update mechanism is an image pull.
@@ -1795,6 +1798,9 @@ def _update_run_channel(args) -> str:
 
 def _cmd_update_impl(args, gateway_mode: bool):
     """Apply the update; the command boundary owns errors, receipts and stdio."""
+    from hermes_cli.zeus_update_guard import refuse_zeus_unverified_update
+    refuse_zeus_unverified_update(_m().PROJECT_ROOT)
+
     # Marks this frame as the CURRENT updater for
     # _old_updater.in_historical_update(); historical on-disk updaters do not
     # declare this local, so only they hand off through retired shims.

@@ -55,6 +55,8 @@ Esses comandos **validam código e build**, mas não equivalem a testar uma sess
 
 **Compatibilidade temporária:** comandos `hermes`, nomes de pacotes, variáveis `HERMES_*`, caminhos de dados, endpoints e chaves de configuração podem continuar com nomes originais para não quebrar integrações. A interface pública deverá usar a marca Zeus. Não renomeie esses identificadores sem migração e testes.
 
+**Proteção de atualização:** até existir um canal Zeus com origem, assinatura e rollback auditados, `zeus update` e `hermes update` são bloqueados preventivamente neste checkout. Isso evita importar uma versão upstream não revisada para o Zeus. Para consultar commits da própria branch, use `git fetch origin` e faça revisão antes de qualquer integração. Nunca execute o instalador ou o atualizador oficial do Hermes para "atualizar" o Zeus.
+
 ## Segurança e licença
 
 O repositório é **público por decisão do proprietário**. Nunca envie `.env` com credenciais, tokens, logs de sessões, chaves, arquivos locais de estado ou dados particulares.

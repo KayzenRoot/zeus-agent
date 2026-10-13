@@ -2402,6 +2402,11 @@ from hermes_cli.update_receipt import update_receipt_scope
 @update_receipt_scope()
 def cmd_update(args):
     """Update Hermes Agent: hangup protection + update lock around ``_cmd_update_impl``."""
+    # Zeus must never take Hermes's updater path before it has an audited
+    # Zeus-owned release source. Refuse before retarget, fetch or any write.
+    from hermes_cli.zeus_update_guard import refuse_zeus_unverified_update
+    refuse_zeus_unverified_update(PROJECT_ROOT)
+
     # Marks this frame as the CURRENT updater for
     # _old_updater.in_historical_update(); historical on-disk updaters do not
     # declare this local, so only they hand off through retired shims.
