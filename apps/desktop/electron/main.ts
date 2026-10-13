@@ -11855,6 +11855,14 @@ async function updateManagedSshConnection(source, correlationId) {
 }
 
 async function recoverManagedSshUpdate(record) {
+  // ZEUS-001: crash recovery is a separate launch-time entrypoint. A stored
+  // Hermes update journal must not authorize a remote SSH dial, backend
+  // restart or receipt mutation while Zeus release admission is denied.
+  // Preserve the journal untouched for an explicitly reviewed recovery.
+  if (!ZEUS_NATIVE_UPDATES_APPROVED) {
+    return
+  }
+
   const connectionId = record.connectionId
 
   if (managedConnectionRecoveries.has(connectionId) || managedConnectionUpdates.has(connectionId)) {
@@ -11933,6 +11941,12 @@ async function recoverManagedSshUpdate(record) {
 }
 
 async function resumeManagedSshRecoveries() {
+  // At app startup, refuse before even reading a preexisting Hermes journal.
+  // Do not clear its entries or connect to any recorded remote endpoint.
+  if (!ZEUS_NATIVE_UPDATES_APPROVED) {
+    return
+  }
+
   await Promise.allSettled(readManagedSshRecoveryRecords().map(record => recoverManagedSshUpdate(record)))
 }
 
