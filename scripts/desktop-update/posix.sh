@@ -47,6 +47,12 @@
 
 set -u
 
+# ZEUS-001: prevent direct calls from invoking the inherited Hermes handoff.
+# Must run before argument handling, HERMES_HOME creation, status/marker claims,
+# updater subprocesses, backend shutdown or relaunch. No bypass via flags/env.
+printf '%s\n' 'zeus-release-unapproved: Desktop update handoff is disabled until a signed Zeus release is audited.' >&2
+exit 2
+
 ORIGINAL_ARGS=("$@")
 INSTALL_ROOT="" BRANCH="main" CHANNEL="" DESKTOP_PID=0 RELAUNCH_TARGET=""
 BRANCH_EXPLICIT=0

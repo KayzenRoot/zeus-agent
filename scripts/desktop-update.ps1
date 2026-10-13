@@ -7,6 +7,11 @@
 # Without it, that Desktop would silently fall back to the frozen staged
 # Tauri binary for one update cycle — the exact rot this script family
 # exists to escape.
+# ZEUS-001: a previously installed desktop can invoke this legacy forwarder
+# directly. Block before probing or spawning the upstream handoff.
+[Console]::Error.WriteLine("zeus-release-unapproved: legacy Desktop update forwarder is disabled.")
+exit 2
+
 $target = Join-Path $PSScriptRoot "desktop-update\windows.ps1"
 if (-not (Test-Path -LiteralPath $target -PathType Leaf)) {
     Write-Error "The maintained Desktop updater is missing. Repair the Hermes installation before updating."

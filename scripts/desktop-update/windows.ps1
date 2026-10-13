@@ -79,6 +79,13 @@ param(
     [int]$CustodyOf = 0
 )
 
+# ZEUS-001 release admission: no Zeus-owned signed update feed, publisher,
+# rollback or OS installer contract has been validated. Refuse ALL invocations
+# (including marker helpers) before creating directories, mutating markers,
+# loading helper modules, starting processes or touching the checkout.
+[Console]::Error.WriteLine("zeus-release-unapproved: Desktop update handoff is disabled until a signed Zeus release is audited.")
+exit 2
+
 if ($MarkerOp -and -not $InstallRoot) {
     [Console]::Error.WriteLine("-MarkerOp needs -InstallRoot")
     exit 64
