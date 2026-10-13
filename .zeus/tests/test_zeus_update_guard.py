@@ -7,6 +7,30 @@ from hermes_cli.zeus_update_guard import is_zeus_checkout, refuse_zeus_unverifie
 
 
 class ZeusUpdateGuardTest(unittest.TestCase):
+    def test_dashboard_api_refuses_before_launching_upstream_updater(self):
+        """Structural gate: the dashboard route must deny before action receipts or I/O."""
+        import ast
+
+        route = Path(__file__).resolve().parents[2] / "hermes_cli/web_routers/actions.py"
+        tree = ast.parse(route.read_text(encoding="utf-8"))
+        handler = next(
+            node for node in tree.body
+            if isinstance(node, ast.AsyncFunctionDef) and node.name == "update_hermes"
+        )
+        # First executable statement after docstring imports the guard.
+        first, second = handler.body[1:3]
+        self.assertIsInstance(first, ast.ImportFrom)
+        self.assertEqual(first.module, "hermes_cli.zeus_update_guard")
+        self.assertEqual([name.name for name in first.names], ["is_zeus_checkout"])
+        self.assertIsInstance(second, ast.If)
+        self.assertIn("is_zeus_checkout", ast.unparse(second.test))
+        self.assertIn("PROJECT_ROOT", ast.unparse(second.test))
+        self.assertIsInstance(second.body[0], ast.Return)
+        rejected = ast.unparse(second.body[0].value)
+        self.assertIn("zeus-release-unapproved", rejected)
+        self.assertIn("'ok': False", rejected)
+        self.assertNotIn("_update_refused", rejected)
+
     def test_canonical_zeus_checkout_refuses(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

@@ -240,6 +240,19 @@ def _update_refused(error: str, message: str, update_command: str) -> dict[str, 
 @router.post("/api/hermes/update")
 async def update_hermes():
     """Kick off ``hermes update`` in the background."""
+    # ZEUS-001: guard here, not only in cmd_update. The dashboard can spawn
+    # a subprocess and write an action receipt before reaching that CLI guard.
+    # This branch is intentionally read-only, with no receipt/log writes.
+    from hermes_cli.zeus_update_guard import is_zeus_checkout
+
+    if is_zeus_checkout(_server_path("PROJECT_ROOT")):
+        return {
+            "ok": False, "pid": None, "name": "hermes-update",
+            "error": "zeus-release-unapproved",
+            "message": "Zeus source updates are blocked until a signed Zeus release channel is audited.",
+            "update_command": "",
+        }
+
     if is_commit_build(_server_path("PROJECT_ROOT")):
         return _update_refused("commit-build", COMMIT_BUILD_UPDATE_MESSAGE, "")
 
