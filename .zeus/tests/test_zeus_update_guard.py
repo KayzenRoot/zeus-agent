@@ -28,6 +28,34 @@ class ZeusUpdateGuardTest(unittest.TestCase):
             self.assertFalse(is_zeus_checkout(root))
             self.assertIsNone(refuse_zeus_unverified_update(root))
 
+    def test_emergency_recovery_is_independent_of_zeus_guard_import(self):
+        """The early recovery closure must work if other modules are torn."""
+        from unittest.mock import patch
+        import builtins
+        from hermes_cli._early_recovery import restore_interrupted_pull
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for path in (root / ".zeus/brand/zeus-mark.svg",
+                         root / ".zeus/docs/work-orders/ZEUS-001.md"):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("Zeus", encoding="utf-8")
+            marker = root / ".git" / "hermes-update-pull"
+            marker.parent.mkdir()
+            marker.write_text("legacy", encoding="utf-8")
+
+            original_import = builtins.__import__
+
+            def fail_if_guard_imported(name, *args, **kwargs):
+                if name == "hermes_cli.zeus_update_guard" or name == "zeus_update_guard":
+                    raise AssertionError("emergency startup imported fork guard")
+                return original_import(name, *args, **kwargs)
+
+            with patch("builtins.__import__", side_effect=fail_if_guard_imported):
+                with self.assertRaisesRegex(SystemExit, "legacy Hermes update recovery is blocked"):
+                    restore_interrupted_pull(root)
+            self.assertEqual(marker.read_text(encoding="utf-8"), "legacy")
+
     def test_zeus_startup_skips_hermes_recovery_without_markers(self):
         from hermes_cli._early_recovery import restore_interrupted_pull
 
