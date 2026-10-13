@@ -943,6 +943,20 @@ def restore_interrupted_pull(project_root: Path | None = None, *, after_failure:
     """
     try:
         root = _project_root() if project_root is None else project_root
+        # ZEUS-001: main.py invokes this startup repair BEFORE cmd_update's
+        # Zeus release guard. An inherited Hermes pull/ZIP journal would
+        # otherwise restore tracked files on an ordinary Zeus launch. Fail
+        # closed without mutating the checkout or destroying forensic markers.
+        # The upstream Hermes recovery path below remains unchanged.
+        from hermes_cli.zeus_update_guard import is_zeus_checkout
+
+        if is_zeus_checkout(Path(root)):
+            if interrupted_pull_marker(Path(root)).is_file() or (Path(root) / ZIP_SWAP_JOURNAL).is_file():
+                raise SystemExit(
+                    "zeus: legacy Hermes update recovery is blocked for this fork; "
+                    "inspect the interrupted Git/ZIP journal manually before resuming."
+                )
+            return False
         marker = interrupted_pull_marker(root)
         if not marker.is_file() and not (Path(root) / ZIP_SWAP_JOURNAL).is_file():
             return False  # fast path: nothing to repair, no lock taken

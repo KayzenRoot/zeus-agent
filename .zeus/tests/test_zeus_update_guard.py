@@ -28,6 +28,50 @@ class ZeusUpdateGuardTest(unittest.TestCase):
             self.assertFalse(is_zeus_checkout(root))
             self.assertIsNone(refuse_zeus_unverified_update(root))
 
+    def test_zeus_startup_skips_hermes_recovery_without_markers(self):
+        from hermes_cli._early_recovery import restore_interrupted_pull
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for path in (root / ".zeus/brand/zeus-mark.svg",
+                         root / ".zeus/docs/work-orders/ZEUS-001.md"):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("Zeus", encoding="utf-8")
+            self.assertFalse(restore_interrupted_pull(root))
+
+    def test_zeus_startup_refuses_inherited_git_recovery_without_mutation(self):
+        from hermes_cli._early_recovery import INTERRUPTED_PULL_MARKER, restore_interrupted_pull
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for path in (root / ".zeus/brand/zeus-mark.svg",
+                         root / ".zeus/docs/work-orders/ZEUS-001.md"):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("Zeus", encoding="utf-8")
+            marker = root / ".git" / INTERRUPTED_PULL_MARKER
+            marker.parent.mkdir(parents=True)
+            marker.write_text("legacy recovery marker - do not mutate", encoding="utf-8")
+            unchanged = marker.read_bytes()
+            with self.assertRaisesRegex(SystemExit, "legacy Hermes update recovery is blocked"):
+                restore_interrupted_pull(root)
+            self.assertEqual(marker.read_bytes(), unchanged)
+
+    def test_zeus_startup_refuses_inherited_zip_recovery_without_mutation(self):
+        from hermes_cli._early_recovery import ZIP_SWAP_JOURNAL, restore_interrupted_pull
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for path in (root / ".zeus/brand/zeus-mark.svg",
+                         root / ".zeus/docs/work-orders/ZEUS-001.md"):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("Zeus", encoding="utf-8")
+            journal = root / ZIP_SWAP_JOURNAL
+            journal.write_text("legacy ZIP journal - do not mutate", encoding="utf-8")
+            unchanged = journal.read_bytes()
+            with self.assertRaisesRegex(SystemExit, "legacy Hermes update recovery is blocked"):
+                restore_interrupted_pull(root)
+            self.assertEqual(journal.read_bytes(), unchanged)
+
     def test_upstream_checkout_is_unaffected(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
