@@ -1,6 +1,6 @@
 # ZEUS-001 diagnostic-only Windows test lane.
-# Pushes changing only this file exercise Node 26.4.0 to reproduce the
-# user's local Windows runtime; workflow_dispatch can compare Node 24.
+# Relevant frontend changes and this workflow run Node 26.4.0 to reproduce
+# the local Windows regression; workflow_dispatch can compare Node 24.
 # Does not build/install unsigned MSIX, run Electron runtime, touch VPS or release.
 name: Zeus Windows test diagnostics
 
@@ -21,6 +21,11 @@ on:
       - 'work/ZEUS-001-import-brand'
     paths:
       - '.github/workflows/zeus-windows-test-diagnostics.yml'
+      - 'apps/desktop/src/**'
+      - 'apps/desktop/vitest.config.ts'
+      - 'web/src/**'
+      - 'web/vitest.config.ts'
+      - 'package-lock.json'
 
 permissions:
   contents: read
