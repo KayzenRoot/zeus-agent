@@ -85,6 +85,17 @@ def _project_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
+def _is_zeus_source_checkout(root: Path) -> bool:
+    """Detect the fork using stdlib only, even when startup code is half-written.
+
+    This module is part of the emergency recovery closure. Importing any
+    separate Zeus or Hermes module here would make recovery itself depend on
+    a potentially torn checkout.
+    """
+    return ((root / ".zeus" / "brand" / "zeus-mark.svg").is_file()
+            and (root / ".zeus" / "docs" / "work-orders" / "ZEUS-001.md").is_file())
+
+
 def _read_marker_attempts(marker_path: Path) -> int:
     """Attempt counter from a marker's opportunistic JSON body; corrupt/missing → 0."""
     try:
@@ -948,9 +959,7 @@ def restore_interrupted_pull(project_root: Path | None = None, *, after_failure:
         # otherwise restore tracked files on an ordinary Zeus launch. Fail
         # closed without mutating the checkout or destroying forensic markers.
         # The upstream Hermes recovery path below remains unchanged.
-        from hermes_cli.zeus_update_guard import is_zeus_checkout
-
-        if is_zeus_checkout(Path(root)):
+        if _is_zeus_source_checkout(Path(root)):
             if interrupted_pull_marker(Path(root)).is_file() or (Path(root) / ZIP_SWAP_JOURNAL).is_file():
                 raise SystemExit(
                     "zeus: legacy Hermes update recovery is blocked for this fork; "
