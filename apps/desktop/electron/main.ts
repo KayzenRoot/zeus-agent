@@ -730,6 +730,7 @@ import { readWslWindowsClipboardImage } from './wsl-clipboard-image'
 import { resolvePickerDefaultPath, setActiveGatewayProfile, setWslBridgeProfileState } from './wsl-path-bridge'
 import {
   ZEUS_NATIVE_UPDATES_APPROVED,
+  ZEUS_UPDATE_BLOCKED_MESSAGE,
   zeusUpdatesBlockedApply,
   zeusUpdatesBlockedStatus
 } from './zeus-update-policy'
@@ -16611,6 +16612,11 @@ ipcMain.handle('hermes:gateway:ws-url-for', async (_event, payload) => {
 // those serves, proves the correlated receipt, and restores every prior scope.
 async function requestManagedSshUpdate(rawId) {
   const connectionId = String(rawId || '').trim()
+  // ZEUS-001: managed SSH updates use the upstream Hermes launcher.
+  // Refuse before a registry read, remote drain, transport or update command.
+  if (!ZEUS_NATIVE_UPDATES_APPROVED) {
+    return refusedManagedSshUpdate(connectionId, crypto.randomUUID(), ZEUS_UPDATE_BLOCKED_MESSAGE, 'zeus-release-unapproved')
+  }
   const existing = managedConnectionUpdates.get(connectionId)
 
   if (existing) {
@@ -16661,6 +16667,11 @@ ipcMain.handle('hermes:connections:update-managed', async (_event, rawId) => req
 // app's own update pipeline; Desktop-managed SSH uses the transactional
 // drain/update/restore lifecycle; URL remotes POST their backend updater.
 ipcMain.handle('hermes:connections:update-all', async (_event, payload) => {
+  // Local, SSH and URL-backed targets must all refuse while there is no
+  // Zeus-owned signed update source. Do not dial or POST to Hermes upstream.
+  if (!ZEUS_NATIVE_UPDATES_APPROVED) {
+    return { ok: false, error: 'zeus-release-unapproved', message: ZEUS_UPDATE_BLOCKED_MESSAGE, results: [] }
+  }
   const registry = readDesktopConnectionsRegistry()
 
   // Optional renderer-side exclusions: the everything-update flow dispatches
