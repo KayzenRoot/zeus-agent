@@ -21,3 +21,10 @@ STOP CONDITION: stop until any high severity error corrected and work order obje
 - **Next execution:** first capture exact failing tests/logs on Windows using Node 24 parity; compare isolated vs suite runs, worker concurrency and JS DOM cleanup without relaxing timeouts. Then isolated native Windows/WSL2 smoke (no unsigned MSIX), regression audit of OS-managed update surfaces, visual TIFF/ICNS review, and genuine publisher verification. Document outcome/exit codes in a future checkpoint.
 - Tracking and precise evidence: [ZEUS-001 audit](../audits/ZEUS-001-2026-10-13-ci-windows-update-dmg.md), [Windows validation runbook](../windows-validation.md).
 - **Gate decision stays CORRECTION REQUIRED / NO-GO merge and release.** No merge/force push/VPS/distribution while any native/high-risk gate lacks evidence.
+
+
+## NODE26 VOICE PREFS REPRO 2026-10-13 | Acceptance delta
+
+- Windows/Node 26.4 CI [run 38425723776](https://github.com/KayzenRoot/zeus-agent/actions/runs/38425723776) **FAILED 2/10,783 desktop UI tests** in `apps/desktop/src/store/voice-prefs.test.ts` on mocked localStorage write failure; isolated SessionsPage and full web suite passed. Node 24 Windows earlier [run 38419378102](https://github.com/KayzenRoot/zeus-agent/actions/runs/38419378102) passed 10,783/10,783 UI tests on SHA `906de67`.
+- Correct the test mock target for fallback storage in Node 26 without hiding storage exceptions, and require focused Windows **Node 24 + 26.4.0** PASS on the same updated SHA; thereafter full Node 26 UI run to catch interactions.
+- Linux full dashboard + desktop CI and brand CI passed at `f51c558`; the corrective commit must independently pass. Do not close #2 from a focused-only test. Native runtime/MSIX/DMG tests still pending. **NO-GO merge/release/VPS.**
