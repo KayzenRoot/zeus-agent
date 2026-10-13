@@ -28,6 +28,14 @@
 
 set -euo pipefail
 
+# ZEUS-001: this legacy diagnostic script runs real install/update flows and
+# removes its configurable sandbox via rm -rf. Do not resolve the target path,
+# delete any files, clone repos, spawn helpers or execute its test modes until
+# Zeus has an independently reviewed installation and update distribution.
+# Source controlled deny: arguments and environment must not bypass this gate.
+printf '%s\n' 'zeus-release-unapproved: legacy desktop update repro is disabled.' >&2
+exit 2
+
 MODE="${1:-help}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
