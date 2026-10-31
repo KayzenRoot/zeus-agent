@@ -25,7 +25,7 @@ function inlineKeyLooksValid(value) {
   return value.includes('BEGIN PRIVATE KEY') && value.includes('END PRIVATE KEY')
 }
 
-function resolveApiKeyPath(rawValue) {
+export function resolveApiKeyPath(rawValue) {
   const value = String(rawValue || '').trim()
   if (!value) return { keyPath: '', cleanup: () => {} }
 
@@ -37,13 +37,17 @@ function resolveApiKeyPath(rawValue) {
     throw new Error('APPLE_API_KEY must be a file path or inline .p8 key content')
   }
 
-  const tempPath = path.join(os.tmpdir(), `hermes-notary-${Date.now()}-${process.pid}.p8`)
-  fs.writeFileSync(tempPath, value, 'utf8')
+  // Private mkdtemp directory instead of a predictable name in the shared
+  // tmpdir: 0700 on POSIX, random suffix, so the inline .p8 key cannot be
+  // symlink-preempted or read by other local users while notarytool runs.
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-notary-'))
+  const tempPath = path.join(tempDir, 'key.p8')
+  fs.writeFileSync(tempPath, value, { encoding: 'utf8', flag: 'wx' })
   return {
     keyPath: tempPath,
     cleanup: () => {
       try {
-        fs.rmSync(tempPath, { force: true })
+        fs.rmSync(tempDir, { recursive: true, force: true })
       } catch {
         // Best-effort cleanup.
       }
