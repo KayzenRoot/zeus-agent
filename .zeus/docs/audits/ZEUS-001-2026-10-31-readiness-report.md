@@ -10,7 +10,7 @@ CD08 (DOMPurify) APPROVED individual. Este relatório consolida evidências; **n
 |---|---|---|---|
 | 1 | Proveniência da fonte + MIT LICENSE retidos; nenhum arquivo upstream ausente | ✅ VERIFICADO | Job "Canonical source and MIT provenance" PASS por HEAD; import com ancestralidade completa (`53df274b` ancestral do HEAD); `grep 'Nous Research' LICENSE` no job |
 | 2 | Código/assets refletem o escopo Zeus sem quebrar identificadores de runtime | ✅ VERIFICADO | Suíte `.zeus/tests` (brand/rebrand/guards) PASS em CI e local; pins de compatibilidade mantidos (`HERMES_*`, pacotes, `hermes` alias) |
-| 3 | Testes direcionados, lint/typecheck/build e checks de plataforma PASS ou indisponibilidade documentada | ✅ VERIFICADO (hospedado) / ⚠️ parcial (local) | CI HEAD `cdcd1194ba`: **17 checks PASS** (run 41244083140). Local Windows: npm ci, web build, typecheck ×3, release policy, web tests 429/429 (máquina ociosa); desktop UI local 10.756/10.783 com flakes rotativos de carga documentados (#2) |
+| 3 | Testes direcionados, lint/typecheck/build e checks de plataforma PASS ou indisponibilidade documentada | ✅ VERIFICADO (hospedado) / ✅ parcial (local) | CI HEAD `cdcd1194ba`: **17 checks PASS** (run 41244083140). Local Windows ocioso: npm ci, web build, typecheck ×3, release policy, **web check+tests 429/429 PASS**, **desktop UI 10.765/10.783 (1 falha rotativa de timing; as 2 causas determinísticas corrigidas passam)**; dados de carga em #2 |
 | 4 | Nenhuma chave ou segredo exposto | ✅ VERIFICADO | Trivy secrets: 0; secret scanning + push protection enabled; nenhum credential no diff (sanitizador de CI em vigor) |
 | 5 | PR com base/head SHA, paths alterados, outputs de teste, riscos e resultado de revisão | ✅ documentado / ⏳ revisão pendente | Body da PR consolidado; CD05–CD10 por SHA; riscos por delta; **resultado de revisão: PENDENTE (owner)** |
 | 6 | Funcionalidade local validada onde possível | ✅ VERIFICADO (sem BYOK) | `hermes update` recusa em runtime real; `hermes --version` executa; `uv sync` + imports; web build servido; dashboard/gateway/PTY com modelo real = pendente (exige BYOK) |
@@ -39,7 +39,7 @@ CD08 (DOMPurify) APPROVED individual. Este relatório consolida evidências; **n
 | 3. Backend+dashboard WSL2 com modelo | ⏸️ exige BYOK real (nunca recebida em Git); handoff Codex preparado |
 | 4. Segurança/identidade | ✅ parcial: recusa de updater em runtime VERIFICADA; `zeus://`/MSIX/DMG pendentes |
 
-Desktop UI na máquina real: 3 execuções completas (12→4→10 falhas rotativas vs runner 10.783/10.783); 2 causas determinísticas **corrigidas e verificadas** nos dois ambientes; restantes caracterizadas como sensibilidade a contenção (candidato seguinte: CronView queued-trigger).
+Desktop UI na máquina real: 4 execuções completas (12→4→10→**1** falhas rotativas vs runner 10.783/10.783; a sequência converge em máquina ociosa); 2 causas determinísticas **corrigidas e verificadas** nos dois ambientes; restantes caracterizadas como sensibilidade a contenção (candidato seguinte: CronView queued-trigger). Web local ocioso: check completo + 429/429 PASS.
 
 ## O que separa do APPROVED
 
