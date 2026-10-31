@@ -5,7 +5,7 @@ on:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
   push:
-    branches: [main, 'work/ZEUS-001-import-brand']
+    branches: [main] # PR branch already runs via pull_request; avoid duplicate audits
   workflow_dispatch:
   schedule:
     - cron: '23 9 * * 1' # UTC, only active after this workflow reaches main
@@ -87,6 +87,7 @@ jobs:
         with:
           scan-type: fs
           scan-ref: .
+          version: v0.76.1 # v0.70 skipped current Rego policies in the baseline
           scanners: 'vuln,misconfig,secret'
           severity: 'HIGH,CRITICAL'
           format: json
@@ -101,9 +102,25 @@ jobs:
           with open('zeus-trivy-results.json', encoding='utf-8') as fp:
               results = json.load(fp)
           count = Counter()
+          safe_findings = []
           for result in results.get('Results', []):
+              target = result.get('Target', '')
               for kind in ('Vulnerabilities', 'Misconfigurations', 'Secrets'):
-                  count[kind] += sum(x.get('Severity') in ('HIGH', 'CRITICAL') for x in result.get(kind) or [])
+                  for item in result.get(kind) or []:
+                      if item.get('Severity') not in ('HIGH', 'CRITICAL'):
+                          continue
+                      count[kind] += 1
+                      # Never copy secret matches, snippets, commands, payloads or raw scanner JSON.
+                      safe_findings.append({
+                          'category': kind, 'severity': item.get('Severity'),
+                          'target': target, 'id': item.get('VulnerabilityID') or item.get('ID') or item.get('RuleID'),
+                          'package': item.get('PkgName') if kind == 'Vulnerabilities' else None,
+                          'installed_version': item.get('InstalledVersion') if kind == 'Vulnerabilities' else None,
+                          'fixed_version': item.get('FixedVersion') if kind == 'Vulnerabilities' else None,
+                      })
+          os.makedirs('zeus-ci-evidence', exist_ok=True)
+          with open('zeus-ci-evidence/trivy-sanitized-findings.json', 'w', encoding='utf-8') as fp:
+              json.dump({'counts': dict(count), 'findings': safe_findings}, fp, indent=2, sort_keys=True)
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as fp:
               fp.write('### Trivy HIGH/CRITICAL (counts only, no sensitive values)\n')
               for kind in ('Vulnerabilities', 'Misconfigurations', 'Secrets'):
@@ -117,6 +134,14 @@ jobs:
         if: always()
         shell: bash
         run: rm -f zeus-trivy-results.json
+      - name: Upload sanitized finding IDs and affected packages only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: zeus-trivy-sanitized-${{ github.run_id }}
+          path: zeus-ci-evidence/trivy-sanitized-findings.json
+          if-no-files-found: warn
+          retention-days: 14
   sonar:
     name: SonarQube Cloud quality gate (BYO project/token)
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
