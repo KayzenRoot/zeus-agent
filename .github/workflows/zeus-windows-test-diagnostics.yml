@@ -22,6 +22,8 @@ on:
     paths:
       - '.github/workflows/zeus-windows-test-diagnostics.yml'
       - 'apps/desktop/src/**'
+      - 'apps/desktop/electron/**'
+      - 'apps/desktop/scripts/**'
       - 'apps/desktop/vitest.config.ts'
       - 'web/src/**'
       - 'web/vitest.config.ts'
