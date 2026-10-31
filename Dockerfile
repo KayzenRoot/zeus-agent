@@ -535,3 +535,9 @@ VOLUME [ "/opt/data" ]
 # intercepted by /init's POSIX shell.
 ENTRYPOINT [ "/opt/hermes/docker/entrypoint-dispatch.sh" ]
 CMD [ ]
+
+# Trivy DS-0002: the sealed runtime must be able to import its own CLI surface
+# (code + core dependency tree intact). Probes no gateway, profile or network
+# state, so it stays meaningful for every dispatcher mode above.
+HEALTHCHECK --interval=60s --timeout=15s --start-period=45s --retries=3 \
+    CMD ["/opt/hermes/.venv/bin/python", "-c", "import hermes_cli.main"]

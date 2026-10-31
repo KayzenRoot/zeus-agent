@@ -91,4 +91,8 @@ ENV XDG_RUNTIME_DIR=/tmp/hermes-runtime
 # so the browser location must also live where pam_env reads it or agent-browser
 # reports "Chrome not found" over ssh while working under docker exec.
 RUN printf 'PLAYWRIGHT_BROWSERS_PATH=/opt/playwright\nXDG_RUNTIME_DIR=/tmp/hermes-runtime\n' >> /etc/environment
+# Trivy DS-0002: idle sandbox — healthy while the interpreter toolchain the
+# gateway shells into is intact. No Hermes runtime lives here to probe.
+HEALTHCHECK --interval=60s --timeout=10s --start-period=15s --retries=3 \
+    CMD ["bash", "-c", "command -v python3 >/dev/null && command -v node >/dev/null"]
 CMD ["sleep", "infinity"]
