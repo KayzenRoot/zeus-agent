@@ -136,7 +136,7 @@ describe('parseMarkdownIntoBlocksCached', () => {
   // default budget, so raise the timeout rather than weaken the coverage.
   // 60s explicit: the ui project's 15s still times this out on slower/loaded
   // local machines even though CI runners clear 15s (issue #2 machine-gap).
-  it('matches a full lex at every char-level streaming cut over noisy markdown (property fuzz)', { timeout: 60_000 }, () => {
+  it('matches a full lex at every char-level streaming cut over noisy markdown (property fuzz)', () => {
     // Character-level append fuzz over the markdown control alphabet — the
     // harness that surfaced the setext-underline merge above. Growing a single
     // lineage one small chunk at a time keeps `startsWith` lineage intact so
@@ -162,7 +162,7 @@ describe('parseMarkdownIntoBlocksCached', () => {
         expect(parseMarkdownIntoBlocksCached(text)).toEqual(parseMarkdownIntoBlocks(text))
       }
     }
-  }, 30_000)
+  }, 60_000)
 
   it('falls back to the raw text block when the lexer throws instead of crashing the thread (#80621)', () => {
     // The cached splitter feeds the whole transcript renderer; an unhandled
