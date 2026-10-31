@@ -1,0 +1,11 @@
+# Trivy findings triage for ZEUS-001 (Evidence Bundle: .zeus/docs/audits/)
+#
+# DS-0002 "Image user should not be root" (HIGH, inherited from upstream design):
+# Both container images supervise with s6-overlay, which requires root as the
+# container PID 1 to build the supervision tree and drop privileges; the
+# entrypoint dispatcher (docker/entrypoint-dispatch.sh) then re-executes the
+# agent runtime as the unprivileged user via s6-setuidgid (UID 10000 in the
+# root image). A USER directive would break the supervision model, so this
+# finding is triaged, not fixed. Revisit only if the container supervision
+# model changes.
+DS-0002

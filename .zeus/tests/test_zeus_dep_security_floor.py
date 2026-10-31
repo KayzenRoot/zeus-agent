@@ -121,7 +121,7 @@ class ZeusStandaloneNpmSecurityFloors(unittest.TestCase):
             "tinypool": (2, 1, 2),  # CVE-2026-104848/104849 (CRITICAL)
             "svgo": (3, 3, 5),  # CVE-2026-84370
             "fast-uri": (3, 1, 7),  # CVE-2026-75899/75931/75975/76172/84292
-            "follow-redirects": (1, 16, 1),  # CVE-2026-111755/111756
+            "follow-redirects": (1, 16, 2),  # CVE-2026-111755/111756 + follow-up fixed in 1.16.2
             "browserslist": (4, 28, 7),  # CVE-2026-73088/73089
             "compression": (1, 8, 2),  # CVE-2026-87776
             "launch-editor": (2, 14, 2),  # CVE-2026-112942
@@ -130,6 +130,7 @@ class ZeusStandaloneNpmSecurityFloors(unittest.TestCase):
             "source-map-js": (1, 2, 2),  # CVE-2026-93749
             "js-yaml": (4, 3, 2),  # CVE-2026-84375
             "nanoid": (3, 3, 18),  # CVE-2026-67213
+            "joi": (17, 13, 9),  # CVE-2026-92599 + follow-up fixed in 17.13.9
             "webpack-dev-middleware": (7, 4, 6),  # CVE-2026-76844
         }
         for name, floor in floors.items():
@@ -167,8 +168,8 @@ class ZeusPythonSecurityFloors(unittest.TestCase):
             )
         for extra in ("mcp", "computer-use"):
             self.assertTrue(
-                any(req == "httpx2==2.10.0" for req in extras[extra]),
-                f"{extra}: httpx2 floor CVE-2026-84381/84382",
+                any(req == "httpx2==2.12.0" for req in extras[extra]),
+                f"{extra}: httpx2 floor CVE-2026-84381/84382 + follow-up fixed in 2.12.0",
             )
 
     def test_uv_lock_resolved_floors(self):
@@ -179,8 +180,9 @@ class ZeusPythonSecurityFloors(unittest.TestCase):
             "urllib3": (2, 8, 0),  # CVE-2026-97687/97689
             "aiohttp": (3, 14, 4),  # CVE-2026-111064/111066/GHSA-2g87-pp6c-29x5
             "brotlicffi": (1, 2, 1, 0),  # CVE-2026-111497 (CRITICAL)
-            "httpx2": (2, 10, 0),  # CVE-2026-84381/84382
+            "httpx2": (2, 12, 0),  # CVE-2026-84381/84382 + follow-up fixed in 2.12.0
             "httpcore2": (2, 10, 0),  # rides with httpx2
+            "pyasn1": (0, 6, 5),  # follow-redirects-class advisory fixed in 0.6.5
             "filelock": (4, 2, 1),  # CVE-2026-112940
             "msgpack": (1, 2, 3),  # CVE-2026-114613
             "oauthlib": (4, 0, 0),  # CVE-2026-49272
