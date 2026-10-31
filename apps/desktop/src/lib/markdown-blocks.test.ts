@@ -134,7 +134,9 @@ describe('parseMarkdownIntoBlocksCached', () => {
   // the pre-fix boundary at seed 11 / step 257, so the workload can't shrink
   // without gutting the guard. The work is bounded but exceeds one test's 5s
   // default budget, so raise the timeout rather than weaken the coverage.
-  it('matches a full lex at every char-level streaming cut over noisy markdown (property fuzz)', () => {
+  // 60s explicit: the ui project's 15s still times this out on slower/loaded
+  // local machines even though CI runners clear 15s (issue #2 machine-gap).
+  it('matches a full lex at every char-level streaming cut over noisy markdown (property fuzz)', { timeout: 60_000 }, () => {
     // Character-level append fuzz over the markdown control alphabet — the
     // harness that surfaced the setext-underline merge above. Growing a single
     // lineage one small chunk at a time keeps `startsWith` lineage intact so
