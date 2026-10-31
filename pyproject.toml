@@ -171,7 +171,7 @@ dependencies = [
   # libs required for the codecs we use, so it's safe to ship in the base
   # install rather than gating it behind an extra + a mid-session lazy install
   # (which deadlocked the CLI under prompt_toolkit — see #40490).
-  "Pillow==12.3.0; python_version >= '3.14'",  # BLOCKED at 12.3.0: browser-harness==0.1.13 (latest, 2026-09-04) pins pillow==12.3.0 exactly; Trivy CVE-2026-112393/112398/112403/112900/96639 (CRITICAL) + HIGH batch stay inherited until browser-harness repins. Do not override silently.
+  "Pillow==13.0.0; python_version >= '3.14'",  # CVE-2026-112393/112398/112403/112900/96639 (CRITICAL) + HIGH batch incl. libtiff memory disclosure/segfault, all in 12.3.0. browser-harness==0.1.13 pins pillow==12.3.0 exactly, so [tool.uv] override-dependencies holds it at >=13 until browser-harness repins (see the override block).
   # HEIF/HEIC/AVIF decode for the vision tools. iPhone photos and screenshots
   # are HEIC (frequently mislabeled .jpg by upload pipelines); Pillow has no
   # built-in HEIF codec, so without this the vision resolver rejects them as
@@ -624,6 +624,17 @@ override-dependencies = [
   # never builds a misaki G2P. The never-true marker removes it from the lock.
   # Remove this line when misaki drops it or a 3.14-capable release fits.
   "spacy-curated-transformers; sys_platform == 'never'",
+  # browser-harness==0.1.13 (the latest release, 2026-09-04) pins
+  # pillow==12.3.0 exactly. 12.3.0 carries 28 HIGH/CRITICAL advisories,
+  # including memory disclosure + SIGSEGV in the libtiff encoder reachable
+  # from an ordinary Image.open() + save() of attacker-supplied bytes —
+  # exactly the traffic the vision tools feed Pillow. Pillow 13.0.0 is the
+  # fixed line; the image core API this repo and browser-harness exercise
+  # (open/resize/save, heif opener registration) is unchanged in 13. Import
+  # + op smoke verified locally on 3.14.6. This override holds browser-harness
+  # at the patched Pillow until it repins; revisit when browser-harness
+  # publishes >0.1.13.
+  "pillow>=13,<14",
 ]
 # Release-age check: Hermes's dependencies must be at least 3 days old when Hermes
 # locks them. It runs where uv.lock is resolved (`hermes pm lock`, and CI's lock

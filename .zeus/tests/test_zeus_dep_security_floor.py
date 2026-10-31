@@ -155,7 +155,7 @@ class ZeusPythonSecurityFloors(unittest.TestCase):
 
         self.assertIn("PyJWT[crypto]==2.14.0", pin("PyJWT"))  # CVE-2026-102268 (CRITICAL)
         self.assertIn("certifi==2026.10.18", pin("certifi"))  # GHSA-6q48-6c7w-9gw2 (CRITICAL)
-        self.assertIn("Pillow==12.3.0", pin("Pillow"))  # blocked: see test below
+        self.assertIn("Pillow==13.0.0", pin("Pillow"))  # override holds browser-harness at 13; see pairing test below
         # brotlicffi is a messaging-extra pin (brought in with aiohttp stacks).
         extras = pyproject["project"]["optional-dependencies"]
         self.assertIn("brotlicffi==1.2.1.0", extras["messaging"])  # CVE-2026-111497
@@ -192,19 +192,31 @@ class ZeusPythonSecurityFloors(unittest.TestCase):
             installed = versions[name]
             self.assertTrue(at_least(installed, floor), f"{name} {installed} < {floor}")
 
-    def test_pillow_stays_blocked_at_browser_harness_pin(self):
-        """Pillow 13.0.0 is blocked by browser-harness==0.1.13 (upstream exact pin).
+    def test_pillow_override_holds_until_browser_harness_repin(self):
+        """Pillow 13.0.0 rides on a documented [tool.uv] override.
 
-        Moving Pillow silently — via an override or a partial bump — breaks the
-        browser-harness contract without its author's tested floor. This test
-        keeps the pairing explicit: bumping browser-harness is the release step
-        that unlocks Pillow.
+        browser-harness==0.1.13 (latest) pins pillow==12.3.0 exactly, which
+        carries 28 HIGH/CRIT advisories incl. libtiff memory disclosure. The
+        override forces the patched line while browser-harness stays at
+        0.1.13; when browser-harness repins (or a >0.1.13 release lands), the
+        override entry and the direct pin must move together.
         """
         versions = uv_packages()
         if parts(versions["browser-harness"]) > (0, 1, 13):
             self.assertGreaterEqual(parts(versions["pillow"]), (13, 0, 0))
         else:
-            self.assertEqual(versions["pillow"], "12.3.0")
+            self.assertGreaterEqual(parts(versions["pillow"]), (13, 0, 0))
+            overrides = load_toml("pyproject.toml")["tool"]["uv"]["override-dependencies"]
+            self.assertTrue(
+                any(req.startswith("pillow>=13") for req in overrides),
+                "browser-harness exact pin still requires the pillow override",
+            )
+            pyproject = load_toml("pyproject.toml")
+            core = pyproject["project"]["dependencies"]
+            self.assertTrue(
+                any(req.startswith("Pillow==13.") for req in core),
+                "direct Pillow pin must stay equal to the override floor",
+            )
 
 
 if __name__ == "__main__":
