@@ -243,6 +243,40 @@ export const defaultLargeTheme: DashboardTheme = {
   },
 };
 
+/**
+ * Zeus Liquid Glass (dashboard redesign, 2026-11-01): Apple-style dark glass —
+ * deep translucent graphite over an ambient aurora, generous radii, tight
+ * Inter tracking. The glass/aurora CSS lives in index.css scoped to
+ * `html.zeus-glass` (toggled by the ThemeProvider when this theme is active).
+ */
+export const zeusGlassTheme: DashboardTheme = {
+  name: "zeus-glass",
+  label: "Zeus Liquid Glass",
+  description: "Apple-style liquid glass — translucent panels over an aurora",
+  palette: {
+    // Translucent deep graphite: DS surfaces sit over the aurora blobs.
+    background: { hex: "#0b0f1a", alpha: 0.82 },
+    midground: { hex: "#f2d9a0", alpha: 0.92 },
+    foreground: { hex: "#ffffff", alpha: 0 },
+    warmGlow: "rgba(255, 199, 89, 0.30)",
+    noiseOpacity: 0.4,
+  },
+  typography: {
+    ...DEFAULT_TYPOGRAPHY,
+    fontSans: `"Inter", ${SYSTEM_SANS}`,
+    fontMono: `"JetBrains Mono", ${SYSTEM_MONO}`,
+    fontUrl:
+      "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap",
+    letterSpacing: "-0.01em",
+  },
+  layout: {
+    ...DEFAULT_LAYOUT,
+    radius: "1.1rem",
+    density: "comfortable",
+  },
+  terminalBackground: "#0d1220",
+};
+
 export const BUILTIN_THEMES: Record<string, DashboardTheme> = {
   default: defaultTheme,
   "default-large": defaultLargeTheme,
@@ -252,4 +286,5 @@ export const BUILTIN_THEMES: Record<string, DashboardTheme> = {
   mono: monoTheme,
   cyberpunk: cyberpunkTheme,
   rose: roseTheme,
+  "zeus-glass": zeusGlassTheme,
 };

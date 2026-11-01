@@ -468,6 +468,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     _ACTIVE_FONT_OVERRIDE = fontId;
     applyTheme(resolveTheme(themeName));
+    // Zeus Liquid Glass layer (issue: dashboard redesign) — the glass/aurora
+    // CSS in index.css is scoped to this class so other themes are untouched.
+    document.documentElement.classList.toggle(
+      "zeus-glass",
+      themeName === "zeus-glass",
+    );
   }, [themeName, resolveTheme, fontId]);
 
   // Load server-side themes (built-ins + user YAMLs) once on mount.

@@ -98,6 +98,7 @@ import {
   TERMINAL_FONT_FAMILY,
 } from "@/lib/terminal-font-refit";
 import { generateChannelId } from "@/lib/chat-channel-id";
+import { ZeusThinkingDots } from "@/components/ZeusThinkingDots";
 import { sendCopyLastCommand } from "@/lib/chat-copy-last";
 import { CopyLastButton } from "@/lib/chat-copy-last-button";
 import {
@@ -206,6 +207,23 @@ export default function ChatPage({ isActive = true }: { isActive?: boolean }) {
   // Covers the blank terminal + blinking-cursor window so users don't think
   // chat is broken; clears as soon as there is something to show.
   const [resumeHydrating, setResumeHydrating] = useState(false);
+  // Zeus: agent-working detector — true while PTY output is flowing (the TUI
+  // redraws continuously while the agent computes) and false after a short
+  // quiet window. Drives the ChatGPT-style thinking dots overlay.
+  const [agentWorking, setAgentWorking] = useState(false);
+  const agentQuietTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const markAgentActivity = () => {
+    // Live turns redraw the TUI continuously (spinner frames, thinking
+    // trail). Resume replays are excluded at the call site. A short quiet
+    // window (2.5s without output) ends the working state.
+    setAgentWorking(true);
+    if (agentQuietTimerRef.current) {
+      clearTimeout(agentQuietTimerRef.current);
+    }
+    agentQuietTimerRef.current = setTimeout(() => {
+      setAgentWorking(false);
+    }, 2500);
+  };
   // NS-504: when the agent process exits cleanly (the user typed `/exit`, or
   // started a new session that ended the current PTY child), the PTY socket
   // closes with a normal code. Before this fix the terminal just printed
@@ -1380,6 +1398,9 @@ export default function ChatPage({ isActive = true }: { isActive?: boolean }) {
       }
       term.write(rendered, followScroll);
       noteResumePtyChunk(rendered);
+      if (!effectiveResume && rendered) {
+        markAgentActivity();
+      }
     };
 
     ws.onclose = (ev) => {
@@ -1552,6 +1573,11 @@ export default function ChatPage({ isActive = true }: { isActive?: boolean }) {
       setResumeHydrating(false);
       onDataDisposable?.dispose();
       onResizeDisposable?.dispose();
+      if (agentQuietTimerRef.current) {
+        clearTimeout(agentQuietTimerRef.current);
+        agentQuietTimerRef.current = null;
+        setAgentWorking(false);
+      }
       onScrollDisposable?.dispose();
       mobileInputCleanup?.();
       compositionForwarder.dispose();
@@ -1981,6 +2007,12 @@ export default function ChatPage({ isActive = true }: { isActive?: boolean }) {
                   </Button>
                 )}
               </div>
+            </div>
+          )}
+
+          {agentWorking && (
+            <div className="pointer-events-none absolute bottom-12 left-1/2 z-20 -translate-x-1/2">
+              <ZeusThinkingDots />
             </div>
           )}
 
