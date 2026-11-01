@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Test Zeus branding and update safety
         run: python3 -m unittest discover -s .zeus/tests -p 'test_*.py' -v
       - name: Compile public branding and source updater boundaries
