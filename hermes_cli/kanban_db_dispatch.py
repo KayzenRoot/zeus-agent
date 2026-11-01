@@ -26,6 +26,9 @@ from typing import Mapping
 from typing import Optional
 from typing import TYPE_CHECKING
 
+from hermes_cli.kanban_db_worker_exit import (
+    _wait_status_from_returncode, classify_exit_code, classify_worker_exit,
+)
 from hermes_cli.quiet_single_query import KANBAN_WORKER_EXIT_TRAILER
 
 if TYPE_CHECKING:
@@ -202,11 +205,6 @@ _recent_worker_exits: dict[int, tuple[int, float]] = {}
 _live_worker_procs: dict[int, subprocess.Popen] = {}
 
 
-def _wait_status_from_returncode(returncode: int) -> int:
-    """Encode a ``Popen.returncode`` in the wait-status layout the registry stores."""
-    return (int(returncode) & 0xFF) << 8
-
-
 def _record_worker_exit(pid: int, raw_status: int) -> None:
     """Record a reaped child's exit status; duplicate pids overwrite (latest wins)."""
     if not pid or pid <= 0:
@@ -225,37 +223,8 @@ def _record_worker_exit(pid: int, raw_status: int) -> None:
 
 
 def _classify_worker_exit(pid: int) -> tuple[str, Optional[int]]:
-    """``(kind, code)`` for a reaped worker PID: ``clean_exit`` (rc 0 while
-    still ``running`` = protocol violation), ``rate_limited``
-    (``KANBAN_RATE_LIMIT_EXIT_CODE``, never counts as a failure),
-    ``nonzero_exit``, ``signaled`` (``code`` is the signal), ``unknown`` (pid
-    not in the reap registry; ``code`` None)."""
-    entry = _recent_worker_exits.get(int(pid))
-    if entry is None:
-        return ("unknown", None)
-    raw, _ = entry
-    # Bit-level POSIX wait-status decode instead of os.WIFEXITED/WEXITSTATUS/
-    # WIFSIGNALED/WTERMSIG: those helpers do not exist on Windows, where the
-    # registry is fed by reap_worker_zombies' Popen poll. Low 7 bits = signal
-    # (0 = normal exit, 0x7F = stopped), bits 8-15 = exit code.
-    raw = int(raw)
-    signal_number = raw & 0x7F
-    if signal_number == 0:
-        return _exit_code_kind((raw >> 8) & 0xFF)
-    if signal_number != 0x7F:
-        return ("signaled", signal_number)
-    return ("unknown", None)
-
-
-def _exit_code_kind(code: int) -> tuple[str, int]:
-    """``(kind, code)`` for a worker's exit code, however it was observed."""
-    if code == 0:
-        return ("clean_exit", 0)
-    if code == _kb.KANBAN_RATE_LIMIT_EXIT_CODE:
-        return ("rate_limited", code)
-    if code == _kb.KANBAN_TERMINAL_PROVIDER_EXIT_CODE:
-        return ("terminal_provider", code)
-    return ("nonzero_exit", code)
+    """``(kind, code)`` for a reaped worker PID (decode lives in the worker-exit sibling)."""
+    return classify_worker_exit(pid, _recent_worker_exits)
 
 
 _EXIT_TRAILER_RE = re.compile(
@@ -1082,7 +1051,7 @@ def _classify_dead_worker_exit(
     if kind == "unknown" and task_id:
         logged = _worker_log_exit_code(task_id, board=board)
         if logged is not None:
-            kind, code = _exit_code_kind(logged)
+            kind, code = classify_exit_code(logged)
     if kind == "clean_exit":
         # rc=0 while still ``running``: usually the work succeeded and only the
         # paperwork was skipped; the corrective sentence reaches the retry
@@ -3008,6 +2977,13 @@ def run_daemon(
 
     while not stop_event.is_set():
         try:
+            # The standalone loop honours the global emergency stop too: the
+            # gateway gate does not protect an operator-run `kanban daemon`.
+            from agent.estop import is_engaged
+
+            if is_engaged():
+                stop_event.wait(timeout=interval)
+                continue
             # Re-resolved every tick (config load is mtime-cached) so operator
             # edits apply without a restart.
             max_in_progress = resolve_max_in_progress(configured_max_in_progress())

@@ -58,6 +58,22 @@ def _cmd_tail(args: argparse.Namespace) -> int:
 
 
 def _cmd_dispatch(args: argparse.Namespace) -> int:
+    # The global emergency stop covers every dispatcher, not only the gateway's
+    # embedded tick: a manual `hermes kanban dispatch` must not spawn workers
+    # while `hermes pause` is engaged. In-flight workers are never touched.
+    from agent.estop import get_state, is_engaged, paused_reply
+
+    if is_engaged():
+        if getattr(args, "json", False):
+            _print_json({
+                "paused": True,
+                "reason": (get_state() or {}).get("reason"),
+                "spawned": [],
+            }, ascii=True)
+        else:
+            print(paused_reply() or "⏸️ Hermes is paused.")
+            print("    Dispatch skipped; run `hermes resume` to lift the pause.")
+        return 0
     # Honour kanban.default_assignee, kanban.max_in_progress,
     # kanban.max_in_progress_per_profile and kanban.max_spawn with the same
     # semantics as the gateway dispatch path.

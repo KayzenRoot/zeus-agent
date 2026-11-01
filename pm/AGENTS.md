@@ -26,3 +26,10 @@ its locked version: users trust the vetted lock, so a mirror without upload time
 install (#135589), and a plugin cannot move a core package. Plugin `python_dependencies` follow the
 plugin's own policy. Teknium's rulings: "plugins dont have to abide by our 14 day rule … Only hermes'
 dependencies themselves have to"; dates are checked by us, not users; pinned deps need >3 days.
+
+`[tool.uv] override-dependencies` resolves a graph upstream metadata makes unsatisfiable (the
+security-floor case: `pillow>=13` over an exact `pillow==12.3.0` pin). `uv pip check` does not read
+overrides, so a fresh environment's validation is override-aware in one direction only
+(`pm/overrides.py`): a conflict is tolerated when the subject package is named in an override AND
+the installed version satisfies that override's range; any other conflict, an unparseable line, or
+a count mismatch still fails the build. Do not widen this into a general ignore list.

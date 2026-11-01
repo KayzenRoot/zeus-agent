@@ -249,7 +249,8 @@ def managed_environment(destination: Path, *, python: Path | None = None,
 
 
 @contextmanager
-def _fresh_build(environment: PythonEnvironment, *, sealed: bool) -> Iterator[None]:
+def _fresh_build(environment: PythonEnvironment, *, sealed: bool,
+                 source: Path | None = None) -> Iterator[None]:
     """Own only the output claimed by this build, including failed validation."""
     out = environment.destination
     # A concurrent creator wins intact: never enter cleanup before mkdir succeeds.
@@ -257,7 +258,7 @@ def _fresh_build(environment: PythonEnvironment, *, sealed: bool) -> Iterator[No
     try:
         environment.create()
         yield
-        environment.check()
+        environment.check(source)
         if sealed:
             prune_site_pth(out)
     except BaseException:
@@ -437,7 +438,7 @@ class PythonEnvironment:
         requirements = source / "requirements.txt"
         self.export_requirements(source, requirements, timeout=timeout)
         self._install_requirements_file(requirements, wheelhouse=wheelhouse, timeout=timeout)
-        self.check()
+        self.check(source)
 
     def prune_cache(self, *, ci: bool = False) -> None:
         command = ["cache", "prune", "--no-config"]
@@ -447,10 +448,27 @@ class PythonEnvironment:
         if result.returncode:
             raise InstallError("uv", f"cache pruning failed: {result.stderr[-600:]}")
 
-    def check(self) -> None:
+    def check(self, source: Path | None = None) -> None:
+        """Validate installed metadata; a declared override may resolve its own conflict.
+
+        ``source`` is the project whose ``[tool.uv] override-dependencies`` made the
+        graph satisfiable. Without it (requirements-only builds) every conflict fails.
+        """
         result = self._run(
             ["pip", "check", "--no-config", "--python", str(self.executable)],
             cwd=self.destination.parent, timeout=60,
         )
-        if result.returncode:
-            raise InstallError("venv", f"dependency validation failed: {result.stderr[-600:]}")
+        if not result.returncode:
+            return
+        if source is not None:
+            from pm.overrides import declared_overrides, tolerated_conflicts
+
+            tolerated = tolerated_conflicts(result.stderr or "", declared_overrides(source))
+            if tolerated:
+                if self.output is not None:
+                    self.output.write(
+                        f"  ✓ dependency check: {len(tolerated)} conflict(s) resolved by a "
+                        "declared [tool.uv] override\n")
+                    self.output.flush()
+                return
+        raise InstallError("venv", f"dependency validation failed: {result.stderr[-600:]}")
