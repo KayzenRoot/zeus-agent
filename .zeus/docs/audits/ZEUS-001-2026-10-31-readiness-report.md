@@ -13,7 +13,7 @@ CD08 (DOMPurify) APPROVED individual. Este relatório consolida evidências; **n
 | 3 | Testes direcionados, lint/typecheck/build e checks de plataforma PASS ou indisponibilidade documentada | ✅ VERIFICADO (hospedado e local) | CI HEAD `4cce82c708`: **18 checks PASS**. Local Windows ocioso: npm ci, web build, typecheck ×3, release policy, **web check+tests 429/429 PASS**, **desktop UI 10.783/10.783 — paridade total com o runner** após 4 correções de causa raiz (locale, timeout, budgets de corrida/regrow) documentadas em #2 |
 | 4 | Nenhuma chave ou segredo exposto | ✅ VERIFICADO | Trivy secrets: 0; secret scanning + push protection enabled; nenhum credential no diff (sanitizador de CI em vigor) |
 | 5 | PR com base/head SHA, paths alterados, outputs de teste, riscos e resultado de revisão | ✅ documentado / ⏳ revisão pendente | Body da PR consolidado; CD05–CD10 por SHA; riscos por delta; **resultado de revisão: PENDENTE (owner)** |
-| 6 | Funcionalidade local validada onde possível | ✅ VERIFICADO (sem BYOK) | `hermes update` recusa em runtime real; `hermes --version` executa; `uv sync` + imports; web build servido; dashboard/gateway/PTY com modelo real = pendente (exige BYOK) |
+| 6 | Funcionalidade local validada onde possível | ✅ VERIFICADO (sem BYOK) | `hermes update` recusa em runtime real; `hermes --version` executa; `uv sync` + imports; web build servido; **app empacotado: 2 sessões nativas com backend real (health 200), quit limpo e estado preservado**; chat/gateway/PTY com modelo real = pendente (exige BYOK) |
 | 7 | Checkpoint canônico registra somente fatos VERIFICADOS | ✅ íntegro | `.zeus/docs/checkpoint.md` na `main` **não foi promovido** — Checkpoint Delta proposto no CD10 aguarda auditoria; nenhum fato especulativo adicionado |
 
 ## Superfícies de segurança (issue #8 / M02)
@@ -35,9 +35,9 @@ CD08 (DOMPurify) APPROVED individual. Este relatório consolida evidências; **n
 | Stage | Estado |
 |---|---|
 | 1. Static/UI checks (Windows local) | ✅ executado 2026-10-31 (npm ci, policy test, web check/build, desktop typecheck; desktop UI: ver abaixo) |
-| 2. Desktop empacotado | ⏸️ BLOCKED/NOT RUN por STOP do runbook (pré-condições de isolamento exigem auditoria no host) |
+| 2. Desktop empacotado | ✅ **EXECUTADO 2026-11-01** pós-auditoria do harness: `Zeus Agent.exe` (sha256 `0050a761…`) ×2 sessões com backend real do checkout (health 200), quit limpo (exit 0), **113/113 entradas do home preservadas no quit+relaunch**, zero bootstrap/instalador nos logs, perfil real intocado (evidência em #2) |
 | 3. Backend+dashboard WSL2 com modelo | ⏸️ exige BYOK real (nunca recebida em Git); handoff Codex preparado |
-| 4. Segurança/identidade | ✅ parcial: recusa de updater em runtime VERIFICADA; `zeus://`/MSIX/DMG pendentes |
+| 4. Segurança/identidade | ✅ parcial: recusa de updater em runtime VERIFICADA; auth 401 real nos endpoints do dashboard; `zeus://`/MSIX/DMG pendentes |
 
 Desktop UI na máquina real: 6 execuções completas (**12→4→10→1→1→0 falhas** vs runner sempre 10.783/10.783) — **paridade total** alcançada com 4 correções de causa raiz test-side (locale `Intl.RelativeTimeFormat`, timeout do fuzz, budgets de corrida do CronView, orçamento de convergência do regrow), nenhuma mudança de produto. Web local ocioso: check completo + 429/429 PASS.
 
