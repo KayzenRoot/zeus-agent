@@ -1,0 +1,21 @@
+# Trivy findings triage for ZEUS-001 (Evidence Bundle: .zeus/docs/audits/)
+#
+# DS-0002 "Image user should not be root" (HIGH, inherited from upstream design):
+# Both container images supervise with s6-overlay, which requires root as the
+# container PID 1 to build the supervision tree and drop privileges; the
+# entrypoint dispatcher (docker/entrypoint-dispatch.sh) then re-executes the
+# agent runtime as the unprivileged user via s6-setuidgid (UID 10000 in the
+# root image). A USER directive would break the supervision model, so this
+# finding is triaged, not fixed. Revisit only if the container supervision
+# model changes.
+DS-0002
+
+# CVE-2026-53869 (DNS rebinding via WebSocket endpoints, fixed upstream in
+# hermes-agent 0.16.0): Trivy matches the advisory against this project's own
+# self-entry "hermes-agent==0.0.0" in uv.lock — the placeholder version carried
+# by upstream main by design (9cc319f9a1). Both fix commits from the advisory
+# (3c231eb3979ab9c57d5cd6d02f1d577a3b718b43, d9ec90585cf7616b5972e44cf8d92bb569fc3feb)
+# are ancestors of the imported base 53df274b, so the flagged range does not
+# apply to this tree. Verified 2026-10-31 via git merge-base; WS endpoint
+# host/origin defense remains in scope for M02 (issue #8) independent review.
+CVE-2026-53869

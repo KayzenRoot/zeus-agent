@@ -1,0 +1,240 @@
+# ZEUS-001 | additive security and quality audit, no release or deployment.
+name: Zeus | Security and Quality Audit
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main] # PR branch already runs via pull_request; avoid duplicate audits
+  workflow_dispatch:
+  schedule:
+    - cron: '23 9 * * 1' # UTC, only active after this workflow reaches main
+permissions:
+  contents: read
+concurrency:
+  group: zeus-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  provenance:
+    name: Canonical source and MIT provenance
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Validate protected Source Pack paths, no writes
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in LICENSE .zeus/docs/checkpoint.md .zeus/docs/decisions.md .zeus/docs/scope.md .zeus/docs/definition-of-done.md .zeus/docs/architecture.md .zeus/docs/work-orders/ZEUS-001.md; do
+            test -s "$file" || { echo "::error::Missing $file"; exit 1; }
+          done
+          grep -Fq 'Nous Research' LICENSE
+          git rev-parse HEAD
+          echo '### Provenance: verified canonical files; no runtime/release approval' >> "$GITHUB_STEP_SUMMARY"
+  dependency-review:
+    name: New dependency vulnerability gate
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: never
+  codeql:
+    name: CodeQL (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python, javascript-typescript]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          queries: security-extended
+      - name: Analyze and publish to Code Scanning
+        uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
+        with:
+          category: /language:${{ matrix.language }}
+  trivy:
+    name: Trivy dependencies, configuration and secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Scan without printing raw secret findings
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          version: v0.76.1 # v0.70 skipped current Rego policies in the baseline
+          scanners: 'vuln,misconfig,secret'
+          severity: 'HIGH,CRITICAL'
+          format: json
+          output: zeus-trivy-results.json
+          exit-code: '0'
+      - name: Report severity counts and block high/critical findings
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          from collections import Counter
+          with open('zeus-trivy-results.json', encoding='utf-8') as fp:
+              results = json.load(fp)
+          count = Counter()
+          safe_findings = []
+          for result in results.get('Results', []):
+              target = result.get('Target', '')
+              for kind in ('Vulnerabilities', 'Misconfigurations', 'Secrets'):
+                  for item in result.get(kind) or []:
+                      if item.get('Severity') not in ('HIGH', 'CRITICAL'):
+                          continue
+                      count[kind] += 1
+                      # Never copy secret matches, snippets, commands, payloads or raw scanner JSON.
+                      safe_findings.append({
+                          'category': kind, 'severity': item.get('Severity'),
+                          'target': target, 'id': item.get('VulnerabilityID') or item.get('ID') or item.get('RuleID'),
+                          'package': item.get('PkgName') if kind == 'Vulnerabilities' else None,
+                          'installed_version': item.get('InstalledVersion') if kind == 'Vulnerabilities' else None,
+                          'fixed_version': item.get('FixedVersion') if kind == 'Vulnerabilities' else None,
+                      })
+          os.makedirs('zeus-ci-evidence', exist_ok=True)
+          with open('zeus-ci-evidence/trivy-sanitized-findings.json', 'w', encoding='utf-8') as fp:
+              json.dump({'counts': dict(count), 'findings': safe_findings}, fp, indent=2, sort_keys=True)
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as fp:
+              fp.write('### Trivy HIGH/CRITICAL (counts only, no sensitive values)\n')
+              for kind in ('Vulnerabilities', 'Misconfigurations', 'Secrets'):
+                  fp.write(f'- {kind}: {count[kind]}\n')
+              fp.write('Any inherited finding must be independently triaged.\n')
+          if sum(count.values()):
+              print('::error::High/critical Trivy findings require triage.')
+              sys.exit(1)
+          PY
+      - name: Delete raw findings containing potential credentials
+        if: always()
+        shell: bash
+        run: rm -f zeus-trivy-results.json
+      - name: Upload sanitized finding IDs and affected packages only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: zeus-trivy-sanitized-${{ github.run_id }}
+          path: zeus-ci-evidence/trivy-sanitized-findings.json
+          if-no-files-found: warn
+          retention-days: 14
+  sonar:
+    name: SonarQube Cloud quality gate (BYO project/token)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Determine whether Sonar is actually configured
+        id: config
+        shell: bash
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+        run: |
+          if [[ -z "$SONAR_TOKEN" || -z "$SONAR_PROJECT_KEY" || -z "$SONAR_ORGANIZATION" ]]; then
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            echo '### Sonar: NOT_CONFIGURED, scan NOT_RUN. Requires SONAR_TOKEN secret and SONAR_PROJECT_KEY/SONAR_ORGANIZATION variables.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Checkout for Sonar with full git attribution
+        if: steps.config.outputs.ready == 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Execute Sonar analysis and wait for Quality Gate
+        if: steps.config.outputs.ready == 'true'
+        uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        with:
+          args: >-
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.timeout=300
+  audit-evidence:
+    name: Evidence and CI audit gate
+    if: always()
+    needs: [provenance, dependency-review, codeql, trivy, sonar]
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Build sanitized Evidence Bundle and fail on incomplete CI
+        shell: bash
+        env:
+          SOURCE: ${{ needs.provenance.result }}
+          DEPS: ${{ needs.dependency-review.result }}
+          CODEQL: ${{ needs.codeql.result }}
+          TRIVY: ${{ needs.trivy.result }}
+          SONAR: ${{ needs.sonar.result }}
+          EVENT: ${{ github.event_name }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          BASE: ${{ github.event.pull_request.base.sha || github.sha }}
+          TESTED_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          mkdir -p zeus-ci-evidence
+          python3 - <<'PY'
+          import json, os, sys
+          j = {key: os.environ[key] for key in ('SOURCE', 'DEPS', 'CODEQL', 'TRIVY', 'SONAR')}
+          record = {
+              'head_sha': os.environ['HEAD'], 'base_sha': os.environ['BASE'],
+              'tested_sha': os.environ['TESTED_SHA'],
+              'run': 'https://github.com/' + os.environ['REPOSITORY'] + '/actions/runs/' + os.environ['RUN_ID'],
+              'event': os.environ['EVENT'], 'jobs': j,
+              'windows_wsl2_native': 'NOT_RUN', 'msix_signing': 'NOT_RUN',
+              'ZEUS-001': 'CORRECTION_REQUIRED',
+          }
+          with open('zeus-ci-evidence/audit-manifest.json', 'w', encoding='utf-8') as fp:
+              json.dump(record, fp, sort_keys=True, indent=2)
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as fp:
+              fp.write('## Zeus audit | HEAD ' + record['head_sha'] + '\n')
+              for name, value in j.items():
+                  fp.write('- ' + name + ': **' + value.upper() + '**\n')
+              fp.write('Sonar can report success without running a scan if NOT_CONFIGURED; inspect its job summary. Native Windows/WSL2 is NOT_RUN.\n')
+          mandatory = ['SOURCE', 'CODEQL', 'TRIVY'] + (['DEPS'] if record['event'] == 'pull_request' else [])
+          failures = [name for name in mandatory if j[name] != 'success']
+          if j['SONAR'] not in ('success', 'skipped'):
+              failures.append('SONAR')
+          if failures:
+              print('::error::Missing or failed CI gates: ' + ','.join(failures))
+              sys.exit(1)
+          print('Audit CI completed; this does NOT approve merge, release or ZEUS-001.')
+          PY
+      - name: Upload sanitized JSON manifest (no scanner raw output)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: zeus-audit-${{ github.run_id }}
+          path: zeus-ci-evidence/audit-manifest.json
+          if-no-files-found: error
+          retention-days: 14

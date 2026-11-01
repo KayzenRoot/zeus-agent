@@ -1,0 +1,90 @@
+name: Zeus dashboard validation
+
+on:
+  pull_request:
+    paths:
+      - 'web/**'
+      - 'apps/desktop/**'
+      - 'apps/shared/**'
+      - '.zeus/**'
+      - '.github/workflows/zeus-dashboard-validation.yml'
+  push:
+    branches:
+      - 'work/ZEUS-001-import-brand'
+    paths:
+      - '.github/workflows/zeus-dashboard-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zeus-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dashboard-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install exactly locked Node dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Check dashboard type safety, tests, and lint
+        run: npm run --workspace web check
+      - name: Build production dashboard
+        run: npm run --workspace web build
+      - name: Verify Zeus HTML and assets are present
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'Zeus Agent - Dashboard' web/index.html
+          test -s web/public/zeus-mark.svg
+          test -s web/public/favicon.ico
+          test -s LICENSE
+          grep -Fq 'Nous Research' LICENSE
+          echo 'Dashboard static brand checks passed.'
+
+  desktop-static-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install exactly locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Prove Zeus native build has no unaudited update feed
+        run: node --test .zeus/tests/test_desktop_release_policy.cjs
+      - name: Electron renderer and main process typecheck and lint
+        run: npm run --workspace apps/desktop check:lint
+      - name: Electron native update gate unit tests
+        run: npm run --workspace apps/desktop test:desktop:platforms -- electron/zeus-update-policy.test.ts
+      - name: Desktop bootstrap fail-closed regression tests
+        run: npm run --workspace apps/desktop test:desktop:platforms -- electron/bootstrap-runner.test.ts
+      - name: Check Windows native smoke harness JavaScript
+        run: node --check apps/desktop/scripts/test-desktop.mjs
+      - name: Desktop UI unit tests
+        run: npm run --workspace apps/desktop test:ui
+      - name: Verify display branding without changing package identifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "const p=require('./apps/desktop/package.json');if(p.productName!=='Zeus Agent')process.exit(1)"
+          grep -Fq '<title>Zeus Agent</title>' apps/desktop/index.html
+          test -s apps/desktop/public/zeus-mark.svg
+          test -s apps/desktop/public/apple-touch-icon.png
+      - name: Verify Zeus owns the OS protocol
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "const ZEUS_PROTOCOL = DEV_SERVER ? 'zeus-dev' : 'zeus'" apps/desktop/electron/main.ts
+          grep -Fq "schemes: ['zeus']" apps/desktop/electron-builder.config.cjs
+          grep -Fq '<SingleTap>zeus://copilot-key/start' apps/desktop/scripts/before-build.mjs
+          echo 'Zeus OS deep-link scheme is consistent in Electron and Windows MSIX.'

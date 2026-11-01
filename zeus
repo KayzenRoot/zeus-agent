@@ -1,0 +1,12 @@
+#!/usr/bin/env python3
+"""Zeus Agent CLI launcher.
+
+The Zeus executable delegates to the proven Hermes-compatible CLI core while
+this fork migrates internal protocol and package identifiers incrementally.
+Do not remove the original 'hermes' launcher without a compatibility plan.
+"""
+
+if __name__ == "__main__":
+    from hermes_cli.main import main
+
+    main()

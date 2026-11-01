@@ -1,0 +1,60 @@
+# ZEUS-001: native-Windows JavaScript gate for the blocked desktop bootstrap.
+# No Electron application is launched and no installer/update is executed.
+# A separate full Windows UI matrix is intentionally not repeated here.
+name: Zeus Windows bootstrap safety
+
+on:
+  pull_request:
+    paths:
+      - 'apps/desktop/electron/bootstrap-runner.ts'
+      - 'apps/desktop/electron/bootstrap-runner.test.ts'
+      - 'apps/desktop/electron/main.ts'
+      - 'apps/desktop/electron/zeus-bootstrap-policy.ts'
+      - 'apps/desktop/electron/zeus-update-policy.ts'
+      - '.zeus/tests/test_zeus_desktop_bootstrap_gate.py'
+      - '.github/workflows/zeus-windows-bootstrap-safety.yml'
+  push:
+    branches:
+      - 'work/ZEUS-001-import-brand'
+    paths:
+      - 'apps/desktop/electron/bootstrap-runner.ts'
+      - 'apps/desktop/electron/bootstrap-runner.test.ts'
+      - 'apps/desktop/electron/main.ts'
+      - 'apps/desktop/electron/zeus-bootstrap-policy.ts'
+      - 'apps/desktop/electron/zeus-update-policy.ts'
+      - '.zeus/tests/test_zeus_desktop_bootstrap_gate.py'
+      - '.github/workflows/zeus-windows-bootstrap-safety.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zeus-windows-bootstrap-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-bootstrap-deny:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify checkout revision and toolchains
+        shell: pwsh
+        run: |
+          git rev-parse HEAD
+          node --version
+          python --version
+      - name: Verify bootstrap denial source order on Windows
+        run: python -m unittest discover -s .zeus/tests -p 'test_zeus_desktop_bootstrap_gate.py' -v
+      - name: Install locked JavaScript dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Test desktop bootstrap refusal without running Electron
+        run: npm run --workspace apps/desktop test:desktop:platforms -- electron/bootstrap-runner.test.ts
