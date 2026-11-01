@@ -955,10 +955,15 @@ describe('list session-scroll restore', () => {
     const ctl = render(<ScrollHarness messages={messages} sessionKey="ctl" />)
 
     const stableGroups = async (container: HTMLElement) => {
+      // 60 rounds × 20 ticks: the async page-spend regrowth converges in a
+      // fraction of this on an idle machine (the loop exits early at the first
+      // stable count), but 25×10 exhausted its budget on loaded machines and
+      // flaked the deep>ctl invariant (issue #2 machine-gap). A genuinely
+      // broken regrow plateaus below ctl regardless of the budget.
       let count = container.querySelectorAll('[data-slot="aui_message-group"]').length
 
-      for (let round = 0; round < 25; round += 1) {
-        await settleScroll(10)
+      for (let round = 0; round < 60; round += 1) {
+        await settleScroll(20)
         const next = container.querySelectorAll('[data-slot="aui_message-group"]').length
 
         if (next === count) {
