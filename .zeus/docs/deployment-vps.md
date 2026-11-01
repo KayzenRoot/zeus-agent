@@ -74,7 +74,8 @@ ssh -L 9119:127.0.0.1:9119 <vps>   # túnel do owner
 # navegador local: http://127.0.0.1:9119
 ```
 
-- Configurar auth provider (senha/token) no primeiro acesso.
+- **Modelo de auth real (verificado 2026-11-01)**: o servidor emite um token de sessão por boot (`secrets.token_urlsafe(32)`) injetado no HTML do SPA — o navegador autentica automaticamente via túnel; endpoints protegidos respondem 401 sem token, 401 com token errado, 200 com o token válido. A fronteira de segurança é a chave SSH + bind loopback; senha explícita só se aplicaria a bind público (NÃO recomendado).
+- Um token fixo pode ser fixado via `HERMES_DASHBOARD_SESSION_TOKEN` (ex.: systemd/scheduled task) se o owner quiser token persistente entre boots.
 
 ## 6. Backup / restore (M14)
 
