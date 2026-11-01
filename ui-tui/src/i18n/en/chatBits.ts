@@ -11,8 +11,10 @@
 export const chatBitsEn = {
   chatBits: {
     branding: {
-      tagFull: 'Nous Research · Messenger of the Digital Gods',
-      tagMid: 'Messenger of the Digital Gods',
+      // Zeus brand overlay (issue #15): the banner identifies the product as
+      // Zeus while keeping the upstream attribution visible (ADR-004, R3).
+      tagFull: 'Zeus Agent · built on the Hermes Agent by Nous Research',
+      tagMid: 'built on the Hermes Agent by Nous Research',
       scanningSkills: 'scanning skills',
       moreCategories: (count: number) => `(and ${count} more categories…)`,
       moreToolsets: (count: number) => `(and ${count} more toolsets…)`,
