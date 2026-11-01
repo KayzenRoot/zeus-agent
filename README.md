@@ -51,6 +51,26 @@ Para os testes do branding (Python 3):
 python -m unittest discover -s .zeus/tests -p "test_*.py"
 ```
 
+### Instalação local Zeus-owned (fluxo B)
+
+A partir de um clone verificado deste repositório (remoto `KayzenRoot/zeus-agent`, HEAD commitado, árvore limpa), instale o Zeus num diretório isolado — sem executar instaladores da Nous, sem tocar num perfil Hermes/Zeus existente e sem habilitar update/bootstrap:
+
+```powershell
+# Windows
+.\scripts\zeus-install.ps1 --plan    # valida e mostra o plano (não escreve nada)
+.\scripts\zeus-install.ps1           # constrói o ambiente e instala launcher + recibo
+.\scripts\zeus-install.ps1 --uninstall --yes   # remover; --purge-data apaga o HERMES_HOME isolado
+```
+
+```bash
+# Linux/WSL2/macOS
+./scripts/zeus-install.sh --plan
+./scripts/zeus-install.sh
+./scripts/zeus-install.sh --uninstall --yes
+```
+
+O root padrão é `%LOCALAPPDATA%\ZeusAgent` (Windows) ou `$XDG_DATA_HOME/zeus-agent` (POSIX); `HERMES_HOME` fica em `<root>/home`, isolado. O recibo em `<root>/receipt.json` registra checkout, SHA, origem e caminhos criados; a desinstalação espelha o recibo e preserva sessões/memórias sem `--purge-data`. Release assinada (MSIX/DMG/publisher) continua NO-GO na issue #4.
+
 Esses comandos **validam código e build**, mas não equivalem a testar uma sessão real com modelo e gateway. Para o chat embutido do dashboard, o upstream depende de PTY POSIX: execute o backend no WSL2 até existir suporte nativo equivalente. O ambiente Python deve seguir o gerenciador definido pelo upstream, sem instalar pacotes aleatórios globalmente.
 
 **Compatibilidade temporária:** comandos `hermes`, nomes de pacotes, variáveis `HERMES_*`, caminhos de dados, endpoints e chaves de configuração podem continuar com nomes originais para não quebrar integrações. A interface pública deverá usar a marca Zeus. Não renomeie esses identificadores sem migração e testes.

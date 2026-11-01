@@ -63,8 +63,27 @@ nenhum chamador ganha poder de rede/instalação sem flag Zeus explícita e test
 |---|---|
 | Recusa fail-closed dos instaladores herdados | **VERIFICADO** (CI Windows + testes) |
 | Recusa runtime do updater na máquina real | **VERIFICADO** 2026-10-31 (`hermes update` → recusa, exit 0, checkout intocado) |
-| Fluxo B implementado | **NÃO INICIADO** (requer WO aprovada) |
+| Fluxo B implementado (local, não assinado) | **IMPLEMENTADO** 2026-11-01: `scripts/zeus-install.{sh,ps1,cmd}` + `scripts/zeus_install_local.py`; 13 contratos em `.zeus/tests/test_zeus_installer_local.py`; `--plan` verificado no checkout real (`0416f0b069`) |
 | Release C (assinatura/publisher/MSIX/DMG) | **NO-GO** (issue #4, [#20]) |
+
+## 5.1 Fluxo B implementado — contrato
+
+- **Entrada verificada**: `git rev-parse --show-toplevel` == root, origin em
+  `KayzenRoot/zeus-agent` (https/ssh), HEAD resolvido, **árvore rastreada limpa**
+  (`status --porcelain --untracked-files=no` vazio). Cópia baixada (sem `.git`) é recusada.
+- **Isolamento**: `HERMES_HOME=<root>/home`; root padrão `%LOCALAPPDATA%\ZeusAgent`
+  (Windows) ou `$XDG_DATA_HOME/zeus-agent` (POSIX), sempre fora do checkout. Nenhum
+  perfil Hermes/Zeus existente é lido ou escrito.
+- **Build**: delega ao `setup-hermes.{sh,ps1}` do próprio checkout em modo
+  `--runtime-only`/`-RuntimeOnly`, herdando `HERMES_HOME`. O instalador não executa
+  script remoto nem instalador upstream; a sincronização é a do lock commitado.
+- **Launcher + recibo**: launcher ativa o ambiente pm do checkout com o home isolado;
+  `receipt.json` registra schema, checkout, origem, HEAD, home, launchers, caminhos
+  criados e `updates_enabled: false`. Canais de update/bootstrap permanecem desligados.
+- **Desinstalação**: espelha o recibo; sem `--purge-data` preserva `sessions/`,
+  `memories/` e `state.db`. Recibo ausente/estranho → recusa (exit 2).
+- **Limites mantidos**: sem assinatura, sem MSIX/DMG, sem release, sem deploy.
+  Fluxo B é uso pessoal na máquina de desenvolvimento, nunca canal de distribuição.
 
 ## 6. STOP
 
