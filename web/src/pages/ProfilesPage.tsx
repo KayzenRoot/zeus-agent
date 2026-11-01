@@ -52,6 +52,15 @@ import { errorMessage } from "@/lib/api-error";
 const PROFILE_NAME_RE = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 
 /** Braille unicode spinner (`unicode-animations`); static first frame when reduced motion is preferred. */
+function formatActivityAge(ms: number): string {
+  const diffMin = Math.max(0, Math.round((Date.now() - ms) / 60_000));
+  if (diffMin < 1) return "just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const h = Math.round(diffMin / 60);
+  if (h < 48) return `${h}h ago`;
+  return `${Math.round(h / 24)}d ago`;
+}
+
 function ProfilesLoadingSpinner() {
   const { frames, interval } = spinners.braille;
   const [frameIndex, setFrameIndex] = useState(0);
@@ -257,6 +266,11 @@ function ProfileActionsMenu({
 export default function ProfilesPage() {
   const navigate = useNavigate();
   const [profiles, setProfiles] = useState<ProfileInfo[]>([]);
+  // Per-profile activity for the Control Room cards (issue #12): session count
+  // and the most recent session start, from the profile-scoped sessions API.
+  const [profileActivity, setProfileActivity] = useState<
+    Record<string, { count: number; lastStartedMs: number | null }>
+  >({});
   const [activeInfo, setActiveInfo] = useState<ActiveProfileInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast, showToast } = useToast();
@@ -310,6 +324,10 @@ export default function ProfilesPage() {
       activeSetHint:
         p.activeSetHint ??
         "Dashboard switched to manage {name}. New CLI/gateway runs will use this profile too.",
+      activity: (p as { activity?: string }).activity ?? "Activity",
+      sessions: (p as { sessions?: string }).sessions ?? "sessions",
+      sessionOne: (p as { sessionOne?: string }).sessionOne ?? "session",
+      lastActive: (p as { lastActive?: string }).lastActive ?? "last active",
     };
   }, [t.profiles]);
 
@@ -399,6 +417,27 @@ export default function ProfilesPage() {
       .then(([res, active]) => {
         setProfiles(res.profiles);
         setActiveInfo(active);
+        Promise.allSettled(
+          res.profiles.map((p) =>
+            api
+              .getSessions(20, 0, p.name)
+              .then((page) => {
+                const sessions = page.sessions ?? [];
+                const lastStartedMs = sessions.reduce(
+                  (max, s) => Math.max(max, (s.started_at ?? 0) * 1000),
+                  0,
+                );
+                setProfileActivity((prev) => ({
+                  ...prev,
+                  [p.name]: {
+                    count: sessions.length,
+                    lastStartedMs: lastStartedMs > 0 ? lastStartedMs : null,
+                  },
+                }));
+              })
+              .catch(() => undefined),
+          ),
+        );
       })
       .catch((e) => showToast(`${t.status.error}: ${errorMessage(e)}`, "error"))
       .finally(() => setLoading(false));
@@ -1216,6 +1255,18 @@ export default function ProfilesPage() {
                         <span>
                           {t.profiles.skills}: {p.skill_count}
                         </span>
+
+                        {profileActivity[p.name] && (
+                          <span className="truncate">
+                            {L.activity}: {profileActivity[p.name].count}{" "}
+                            {profileActivity[p.name].count === 1
+                              ? L.sessionOne
+                              : L.sessions}
+                            {profileActivity[p.name].lastStartedMs
+                              ? ` · ${L.lastActive} ${formatActivityAge(profileActivity[p.name].lastStartedMs!)}`
+                              : ""}
+                          </span>
+                        )}
 
                         <span className="font-mono truncate">{p.path}</span>
                       </div>
