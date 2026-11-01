@@ -59,7 +59,10 @@ async function renderCron() {
 async function renderLoadedCron() {
   const result = await renderCron()
 
-  await screen.findByText('No runs yet')
+  // 10s: cold jsdom render + first fetch regularly exceeds the 1s default on
+  // loaded machines, which used to fail whole test blocks before any
+  // assertion ran (issue #2 machine-gap). The condition itself is unchanged.
+  await screen.findByText('No runs yet', undefined, { timeout: 10_000 })
 
   return result
 }
@@ -108,7 +111,10 @@ describe('CronView queued trigger feedback (#70826)', () => {
     expect(triggerButton.getAttribute('aria-busy')).toBe('true')
     expect(getCronJobRuns).toHaveBeenCalled()
 
-    // The backend materializes the run the trigger produced.
+    // The backend materializes the run the trigger produced. The queued poll
+    // fires on its real 1s cadence, so the settle waits on a loaded-machine
+    // budget instead of racing that interval against 1s waitFor defaults
+    // (that race was the machine-gap flake in issue #2).
     const observedAt = Date.now() / 1000
     getCronJobRuns.mockResolvedValue([
       {
@@ -122,8 +128,8 @@ describe('CronView queued trigger feedback (#70826)', () => {
       releaseTrigger(job)
     })
 
-    await screen.findByText('Status report run')
-    await waitFor(() => expect(queuedRow()).toBeNull())
+    await screen.findByText('Status report run', undefined, { timeout: 10_000 })
+    await waitFor(() => expect(queuedRow()).toBeNull(), { timeout: 10_000 })
     expect((triggerButton as HTMLButtonElement).disabled).toBe(false)
     expect(container.querySelector('.codicon-zap')).toBeTruthy()
   })
@@ -155,9 +161,9 @@ describe('CronView queued trigger feedback (#70826)', () => {
       notifyCronChanged()
     })
 
-    await waitFor(() => expect(getCronJobRuns.mock.calls.length).toBeGreaterThan(callsBeforeChange))
-    await screen.findByText('Status report run')
-    await waitFor(() => expect(queuedRow()).toBeNull())
+    await waitFor(() => expect(getCronJobRuns.mock.calls.length).toBeGreaterThan(callsBeforeChange), { timeout: 10_000 })
+    await screen.findByText('Status report run', undefined, { timeout: 10_000 })
+    await waitFor(() => expect(queuedRow()).toBeNull(), { timeout: 10_000 })
     expect((triggerButton as HTMLButtonElement).disabled).toBe(false)
     expect(container.querySelector('[data-slot="cron-run-pending"]')).toBeNull()
   })
@@ -221,7 +227,7 @@ describe('CronView queued trigger feedback (#70826)', () => {
       triggerButton.click()
     })
 
-    await waitFor(() => expect(queuedRow()).toBeNull())
+    await waitFor(() => expect(queuedRow()).toBeNull(), { timeout: 10_000 })
     expect((triggerButton as HTMLButtonElement).disabled).toBe(false)
   })
 
