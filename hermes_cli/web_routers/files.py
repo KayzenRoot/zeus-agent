@@ -393,9 +393,30 @@ async def proxy_remote_media(url: str, request: Request):
 
     import httpx
 
+    # Follow redirects manually so the host allowlist re-applies on EVERY hop:
+    # with follow_redirects=True an allowlisted CDN could 302 the proxy into an
+    # internal address (SSRF pivot past the check above). Bounded hops keep a
+    # redirect loop from pinning the request.
     try:
-        async with httpx.AsyncClient(timeout=_MEDIA_PROXY_TIMEOUT_S, follow_redirects=True) as client:
-            response = await client.get(url)
+        async with httpx.AsyncClient(timeout=_MEDIA_PROXY_TIMEOUT_S, follow_redirects=False) as client:
+            response = None
+            current_url = url
+            for _hop in range(5):
+                hop = urllib.parse.urlparse(current_url)
+                if hop.scheme not in ("http", "https") or not hop.hostname:
+                    raise HTTPException(status_code=400, detail="A remote image URL is required")
+                if not _media_proxy_host_allowed(hop.hostname):
+                    raise HTTPException(status_code=403, detail="Image host not allowed")
+                response = await client.get(current_url)
+                location = response.headers.get("location") if response.status_code in (301, 302, 303, 307, 308) else None
+                if location:
+                    current_url = str(httpx.URL(current_url).join(location))
+                    continue
+                break
+            else:
+                raise HTTPException(status_code=508, detail="Too many media redirects")
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Image fetch failed: {exc}")
 
