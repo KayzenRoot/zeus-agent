@@ -1184,6 +1184,83 @@ CONFIG_SCHEMA = ProviderConfigSchema(
             "data:image/png;base64," + base64.b64encode(png_bytes).decode("ascii")
         )
 
+    def test_media_proxy_revalidates_allowlist_on_redirects(self, monkeypatch):
+        # A redirect from an allowlisted host must not pivot the proxy past the
+        # host allowlist (SSRF): each hop is re-validated before it is fetched.
+        import httpx
+        import hermes_cli.web_routers.files as files_router
+
+        class _Resp:
+            def __init__(self, status_code, location=None):
+                self.status_code = status_code
+                self.headers = {"location": location} if location else {}
+                self.content = b""
+
+        class _Client:
+            def __init__(self, *a, **k):
+                self.seen = []
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *a):
+                return False
+
+            async def get(self, url):
+                self.seen.append(url)
+                if len(self.seen) == 1:
+                    return _Resp(302, "http://169.254.169.254/latest/meta-data")
+                return _Resp(200, None)  # never reached
+
+        client_stub = _Client()
+        monkeypatch.setattr(files_router, "_require_token", lambda request: None, raising=False)
+        monkeypatch.setattr(httpx, "AsyncClient", lambda *a, **k: client_stub, raising=False)
+
+        resp = self.client.get("/api/media/proxy", params={"url": "https://v3.fal.media/x.png"})
+        assert resp.status_code == 403
+        assert client_stub.seen == ["https://v3.fal.media/x.png"]
+
+    def test_media_proxy_follows_allowlisted_redirect(self, monkeypatch):
+        import base64
+
+        import httpx
+        import hermes_cli.web_routers.files as files_router
+
+        png_bytes = b"\x89PNG\r\n\x1a\n" + b"0" * 8
+
+        class _Resp:
+            def __init__(self, status_code, headers, content=b""):
+                self.status_code = status_code
+                self.headers = headers
+                self.content = content
+
+        class _Client:
+            def __init__(self, *a, **k):
+                self.seen = []
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *a):
+                return False
+
+            async def get(self, url):
+                self.seen.append(url)
+                if len(self.seen) == 1:
+                    return _Resp(302, {"location": "/v2/y.png"})
+                return _Resp(200, {"content-type": "image/png"}, png_bytes)
+
+        client_stub = _Client()
+        monkeypatch.setattr(files_router, "_require_token", lambda request: None, raising=False)
+        monkeypatch.setattr(httpx, "AsyncClient", lambda *a, **k: client_stub, raising=False)
+
+        resp = self.client.get("/api/media/proxy", params={"url": "https://v3.fal.media/x.png"})
+        assert resp.status_code == 200
+        assert client_stub.seen == ["https://v3.fal.media/x.png", "https://v3.fal.media/v2/y.png"]
+        assert resp.json()["data_url"] == (
+            "data:image/png;base64," + base64.b64encode(png_bytes).decode("ascii")
+        )
+
     def test_media_proxy_rejects_non_image_content_type(self, monkeypatch):
         class _Resp:
             status_code = 200
