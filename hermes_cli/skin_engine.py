@@ -61,6 +61,25 @@ _HERMES_BRANDING: dict[str, str] = _branding(
     "Hermes", "☤", "Goodbye! ☤", prompt="❯", help_header="(^_^)? Available Commands")
 
 _BUILTIN_SKINS: dict[str, dict[str, Any]] = {
+    "zeus": {
+        "name": "zeus", "description": "Zeus Agent - amber lightning on deep space blue",
+        "colors": {
+            "banner_border": "#FFBF00", "banner_title": "#FFD700", "banner_accent": "#FFC94D",
+            "banner_dim": "#B8960B", "banner_text": "#FFF8E7", "ui_accent": "#FFC94D",
+            "ui_label": "#E8C36A", "ui_ok": "#4caf50", "ui_error": "#ef5350", "ui_warn": "#ffa726",
+            "prompt": "#FFF8E7", "input_rule": "#FFBF00", "response_border": "#FFD700",
+            "status_bar_bg": "#0d1220", "status_bar_text": "#D8DEE9",
+            "status_bar_strong": "#FFD700", "status_bar_dim": "#7a8699",
+            "status_bar_good": "#8FBC8F", "status_bar_warn": "#FFD700", "status_bar_bad": "#FF8C00",
+            "status_bar_critical": "#FF6B6B", "session_label": "#E8C36A",
+            "session_border": "#566485", "completion_menu_bg": "#0d1220",
+            "completion_menu_current_bg": "#1c2333", "selection_bg": "#2a3350",
+            "shell_dollar": "#6cb2ff", "voice_status_bg": "#0d1220"},
+        "branding": _branding("Zeus", "⚡", "Goodbye! ⚡", prompt="❱",
+                              help_header="(+⚡) Available Commands"),
+        "banner_logo": "[#FFD700]\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2557   \u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557       \u2588\u2588\u2588\u2588\u2588\u2557   \u2588\u2588\u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2557   \u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557[/]\n[#FFD700]\u255a\u2550\u2550\u2588\u2588\u2588\u2554\u255d \u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d \u2588\u2588\u2551   \u2588\u2588\u2551 \u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d      \u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557 \u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d \u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d \u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2551 \u255a\u2550\u2550\u2588\u2588\u2554\u2550\u2550\u2550\u255d[/]\n[#FFBF00]  \u2588\u2588\u2588\u2554\u255d  \u2588\u2588\u2588\u2588\u2588\u2557   \u2588\u2588\u2551   \u2588\u2588\u2551 \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557      \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2551 \u2588\u2588\u2551  \u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2557   \u2588\u2588\u2554\u2588\u2588\u2557 \u2588\u2588\u2551    \u2588\u2588\u2551   [/]\n[#FFBF00] \u2588\u2588\u2588\u2554\u255d   \u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d \u2588\u2588\u2551   \u2588\u2588\u2551 \u255a\u2550\u2550\u2550\u2550\u2588\u2588\u2551      \u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2551 \u2588\u2588\u2551   \u2588\u2588\u2551 \u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d \u2588\u2588\u2551\u255a\u2588\u2588\u2557\u2588\u2588\u2551    \u2588\u2588\u2551   [/]\n[#CD7F32]\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2551   \u2588\u2588\u2551 \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557      \u2588\u2588\u2551  \u2588\u2588\u2551 \u255a\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255d \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2551 \u255a\u2588\u2588\u2588\u2588\u2551    \u2588\u2588\u2551   [/]\n[#CD7F32]         \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u255d \u255a\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255d               \u255a\u2550\u255d  \u255a\u2550\u255d  \u255a\u2550\u2550\u2550\u2550\u2550\u255d \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u255d \u255a\u2550\u255d  \u255a\u2550\u2550\u2550\u255d    \u255a\u2550\u255d   [/]",
+        "banner_hero": "\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2880\u28f4\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u285f\n\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2880\u28f4\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u285f\n\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u28e0\u28f6\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u285f\n\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u28e0\u28fe\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u285f\n\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u281a\u281b\u281b\u281b\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u285f\n\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u28f0\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u281f\u280b\n\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u28f0\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u287f\u281f\u280b\n\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u28a0\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u287f\u281f\u2809\n\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u28a0\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ed\u28e4\u28e4\u28e4\n\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u28ff\u28ff\u28ff\u28ff\u285f\u2801\n\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u28b8\u28ff\u28ff\u28ff\u280b\n\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2880\u28ff\u28ff\u285f\u2801\n\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u28f8\u28ff\u280b\n\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2880\u285f\u2801",
+    },
     "default": {
         "name": "default", "description": "Classic Hermes — gold and kawaii",
         # Dark-authored; values match the TUI's DARK_THEME so both render the same gold.
@@ -342,7 +361,7 @@ _BUILTIN_SKINS: dict[str, dict[str, Any]] = {
     }}
 
 _active_skin: Optional[SkinConfig] = None
-_active_skin_name: str = "default"
+_active_skin_name: str = "zeus"
 # Routed multiplex profiles: (name, skin) per home key. ``display.skin`` and ``<home>/skins/*.yaml``
 # are per profile, and the relay display name / TUI skin payload are read under each profile's
 # override — one module slot would be last-writer-wins across profiles. Unscoped keeps the module slot.
@@ -470,8 +489,8 @@ def get_active_skin_name() -> str:
 def init_skin_from_config(config: dict) -> None:
     """Initialize the active skin from CLI config at startup."""
     display = config.get("display") or {}
-    skin_name = display.get("skin", "default") if isinstance(display, dict) else "default"
-    set_active_skin(skin_name.strip() if isinstance(skin_name, str) and skin_name.strip() else "default")
+    skin_name = display.get("skin", "zeus") if isinstance(display, dict) else "zeus"
+    set_active_skin(skin_name.strip() if isinstance(skin_name, str) and skin_name.strip() else "zeus")
 
 
 def _active_branding(key: str, fallback: str) -> str:
