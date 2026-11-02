@@ -216,7 +216,9 @@ def audit(direction: str, peer: str, task_id: str, summary: str) -> None:
         rec = {"ts": time.time(), "direction": direction, "peer": peer, "task_id": task_id,
                "summary": redact_outbound((summary or "")[:500])}
         get_hermes_home().mkdir(parents=True, exist_ok=True)
-        with (get_hermes_home() / "a2a_audit.jsonl").open("a", encoding="utf-8") as fh:
+        fd = os.open(get_hermes_home() / "a2a_audit.jsonl",
+                     os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+        with os.fdopen(fd, "a", encoding="utf-8") as fh:
             fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
     except Exception:
         logger.debug("A2A: audit write failed", exc_info=True)

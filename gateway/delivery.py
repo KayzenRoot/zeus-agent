@@ -2,6 +2,7 @@
 platform home channel ("telegram"), origin (back to where the job was created), or local (files)."""
 
 import logging
+import os
 import re
 from pathlib import Path
 from datetime import datetime
@@ -34,6 +35,13 @@ def _is_silence_narration(content: Optional[str]) -> bool:
     """True when ``content`` is *only* a silence-narration token (length-guarded)."""
     stripped = content.strip() if content else ""
     return bool(stripped) and len(stripped) <= 64 and bool(_SILENCE_NARRATION.match(stripped))
+
+
+def _write_private_text(path: Path, content: str) -> None:
+    """Write user-scoped cron output with 0600 on creation (content may carry secrets)."""
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        fh.write(content)
 
 
 class PartialDeliveryError(RuntimeError):
@@ -217,7 +225,7 @@ class DeliveryRouter:
                  f"**Timestamp:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"]
         lines += [f"**Job ID:** {job_id}"] if job_id else []
         lines += [f"**{key}:** {value}" for key, value in (metadata or {}).items()] + ["", "---", "", content]
-        output_path.write_text("\n".join(lines), encoding="utf-8")
+        _write_private_text(output_path, "\n".join(lines))
         return {"path": str(output_path), "timestamp": timestamp}
 
     def _save_full_output(self, content: str, job_id: str) -> Path:
@@ -225,7 +233,7 @@ class DeliveryRouter:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         path = get_hermes_home() / "cron" / "output" / f"{job_id}_{timestamp}.txt"
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8")
+        _write_private_text(path, content)
         return path
 
     def _filter_silence_narration_enabled(self) -> bool:

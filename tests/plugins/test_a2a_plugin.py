@@ -292,6 +292,17 @@ class TestAudit:
         assert "sk-live-0123456789abcdef" not in rec["summary"]
         assert "a@b.example" not in rec["summary"]
 
+    def test_audit_file_is_user_only_on_posix(self, monkeypatch, tmp_path):
+        import stat
+        import sys
+
+        if sys.platform == "win32":
+            return
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        security.audit("inbound", "peer", "task-3", "hello")
+        mode = stat.S_IMODE((tmp_path / "a2a_audit.jsonl").stat().st_mode)
+        assert mode == 0o600
+
 
 # --------------------------------------------------------------------------
 # Protocol v1.0 shapes
