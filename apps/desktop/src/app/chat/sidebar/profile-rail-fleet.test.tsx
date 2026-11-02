@@ -236,8 +236,14 @@ beforeEach(() => {
   ;(window as { hermesDesktop?: unknown }).hermesDesktop = { getAgentRoster, openWindow, probeLocalBackend }
 })
 
-afterEach(() => {
+afterEach(async () => {
   cleanup()
+  // Radix FocusScope schedules a deferred focus after a menu closes. Let it
+  // run while JSDOM is still alive; otherwise the timer can fire during the
+  // runner's teardown and surface as an unhandled cross-realm Event error.
+  await act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 0))
+  })
   $profileOrder.set([])
   vi.clearAllMocks()
   vi.restoreAllMocks()
