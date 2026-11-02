@@ -153,8 +153,8 @@ class ZeusPythonSecurityFloors(unittest.TestCase):
             self.assertTrue(match, f"{name} pin missing from core dependencies")
             return match[0]
 
-        self.assertIn("PyJWT[crypto]==2.14.0", pin("PyJWT"))  # CVE-2026-102268 (CRITICAL)
-        self.assertIn("certifi==2026.10.18", pin("certifi"))  # GHSA-6q48-6c7w-9gw2 (CRITICAL)
+        self.assertIn("PyJWT[crypto]==2.15.1", pin("PyJWT"))  # CVE-2026-102268 (CRITICAL) + upstream v0.22.5 GHSAs
+        self.assertIn("certifi==2026.10.19", pin("certifi"))  # GHSA-6q48-6c7w-9gw2 (CRITICAL); upstream v0.22.5
         self.assertIn("Pillow==13.0.0", pin("Pillow"))  # override holds browser-harness at 13; see pairing test below
         # brotlicffi is a messaging-extra pin (brought in with aiohttp stacks).
         extras = pyproject["project"]["optional-dependencies"]
@@ -163,8 +163,8 @@ class ZeusPythonSecurityFloors(unittest.TestCase):
         self.assertIn(">=2.8.0", urllib3)  # CVE-2026-97687/97689
         for extra in ("messaging", "matrix", "slack", "sms", "teams"):
             self.assertTrue(
-                any(req.startswith("aiohttp==3.14.4") for req in extras[extra]),
-                f"{extra}: aiohttp floor CVE-2026-111064/111066/GHSA-2g87-pp6c-29x5",
+                any(req.startswith("aiohttp==3.14.5") for req in extras[extra]),
+                f"{extra}: aiohttp floor CVE-2026-111064/111066/GHSA-2g87-pp6c-29x5 + GHSA-9xw5-w5jj-pvcg",
             )
         for extra in ("mcp", "computer-use"):
             self.assertTrue(
@@ -175,10 +175,10 @@ class ZeusPythonSecurityFloors(unittest.TestCase):
     def test_uv_lock_resolved_floors(self):
         versions = uv_packages()
         floors = {
-            "pyjwt": (2, 14, 0),  # CVE-2026-102268 (CRITICAL)
-            "certifi": (2026, 10, 18),  # GHSA-6q48-6c7w-9gw2 (CRITICAL)
+            "pyjwt": (2, 15, 1),  # CVE-2026-102268 (CRITICAL) + upstream v0.22.5 GHSAs
+            "certifi": (2026, 10, 19),  # GHSA-6q48-6c7w-9gw2 (CRITICAL); upstream v0.22.5
             "urllib3": (2, 8, 0),  # CVE-2026-97687/97689
-            "aiohttp": (3, 14, 4),  # CVE-2026-111064/111066/GHSA-2g87-pp6c-29x5
+            "aiohttp": (3, 14, 5),  # GHSA-9xw5-w5jj-pvcg (high); upstream v0.22.5
             "brotlicffi": (1, 2, 1, 0),  # CVE-2026-111497 (CRITICAL)
             "httpx2": (2, 12, 0),  # CVE-2026-84381/84382 + follow-up fixed in 2.12.0
             "httpcore2": (2, 10, 0),  # rides with httpx2

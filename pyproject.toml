@@ -38,7 +38,7 @@ dependencies = [
   # user picks that backend. Smaller `dependencies` = smaller blast
   # radius for the next supply-chain attack.
   "openai==2.24.0; python_version >= '3.14'",
-  "certifi==2026.10.18; python_version >= '3.14'",  # GHSA-6q48-6c7w-9gw2 (CRITICAL)
+  "certifi==2026.10.19; python_version >= '3.14'",  # GHSA-6q48-6c7w-9gw2 (CRITICAL); upstream v0.22.5 backport
   # TLS trust comes from the OS certificate store (agent/ssl_verify.py), so
   # a corporate/internal root installed on the machine just works. certifi
   # above stays a direct pin because httpx/requests/openai each depend on
@@ -92,7 +92,7 @@ dependencies = [
   # it out of the lazy-install path that exists only for the heavy matrix deps.
   "Markdown==3.10.2; python_version >= '3.14'",
   # Skills Hub (GitHub App JWT auth — optional, only needed for bot identity)
-  "PyJWT[crypto]==2.14.0; python_version >= '3.14'",  # CVE-2026-102268 (CRITICAL), CVE-2026-102266/67/71/72/73, GHSA-pxh4-856f-4h89; prior PYSEC-2026-175/177/178/179
+  "PyJWT[crypto]==2.15.1; python_version >= '3.14'",  # CVE-2026-102268 (CRITICAL), CVE-2026-102266/67/71/72/73, GHSA-pxh4-856f-4h89, GHSA-ffc3-869f-jxw9, GHSA-42vr-xj54-vc7v; prior PYSEC-2026-175/177/178/179; upstream v0.22.5 backport
   # urllib3 2.7.0 fixes GHSA-mf9v-mfxr-j63j (decompression-bomb bypass)
   # and GHSA-qccp-gfcp-xxvc (header leak across origins).
   # urllib3 2.8.0 fixes CVE-2026-97687/CVE-2026-97689.
@@ -264,14 +264,14 @@ google-meet = ["playwright==1.62.0", "websockets==15.0.1"]
 messaging = [
   "python-telegram-bot[webhooks]==22.8",
   "discord.py[voice]==2.7.1",
-  "aiohttp==3.14.4",
+  "aiohttp==3.14.5",
   "brotlicffi==1.2.1.0",  # CVE-2026-111497
   "slack-bolt==1.30.0",
   "slack-sdk==3.44.1",
   "qrcode==7.4.2",
 ] # aiohttp 3.14.4: prior CVEs + GHSA-cq5v-8q36-5273/GHSA-mfx4-hv73-q22v/GHSA-mq44-7p77-q5h7 + CVE-2026-111064/CVE-2026-111066/GHSA-2g87-pp6c-29x5
 cron = [] # croniter is now a core dependency; this extra kept for back-compat
-slack = ["slack-bolt==1.30.0", "slack-sdk==3.44.1", "aiohttp==3.14.4"]
+slack = ["slack-bolt==1.30.0", "slack-sdk==3.44.1", "aiohttp==3.14.5"]
 # Matrix gateway deps. `mautrix[encryption]` pulls `python-olm`, whose
 # vendored libolm (archived 2023) cannot build on Windows or modern macOS:
 # no wheels for those targets AND the sdist fails to compile on current
@@ -284,7 +284,7 @@ matrix = [
   "aiosqlite==0.22.1; sys_platform == 'linux'",
   "asyncpg==0.31.0; sys_platform == 'linux'",
   "aiohttp-socks==0.11.0; sys_platform == 'linux'",
-  "aiohttp==3.14.4; sys_platform == 'linux'",
+  "aiohttp==3.14.5; sys_platform == 'linux'",
 ] # aiohttp 3.14.4: prior CVEs + GHSA-cq5v-8q36-5273/GHSA-mfx4-hv73-q22v/GHSA-mq44-7p77-q5h7 + CVE-2026-111064/CVE-2026-111066/GHSA-2g87-pp6c-29x5 (mautrix/aiohttp-socks only cap aiohttp<4 / >=3.10, so pin the patched floor directly)
 
 # WeCom callback-mode adapter — parses untrusted XML POST bodies from
@@ -401,10 +401,10 @@ mcp = [
 # Backwards-compatible no-op alias. Relay is a core dependency on supported
 # wheel targets and intentionally unavailable on other platforms.
 nemo-relay = []
-sms = ["aiohttp==3.14.4"]
+sms = ["aiohttp==3.14.5"]
 teams = [
   "microsoft-teams-apps==2.0.13.4",
-  "aiohttp==3.14.4",
+  "aiohttp==3.14.5",
 ] # aiohttp 3.14.4: prior CVEs + GHSA-cq5v-8q36-5273/GHSA-mfx4-hv73-q22v/GHSA-mq44-7p77-q5h7 + CVE-2026-111064/CVE-2026-111066/GHSA-2g87-pp6c-29x5
 # Computer use talks to PM's pinned cua-driver over MCP stdio. This extra
 # provides the MCP client, independently of the native driver package.
