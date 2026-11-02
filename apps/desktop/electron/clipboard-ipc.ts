@@ -17,5 +17,7 @@ export function registerClipboardTextIpc(
   // navigator.clipboard.readText() throws "Document is not focused" whenever a
   // portaled overlay has focus, and there's no way to route a read through the
   // canvas. The main process has no such gate.
-  ipcMain.handle('hermes:readClipboard', (): Promise<string> => clipboard.readText())
+  // Electron 44's typings keep readText() synchronous; ipcMain.handle wraps a
+  // plain return in a resolved promise for the renderer's invoke().
+  ipcMain.handle('hermes:readClipboard', (): string => clipboard.readText())
 }
