@@ -109,13 +109,15 @@ Desktop/CLI ──device login──> Zeus Cloud (Auth + Billing + Entitlements)
 
 ## 7. Decisões pendentes do owner
 
-| Decisão | Recomendação | Bloqueia |
+| Decisão | Escolha | Bloqueia |
 |---|---|---|
-| Auth (e-mail + telefone) | Supabase Auth | login/checkout |
-| Pagamento | Paddle (MoR) ou Stripe | site/assinatura |
-| Preço e limites dos planos | Free/Pro/Team/Enterprise | pricing |
-| Referência visual “Dots” | link/print do produto desejado | refinamento da constelação |
-| Marca | aprovar novo mark Zeus | assets/instalador |
+| Auth (e-mail + telefone) | **Clerk** (owner, 2026-11-02) | login/checkout |
+| Pagamento | **Stripe** (owner, 2026-11-02) | site/assinatura |
+| Trial | **2 dias** (owner) | checkout |
+| Plano mensal | **R$ 990,00** (owner) | pricing |
+| Trimestral/semestral/anual | **R$ 2.670 / R$ 5.040 / R$ 9.480** (proposta 10/15/20% off; confirmar) | pricing |
+| Referência visual “Dots” | **ChatGPT Dots** (avatares-bolha, Activity View) — confirmado | refinamento da constelação |
+| Marca | novo mark Zeus aprovado pelo owner (2026-11-02) | assets/instalador |
 | Modo dev local sem assinatura | flag `ZEUS_DEV_UNLOCK=1` | testes locais |
 
 ## 8. Riscos

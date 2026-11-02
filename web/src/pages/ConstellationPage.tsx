@@ -1,13 +1,11 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import {
   Activity,
   ArrowUpRight,
-  Bot,
   Cpu,
   Network,
   Sparkles,
-  Terminal,
   Users,
   Zap,
 } from "lucide-react";
@@ -159,11 +157,85 @@ const ORCHESTRATOR_NODE: ConstellationNode = {
   y: 50,
 };
 
+/** Curved delegation path from the orchestrator (50,50) to a specialist. */
+function edgePath(node: ConstellationNode): string {
+  const mx = (50 + node.x) / 2 + (node.y - 50) * 0.14;
+  const my = (50 + node.y) / 2 - (node.x - 50) * 0.14;
+  return `M 50 50 Q ${mx.toFixed(2)} ${my.toFixed(2)} ${node.x.toFixed(2)} ${node.y.toFixed(2)}`;
+}
+
+/**
+ * A Dots-style avatar: a colored bubble with a face. Eyes encode the live
+ * state (open = active, half-lidded = idle, crossed = offline) and some
+ * specialists wear glasses, matching ChatGPT Dots' customizable avatars.
+ */
+function DotAvatar({
+  color,
+  status,
+  size = 64,
+  accessory = false,
+}: {
+  color: string;
+  status: AgentStatus;
+  size?: number;
+  accessory?: boolean;
+}) {
+  return (
+    <svg
+      aria-hidden
+      className="drop-shadow-[0_0_16px_rgba(232,194,122,0.18)]"
+      height={size}
+      viewBox="0 0 64 64"
+      width={size}
+    >
+      <circle cx="32" cy="32" r="28" fill={`${color}1f`} />
+      <circle cx="32" cy="32" r="21" fill={color} opacity="0.92" />
+      <ellipse cx="24" cy="23" fill="#ffffff" opacity="0.18" rx="8" ry="4.5" />
+      {status === "offline" ? (
+        <g stroke="#0b0d13" strokeLinecap="round" strokeWidth="2">
+          <path d="M22 30l6 4M28 30l-6 4" />
+          <path d="M36 30l6 4M42 30l-6 4" />
+        </g>
+      ) : status === "idle" ? (
+        <g stroke="#0b0d13" strokeLinecap="round" strokeWidth="2">
+          <path d="M22 31h7" />
+          <path d="M35 31h7" />
+        </g>
+      ) : (
+        <g>
+          <circle cx="25" cy="30" fill="#0b0d13" r="2.4" />
+          <circle cx="39" cy="30" fill="#0b0d13" r="2.4" />
+          <circle cx="25.8" cy="29.2" fill="#ffffff" r="0.7" />
+          <circle cx="39.8" cy="29.2" fill="#ffffff" r="0.7" />
+        </g>
+      )}
+      {status !== "offline" ? (
+        <path
+          d="M27 39c2.2 2 7.8 2 10 0"
+          fill="none"
+          opacity="0.8"
+          stroke="#0b0d13"
+          strokeLinecap="round"
+          strokeWidth="1.8"
+        />
+      ) : null}
+      {accessory ? (
+        <g fill="none" opacity="0.9" stroke="#0b0d13" strokeWidth="1.4">
+          <circle cx="25" cy="30" r="5.6" />
+          <circle cx="39" cy="30" r="5.6" />
+          <path d="M30.6 30h2.8" />
+        </g>
+      ) : null}
+    </svg>
+  );
+}
+
 export default function ConstellationPage() {
   const navigate = useNavigate();
   const [profiles, setProfiles] = useState<ProfileInfo[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const uid = useId().replace(/:/g, "");
 
   useEffect(() => {
     let alive = true;
@@ -259,29 +331,83 @@ export default function ConstellationPage() {
                 preserveAspectRatio="none"
                 viewBox="0 0 100 100"
               >
-                {nodes.map((node, index) => (
-                  <g key={node.id}>
-                    <line
-                      className="zeus-constellation-edge"
-                      style={{ animationDelay: `${index * 220}ms` }}
+                <defs>
+                  {nodes.map((node, index) => (
+                    <linearGradient
+                      gradientUnits="userSpaceOnUse"
+                      id={`${uid}-edge-${index}`}
+                      key={`${node.id}-gradient`}
                       x1="50"
                       x2={node.x}
                       y1="50"
                       y2={node.y}
-                      stroke={COLORS[index % COLORS.length]}
-                      strokeOpacity="0.28"
-                      strokeWidth="0.28"
-                      vectorEffect="non-scaling-stroke"
-                    />
-                    <circle
-                      cx={node.x}
-                      cy={node.y}
-                      fill={COLORS[index % COLORS.length]}
-                      opacity="0.5"
-                      r="0.55"
-                    />
-                  </g>
-                ))}
+                    >
+                      <stop stopColor="#e8c27a" />
+                      <stop offset="1" stopColor={COLORS[index % COLORS.length]} />
+                    </linearGradient>
+                  ))}
+                </defs>
+                {nodes.map((node, index) => {
+                  const color = COLORS[index % COLORS.length];
+                  const d = edgePath(node);
+                  const active = node.status === "active" || selected?.id === node.id;
+                  const duration = active ? "2.4s" : "5.6s";
+
+                  return (
+                    <g key={node.id}>
+                      <path
+                        d={d}
+                        fill="none"
+                        stroke={color}
+                        strokeOpacity={active ? 0.2 : 0.08}
+                        strokeWidth={active ? 3.6 : 2.2}
+                        style={{ filter: "blur(1.4px)" }}
+                        vectorEffect="non-scaling-stroke"
+                      />
+                      <path
+                        d={d}
+                        fill="none"
+                        stroke={`url(#${uid}-edge-${index})`}
+                        strokeOpacity={active ? 0.7 : 0.26}
+                        strokeWidth={active ? 1.1 : 0.55}
+                        vectorEffect="non-scaling-stroke"
+                      />
+                      <path
+                        className="zeus-energy-flow"
+                        d={d}
+                        fill="none"
+                        stroke={color}
+                        strokeDasharray="1.4 4"
+                        strokeLinecap="round"
+                        strokeOpacity={active ? 0.98 : 0.5}
+                        strokeWidth={active ? 1.2 : 0.7}
+                        style={{
+                          animationDelay: `${index * 180}ms`,
+                          animationDuration: duration,
+                          filter: `drop-shadow(0 0 2px ${color})`,
+                        }}
+                        vectorEffect="non-scaling-stroke"
+                      />
+                      <circle cx={node.x} cy={node.y} fill={color} opacity="0.6" r="0.7" />
+                      {[0, 1].map(packet => (
+                        <circle
+                          fill={color}
+                          key={packet}
+                          opacity={active ? 0.98 : 0.6}
+                          r={active ? 1.25 : 0.8}
+                          style={{ filter: `drop-shadow(0 0 3px ${color})` }}
+                        >
+                          <animateMotion
+                            begin={`${index * 0.3 + packet * 0.45}s`}
+                            dur={duration}
+                            path={d}
+                            repeatCount="indefinite"
+                          />
+                        </circle>
+                      ))}
+                    </g>
+                  );
+                })}
               </svg>
 
               <button
@@ -292,7 +418,7 @@ export default function ConstellationPage() {
                 <span className="relative flex size-28 items-center justify-center rounded-full border border-[#e8c27a]/35 bg-[#0b0d13]/90 shadow-[0_0_0_10px_rgba(232,194,122,0.04),0_0_80px_rgba(232,194,122,0.18)] transition group-hover:border-[#e8c27a]/60">
                   <span className="absolute inset-2 rounded-full border border-white/10" />
                   <span className="absolute inset-0 animate-ping rounded-full border border-[#e8c27a]/20 [animation-duration:3.5s]" />
-                  <Bot className="size-9 text-[#e8c27a]" />
+                  <DotAvatar accessory color="#e8c27a" size={76} status="active" />
                 </span>
                 <span className="rounded-full border border-white/10 bg-[#0b0d13]/80 px-3 py-1 text-center text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-[#f3dfb5]">
                   Orchestrator
@@ -318,16 +444,22 @@ export default function ConstellationPage() {
                   >
                     <span
                       className={cn(
-                        "relative flex size-16 items-center justify-center rounded-2xl border bg-[#0a0c12]/90 shadow-lg transition",
+                        "relative flex size-16 items-center justify-center rounded-full border bg-[#0a0c12]/70 shadow-lg transition",
                         isSelected ? "scale-105 border-white/35" : "border-white/10",
+                        (isSelected || node.status === "active") && "zeus-node-active",
                       )}
                       style={{ boxShadow: `0 0 34px ${color}22` }}
                     >
                       <span
-                        className="absolute inset-0 rounded-2xl opacity-55"
+                        className="absolute inset-0 rounded-full opacity-55"
                         style={{ background: `radial-gradient(circle at 50% 20%, ${color}26, transparent 65%)` }}
                       />
-                      <Terminal className="size-6" style={{ color }} />
+                      <DotAvatar
+                        accessory={index % 4 === 0}
+                        color={color}
+                        size={56}
+                        status={node.status}
+                      />
                       <span
                         className={cn(
                           "absolute -right-1 -top-1 size-3 rounded-full border-2 border-[#05060a]",

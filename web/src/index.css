@@ -401,17 +401,27 @@ html.zeus-glass ::selection { background: rgba(255, 199, 89, 0.30); }
   html.zeus-glass * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
 
-/* Constellation (#30) — flowing delegation edges. Motion is illustrative
-   until the live event bus lands; the component labels that in the footer. */
-@keyframes zeus-constellation-dash {
-  to { stroke-dashoffset: -8; }
+/* Constellation (#30) — live energy edges. The dash flow plus the traveling
+   packets are illustrative until the event bus lands; the component labels
+   that in the footer. */
+@keyframes zeus-energy-flow {
+  to { stroke-dashoffset: -18; }
 }
 
-.zeus-constellation-edge {
-  stroke-dasharray: 1.5 3;
-  animation: zeus-constellation-dash 2.6s linear infinite;
+.zeus-energy-flow {
+  animation: zeus-energy-flow 3.2s linear infinite;
+}
+
+@keyframes zeus-node-breathe {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.16); }
+}
+
+.zeus-node-active {
+  animation: zeus-node-breathe 3.4s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .zeus-constellation-edge { animation: none; }
+  .zeus-energy-flow,
+  .zeus-node-active { animation: none; }
 }
