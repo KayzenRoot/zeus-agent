@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
  * footer says so.
  */
 
-type AgentStatus = "active" | "idle" | "offline";
+type AgentStatus = "active" | "working" | "idle" | "offline";
 
 interface ConstellationNode {
   id: string;
@@ -144,6 +144,7 @@ function buildNodes(profiles: ProfileInfo[]): ConstellationNode[] {
 
 const STATUS_STYLES: Record<AgentStatus, { dot: string; label: string }> = {
   active: { dot: "bg-emerald-300", label: "active" },
+  working: { dot: "bg-sky-300", label: "working" },
   idle: { dot: "bg-amber-300", label: "idle" },
   offline: { dot: "bg-white/25", label: "offline" },
 };
@@ -235,6 +236,7 @@ export default function ConstellationPage() {
   const [profiles, setProfiles] = useState<ProfileInfo[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [activeTick, setActiveTick] = useState(0);
   const uid = useId().replace(/:/g, "");
 
   useEffect(() => {
@@ -256,12 +258,35 @@ export default function ConstellationPage() {
   }, []);
 
   const nodes = useMemo(() => buildNodes(profiles ?? []), [profiles]);
+
+  // Demo delegation: until the event bus (#30) is wired, the orchestrator hands
+  // work to one specialist at a time so the energy line and the avatar visibly
+  // sync. Reduced-motion users keep the static topology.
+  useEffect(() => {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setInterval(() => setActiveTick(tick => tick + 1), 4200);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const liveNodes = useMemo(() => {
+    const specialists = nodes.filter(node => node.profile && node.status !== "offline");
+    const workingId = specialists.length
+      ? specialists[activeTick % specialists.length].id
+      : null;
+    return nodes.map(node =>
+      node.id === workingId ? { ...node, status: "working" as const } : node,
+    );
+  }, [nodes, activeTick]);
+
   const selected =
     selectedId === "orchestrator"
       ? ORCHESTRATOR_NODE
-      : (nodes.find((node) => node.id === selectedId) ?? nodes[0] ?? ORCHESTRATOR_NODE);
+      : (liveNodes.find((node) => node.id === selectedId) ?? liveNodes[0] ?? ORCHESTRATOR_NODE);
+  const working = liveNodes.find((node) => node.status === "working") ?? null;
   const usingDemo = (profiles?.length ?? 0) === 0;
-  const active = nodes.filter((node) => node.status === "active").length;
+  const active = liveNodes.filter(
+    (node) => node.status === "active" || node.status === "working",
+  ).length;
   const skills = (profiles ?? []).reduce((total, profile) => total + profile.skill_count, 0);
 
   return (
@@ -312,7 +337,7 @@ export default function ConstellationPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Stat icon={<Users className="size-4" />} label="Agents" value={String(nodes.length)} />
+          <Stat icon={<Users className="size-4" />} label="Agents" value={String(liveNodes.length)} />
           <Stat icon={<Activity className="size-4" />} label="Active" value={String(active)} />
           <Stat icon={<Zap className="size-4" />} label="Skills" value={String(skills)} />
           <Stat
@@ -332,7 +357,7 @@ export default function ConstellationPage() {
                 viewBox="0 0 100 100"
               >
                 <defs>
-                  {nodes.map((node, index) => (
+                  {liveNodes.map((node, index) => (
                     <linearGradient
                       gradientUnits="userSpaceOnUse"
                       id={`${uid}-edge-${index}`}
@@ -347,10 +372,13 @@ export default function ConstellationPage() {
                     </linearGradient>
                   ))}
                 </defs>
-                {nodes.map((node, index) => {
+                {liveNodes.map((node, index) => {
                   const color = COLORS[index % COLORS.length];
                   const d = edgePath(node);
-                  const active = node.status === "active" || selected?.id === node.id;
+                  const active =
+                    node.status === "active" ||
+                    node.status === "working" ||
+                    selected?.id === node.id;
                   const duration = active ? "2.4s" : "5.6s";
 
                   return (
@@ -428,7 +456,7 @@ export default function ConstellationPage() {
                 </span>
               </button>
 
-              {nodes.map((node, index) => {
+              {liveNodes.map((node, index) => {
                 const color = COLORS[index % COLORS.length];
                 const isSelected = selected?.id === node.id;
                 return (
@@ -446,7 +474,10 @@ export default function ConstellationPage() {
                       className={cn(
                         "relative flex size-16 items-center justify-center rounded-full border bg-[#0a0c12]/70 shadow-lg transition",
                         isSelected ? "scale-105 border-white/35" : "border-white/10",
-                        (isSelected || node.status === "active") && "zeus-node-active",
+                        (isSelected ||
+                          node.status === "active" ||
+                          node.status === "working") &&
+                          "zeus-node-active",
                       )}
                       style={{ boxShadow: `0 0 34px ${color}22` }}
                     >
@@ -481,6 +512,7 @@ export default function ConstellationPage() {
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 px-4 py-3 text-[0.68rem] text-white/40">
               <div className="flex flex-wrap items-center gap-4">
                 <Legend color="bg-emerald-300" label="active" />
+                <Legend color="bg-sky-300" label="working" />
                 <Legend color="bg-amber-300" label="idle" />
                 <Legend color="bg-white/25" label="offline" />
                 <span className="inline-flex items-center gap-1.5">
@@ -490,7 +522,9 @@ export default function ConstellationPage() {
               <span>
                 {usingDemo
                   ? "Demo topology — connect profiles to see your own agents."
-                  : "Motion is illustrative until the live event bus lands (#30)."}
+                  : working
+                    ? `Orchestrator → ${working.name} · activity demo until the event bus lands (#30).`
+                    : "Motion is illustrative until the live event bus lands (#30)."}
               </span>
             </div>
           </section>
