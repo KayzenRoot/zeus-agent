@@ -53,10 +53,10 @@
     "lodash": "4.18.1",
     "yauzl": "^3.3.1",
     "protobufjs": "^8.7.1",
-    "brace-expansion": "5.0.11",
+    "brace-expansion": "5.0.12",
     "mermaid": "11.16.1",
     "dompurify": "3.4.17",
-    "ip-address": "10.3.1",
+    "ip-address": "10.7.5",
     "nanoid@^3": "3.3.18",
     "nanoid@^6": "6.0.0",
     "js-yaml@^4": "4.3.2",
@@ -73,7 +73,9 @@
     "follow-redirects": "1.16.2",
     "joi": "18.3.1",
     "@xmldom/xmldom": "0.8.15",
-    "shell-quote": "1.12.0"
+    "shell-quote": "1.12.0",
+    "sanitize-html": "2.18.1",
+    "yaml": "2.9.1"
   },
   "engines": {
     "node": "^22.22.0 || ^24.11.0 || >=26.0.0",
@@ -84,7 +86,7 @@
     "esbuild@0.28.1": true,
     "node-pty@1.1.0": true,
     "electron-winstaller@5.4.0": true,
-    "electron@40.10.6": true,
+    "electron@42.11.18": true,
     "fsevents@2.3.2": true,
     "fsevents@2.3.3": true,
     "get-windows@9.3.0": true,
