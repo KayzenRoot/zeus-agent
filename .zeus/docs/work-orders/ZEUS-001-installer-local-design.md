@@ -63,7 +63,8 @@ nenhum chamador ganha poder de rede/instalação sem flag Zeus explícita e test
 |---|---|
 | Recusa fail-closed dos instaladores herdados | **VERIFICADO** (CI Windows + testes) |
 | Recusa runtime do updater na máquina real | **VERIFICADO** 2026-10-31 (`hermes update` → recusa, exit 0, checkout intocado) |
-| Fluxo B implementado (local, não assinado) | **IMPLEMENTADO** 2026-11-01: `scripts/zeus-install.{sh,ps1,cmd}` + `scripts/zeus_install_local.py`; 13 contratos em `.zeus/tests/test_zeus_installer_local.py`; `--plan` verificado no checkout real (`0416f0b069`) |
+| Fluxo B implementado (local, não assinado) | **IMPLEMENTADO** 2026-11-01: `scripts/zeus-install.{sh,ps1,cmd}` + `scripts/zeus_install_local.py`; 13 contratos em `.zeus/tests/test_zeus_installer_local.py`; `--plan` verificado no checkout real (`0416f0b069`); WSL2 15/15 (`3cb8d12446`) |
+| Auditoria dos mirrors de terceiros | **VERIFICADO para uso local** 2026-11-02 (`audits/ZEUS-001-2026-11-02-artifact-mirror-audit.md`): mirror content-addressed por SHA-256, fallback da origem oficial, verificação obrigatória; licenças de redistribuição (GPL/BSD/Bitwarden/FFmpeg) pendentes para a release C |
 | Release C (assinatura/publisher/MSIX/DMG) | **NO-GO** (issue #4, [#20]) |
 
 ## 5.1 Fluxo B implementado — contrato
