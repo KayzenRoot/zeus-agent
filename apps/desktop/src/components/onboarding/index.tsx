@@ -87,91 +87,44 @@ export interface ApiKeyOption {
 // under Settings → Advanced for enterprise. The providers below are the ones
 // people actually bring: OpenCode Go, OpenAI, Anthropic, MiniMax, DeepSeek,
 // Gemini, xAI, Fireworks and OpenRouter.
-const API_KEY_OPTIONS: ApiKeyOption[] = [
-  {
-    id: 'opencode-go',
-    name: 'OpenCode Go',
-    envKey: 'OPENCODE_GO_API_KEY',
-    docsUrl: 'https://opencode.ai/docs/',
-    short: 'assinatura OpenCode Go',
-    description: 'Use your OpenCode Go plan through its OpenAI-compatible endpoint.'
-  },
-  {
-    id: 'openai',
-    name: 'OpenAI / ChatGPT',
-    envKey: 'OPENAI_API_KEY',
-    docsUrl: 'https://platform.openai.com/api-keys',
-    short: 'modelos GPT',
-    description: 'Direct access to OpenAI GPT-class models.'
-  },
-  {
-    id: 'anthropic',
-    name: 'Anthropic / Claude',
-    envKey: 'ANTHROPIC_API_KEY',
-    docsUrl: 'https://console.anthropic.com/settings/keys',
-    short: 'modelos Claude',
-    description: 'Direct access to Anthropic Claude models.'
-  },
-  {
-    id: 'minimax',
-    name: 'MiniMax',
-    envKey: 'MINIMAX_API_KEY',
-    docsUrl: 'https://platform.minimaxi.com/',
-    short: 'modelos MiniMax',
-    description: 'Direct access to MiniMax models.'
-  },
-  {
-    id: 'deepseek',
-    name: 'DeepSeek',
-    envKey: 'DEEPSEEK_API_KEY',
-    docsUrl: 'https://platform.deepseek.com/api_keys',
-    short: 'modelos DeepSeek',
-    description: 'Direct access to DeepSeek models.'
-  },
-  {
-    id: 'gemini',
-    name: 'Google Gemini',
-    envKey: 'GEMINI_API_KEY',
-    docsUrl: 'https://aistudio.google.com/app/apikey',
-    short: 'modelos Gemini',
-    description: 'Direct access to Google Gemini models.'
-  },
-  {
-    id: 'xai',
-    name: 'xAI Grok',
-    envKey: 'XAI_API_KEY',
-    docsUrl: 'https://console.x.ai/',
-    short: 'modelos Grok',
-    description: 'Direct access to xAI Grok models.'
-  },
-  {
-    id: 'fireworks',
-    name: 'Fireworks AI',
-    envKey: 'FIREWORKS_API_KEY',
-    docsUrl: 'https://app.fireworks.ai/settings/users/api-keys',
-    short: 'API direta',
-    description: 'Direct access to models hosted by Fireworks AI.'
-  },
-  {
-    id: 'openrouter',
-    name: 'OpenRouter',
-    envKey: 'OPENROUTER_API_KEY',
-    docsUrl: 'https://openrouter.ai/keys',
-    short: 'uma chave, muitos modelos',
-    description: 'Hundreds of models behind a single key.'
-  },
-  {
-    // Advanced/enterprise only: the onboarding catalog filters this row out,
-    // but Settings → Providers can still configure a self-hosted endpoint.
-    id: 'local',
-    name: 'Local / custom endpoint',
-    envKey: 'OPENAI_BASE_URL',
-    docsUrl: 'https://github.com/KayzenRoot/zeus-agent',
-    placeholder: 'http://127.0.0.1:8000/v1',
-    short: 'self-hosted',
-    description: 'Point Zeus at a local or self-hosted OpenAI-compatible endpoint.'
-  }
+// [id, name, envKey, docsUrl, short]. Descriptions are derived so the table
+// stays one line per provider (and avoids the duplicated object literals the
+// quality gate flags).
+const API_KEY_SPECS: readonly (readonly [string, string, string, string, string])[] = [
+  ['opencode-go', 'OpenCode Go', 'OPENCODE_GO_API_KEY', 'https://opencode.ai/docs/', 'assinatura OpenCode Go'],
+  ['openai', 'OpenAI / ChatGPT', 'OPENAI_API_KEY', 'https://platform.openai.com/api-keys', 'modelos GPT'],
+  ['anthropic', 'Anthropic / Claude', 'ANTHROPIC_API_KEY', 'https://console.anthropic.com/settings/keys', 'modelos Claude'],
+  ['minimax', 'MiniMax', 'MINIMAX_API_KEY', 'https://platform.minimaxi.com/', 'modelos MiniMax'],
+  ['deepseek', 'DeepSeek', 'DEEPSEEK_API_KEY', 'https://platform.deepseek.com/api_keys', 'modelos DeepSeek'],
+  ['gemini', 'Google Gemini', 'GEMINI_API_KEY', 'https://aistudio.google.com/app/apikey', 'modelos Gemini'],
+  ['xai', 'xAI Grok', 'XAI_API_KEY', 'https://console.x.ai/', 'modelos Grok'],
+  ['fireworks', 'Fireworks AI', 'FIREWORKS_API_KEY', 'https://app.fireworks.ai/settings/users/api-keys', 'API direta'],
+  ['openrouter', 'OpenRouter', 'OPENROUTER_API_KEY', 'https://openrouter.ai/keys', 'uma chave, muitos modelos']
 ]
+
+const API_KEY_OPTIONS: ApiKeyOption[] = API_KEY_SPECS.map(([id, name, envKey, docsUrl, short]) => ({
+  id,
+  name,
+  envKey,
+  docsUrl,
+  short,
+  description:
+    id === 'opencode-go'
+      ? 'Use your OpenCode Go plan through its OpenAI-compatible endpoint.'
+      : `Direct access to ${name} models.`
+}))
+
+// Advanced/enterprise only: the onboarding catalog filters this row out, but
+// Settings → Providers can still configure a self-hosted endpoint.
+API_KEY_OPTIONS.push({
+  id: 'local',
+  name: 'Local / custom endpoint',
+  envKey: 'OPENAI_BASE_URL',
+  docsUrl: 'https://github.com/KayzenRoot/zeus-agent',
+  placeholder: 'http://127.0.0.1:8000/v1',
+  short: 'self-hosted',
+  description: 'Point Zeus at a local or self-hosted OpenAI-compatible endpoint.'
+})
 
 // Build the FULL API-key provider catalog from the backend model options so the
 // onboarding / Providers key form lists every `api_key` provider `hermes model`
