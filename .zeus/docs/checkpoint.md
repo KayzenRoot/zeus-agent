@@ -154,3 +154,10 @@ the **CORRECTION REQUIRED** verdict until independent audit confirms DoD.
 - **Residual**: matriz Python ampla/gateway/migrations SQLite, lifecycle bundled Electron **44.9.3**, instalador WSL2 pós-sync e triagem CodeQL/Sonar herdados.
 - **CodeQL pós-merge**: 790 abertos em `main` (269 path-injection, 177 log-injection, 116 clear-text-logging, 28 file-system-race, 26 insecure-temp…). **789 herdados do upstream** v0.22.5; **1 em arquivo tocado pelo Zeus** (`anthropic_endpoints.py`, Vertex regional) — endurecido com checagem label+domínio e teste (`5417bb8309`). Triagem por classe permanece na WO.
 - **2026-11-02 | GO + fechamento de escopo**: **#20 GO de produção local** registrado pelo owner; **#17** (roadmap) e **#16** (ideias) encerradas. Restam **#4** (assinatura/MSIX/DMG — BLOCKED por certificados), **#13** (e-mail/WhatsApp — BLOCKED por credenciais) e **#14** (financeiro — FUTURE/HIGH_ASSURANCE), cada uma com requisitos exatos registrados. Build bundled Electron 44.9.3 interrompido: payload upstream travou sem escrita por >90 min; payload parcial removido, release C retoma no ciclo próprio.
+
+## 2026-11-02 | Dashboard servindo o código mergeado (listener obsoleto)
+
+- **Sintoma:** após o rebuild do web, `/api/health` respondia 200 mas `GET /` devolvia 404 `Frontend not built`; `hermes dashboard --status` dizia não haver processo.
+- **Causa:** PID 34236 — dashboard da geração PM **pré-merge** `7d81f8bd…` (removida na limpeza) ainda segurava `127.0.0.1:9119`; os assets que ele procurava não existiam mais. O start novo não bindava e saía.
+- **Correção:** processo encerrado; dashboard iniciado do checkout mergeado (`.venv/Scripts/hermes.exe dashboard --skip-build --host 127.0.0.1 --port 9119`). `/api/health` reporta `commit 91b86350af…`, versão 0.22.5, e `GET /` serve `assets/index-DXNAyVGx.js` com HTTP 200.
+- Sem alteração de código; os 7 perfis/sessões e 47 mensagens seguem os mesmos.
