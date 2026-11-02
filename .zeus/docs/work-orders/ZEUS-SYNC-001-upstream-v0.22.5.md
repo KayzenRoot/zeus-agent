@@ -68,3 +68,32 @@ UI/tema/skin/banner/SOUL **não mudaram** no upstream — conflito concentrado, 
 ## 7. Fora de escopo
 
 Assinatura/MSIX/DMG (#4), credenciais (#13/#14), VPS (#20), release/publicação.
+
+## 8. Spike de merge executado e abortado (2026-11-02)
+
+Worktree isolado (`sync/ZEUS-SYNC-001-v0.22.5`), `git merge --no-commit --no-ff 'v0.22.5^{}'`:
+
+- **5.387 arquivos** alterados pelo merge; **100 conflitos**.
+- Distribuição:
+  - **53** `.github/workflows/*` (upstream mudou/addiu workflows; Zeus tem audit/brand próprios);
+  - **32** em `apps/` — 26 arquivos de i18n + `electron/main.ts`, `git-review-ops.ts|test`,
+    `package.json`, `electron-builder.config.cjs`, `bootstrap-installer/package.json`;
+  - **15** outros — `uv.lock`, `pyproject.toml`, `package*.json`, `web/package.json`,
+    `website/{package,package-lock,.npmrc}`, `sidecar/package-lock.json`, `.npmrc`, `README.md`,
+    `agent/initiate_setup_prompt.py`, `pm/{environment,operations,packages}.py`.
+- **Abortado sem commit** (`git merge --abort`); worktree/branch removidos; `main` intocado.
+
+### Estratégia de resolução recomendada
+
+1. **i18n** (26): partir do upstream e reaplicar o **mapa de marca revisado** (nunca substituição
+   global de "Hermes"→"Zeus"; preservar atribuição, identificadores e nomes de plugins).
+2. **Workflows** (53): manter o conjunto Zeus próprio (audit, brand) e adotar o upstream nos
+   compartilhados, revisando URLs/SHAs/permissões; não perder o gate de segurança.
+3. **Locks**: regenerar com `hermes pm lock` / `npm update` e reaplicar floors + overrides
+   (`pm/overrides.py`, check de ambiente override-aware).
+4. **pm/**: reaplicar `check(source)` + `_fresh_build(source)` sobre a nova árvore.
+5. **Identidade** (4 arquivos + README): merge manual preservando Zeus.
+6. **Testes**: matriz completa (§5) antes de qualquer merge em `main`.
+
+**Estimativa:** esforço dedicado de múltiplas horas + matriz ELEVATED. O spike está medido; a
+execução continua condicionada à autorização do owner nesta WO.
