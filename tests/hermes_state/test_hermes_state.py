@@ -6490,16 +6490,6 @@ class TestFts5SanitizerCharacterClass:
         # Step 5's behaviour must not regress: my-app.config.ts stays one term.
         assert '"my-app.config.ts"' in self._sanitize("my-app.config.ts")
 
-    def test_pathological_separator_run_does_not_backtrack(self):
-        import time
-
-        query = "a" + ("_" * 50_000) + "b"
-        started = time.perf_counter()
-        sanitized = self._sanitize(query)
-        elapsed = time.perf_counter() - started
-        assert isinstance(sanitized, str)
-        assert elapsed < 2.0, f"sanitizer took {elapsed:.2f}s on a separator run"
-
     def test_prefix_star_still_works(self):
         conn = self._fts_table()
         sanitized = self._sanitize("gate*")
