@@ -637,6 +637,12 @@ override-dependencies = [
   # because uv.lock records this override (pm/pip_check.py).
   # Remove this line when browser-harness allows Pillow 13. Plugin workspaces
   # inherit [tool.uv], so a plugin requiring pillow<13 also gets 13.0.0.
+  # filelock 4.2.1 fixes CVE-2026-112940; the merged upstream graph still
+  # carries a <4 cap. Remove when every dependency allows filelock 4.
+  "filelock>=4.2.1,<5",
+  # msgpack 1.2.3 fixes CVE-2026-114613; the merged upstream graph picks
+  # 1.2.1. Remove when every dependency floors msgpack at 1.2.3.
+  "msgpack>=1.2.3,<2",
   "Pillow==13.0.0",
   # misaki[en] (pulled by [kittentts]) lists spacy-curated-transformers.
   # The newest release that fits spacy 3.8 (2.x needs thinc 9), 0.3.1, caps
