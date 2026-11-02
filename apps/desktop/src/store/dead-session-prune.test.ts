@@ -300,8 +300,12 @@ describe('watchDeadSessionPrune', () => {
       // and must not stack a second timer for it.
       $sessions.set([row('a')])
       vi.advanceTimersByTime(1_000)
+      // Delta, not the absolute count: the runner's environment may already
+      // own an unrelated timer, and counting it made this assertion flaky
+      // under the full suite. The churn itself must not add one.
+      const timersBeforeChurn = vi.getTimerCount()
       $sessions.set([row('a'), row('b')])
-      expect(vi.getTimerCount()).toBe(1)
+      expect(vi.getTimerCount()).toBe(timersBeforeChurn)
 
       vi.advanceTimersByTime(1_000)
       await vi.runOnlyPendingTimersAsync()
