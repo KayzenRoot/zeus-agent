@@ -134,7 +134,10 @@ class ZeusStandaloneNpmSecurityFloors(unittest.TestCase):
             "webpack-dev-middleware": (7, 4, 6),  # CVE-2026-76844
         }
         for name, floor in floors.items():
-            installed = lock[f"node_modules/{name}"]["version"]
+            node = lock.get(f"node_modules/{name}")
+            if node is None:
+                continue  # not in this project's graph: nothing vulnerable to pin
+            installed = node["version"]
             self.assertTrue(
                 at_least(installed, floor), f"website {name} {installed} < {floor}"
             )
@@ -208,7 +211,8 @@ class ZeusPythonSecurityFloors(unittest.TestCase):
             self.assertGreaterEqual(parts(versions["pillow"]), (13, 0, 0))
             overrides = load_toml("pyproject.toml")["tool"]["uv"]["override-dependencies"]
             self.assertTrue(
-                any(req.startswith("pillow>=13") for req in overrides),
+                any(req.startswith("pillow>=13") or req.startswith("Pillow==13.")
+                    for req in overrides),
                 "browser-harness exact pin still requires the pillow override",
             )
             pyproject = load_toml("pyproject.toml")

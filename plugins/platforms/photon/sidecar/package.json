@@ -16,6 +16,7 @@
     "spectrum-ts": "12.7.0"
   },
   "overrides": {
+    "undici": "7.30.0",
     "protobufjs": "8.7.1",
     "@grpc/grpc-js": "1.14.5",
     "undici": "7.30.1",
