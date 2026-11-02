@@ -102,3 +102,25 @@ npm run --workspace hermes typecheck && npm run --workspace hermes build
 python scripts/zeus_backup.py --home <home> --out <dir>
 curl -s http://127.0.0.1:9119/api/health   # {"ok": true...}
 ```
+
+## 8. Atualização pós-GO (2026-11-02)
+
+Fatos verificados depois do GO local; **não** alteram a decisão de release C (#4).
+
+| Item | Resultado |
+|---|---|
+| Dependabot high (`follow-redirects` 1.16.0–1.16.1) | **fixed**; lock raiz em 1.16.2; default branch 31 abertos, **0 critical/0 high** |
+| Flake `dead-session-prune` (Desktop UI) | corrigido com asserção delta; 3/3 execuções locais PASS |
+| Migrações pós-sync | **54 PASS** (gateway/config/docker/cron/memória) + **26 PASS** (schema SQLite/FTS/telegram) |
+| `python scripts/check` | **12/12 ok** (após mover artefatos de build para fora do checkout) |
+| Lifecycle Electron **44.9.3** | **source-backend PASS** (134→136, lost 0) e **bundled PASS** (137→138, lost 0), sandbox limpo |
+| Payload bundled | 16 ferramentas, **46 extras**, uv-cache lock-scoped, verificação de hashes 7/7, manifesto |
+| Audit gate | **success** em `7a1075b46e` (Trivy/Sonar/proveniência/CodeQL JS+Python) |
+| CodeQL em `main` | **789 abertos, todos herdados do upstream**; nenhum em arquivo próprio do Zeus |
+| Artefatos | `D:\Projects\zeus-build-cache\electron-44-bundled-2026-11-02\{release,build}` e `desktop-inputs` externo |
+
+O lifecycle usa o **gateway local** nos dois modos (o modo bundled também não anuncia
+`HERMES_BACKEND_READY`); o harness agora aceita o anúncio `serve` + `/api/health` quando existir e o
+boot `[boot] Hermes gateway is ready` caso contrário, encerra o gateway do sandbox via
+`gateway stop --all` e trata `.publish-*` como scratch atômico. Continua **NO-GO** para distribuição
+assinada, MSIX/DMG e deep links até os ativos do owner (#4).
