@@ -211,7 +211,10 @@ def audit(direction: str, peer: str, task_id: str, summary: str) -> None:
     """Append an audit record (direction: inbound | outbound | push). Never raises."""
     try:
         from hermes_constants import get_hermes_home
-        rec = {"ts": time.time(), "direction": direction, "peer": peer, "task_id": task_id, "summary": (summary or "")[:500]}
+        # The audit file outlives the session: redact the message excerpt before it
+        # lands on disk (fail-closed via the shared egress scrub).
+        rec = {"ts": time.time(), "direction": direction, "peer": peer, "task_id": task_id,
+               "summary": redact_outbound((summary or "")[:500])}
         get_hermes_home().mkdir(parents=True, exist_ok=True)
         with (get_hermes_home() / "a2a_audit.jsonl").open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(rec, ensure_ascii=False) + "\n")

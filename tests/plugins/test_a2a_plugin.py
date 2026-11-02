@@ -284,6 +284,14 @@ class TestAudit:
         assert rec["peer"] == "peer-y"
         assert rec["task_id"] == "task-1"
 
+    def test_audit_redacts_secrets_before_writing(self, monkeypatch, tmp_path):
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        security.audit("outbound", "peer-z", "task-2",
+                       "here is the key sk-live-0123456789abcdef and mail a@b.example")
+        rec = json.loads((tmp_path / "a2a_audit.jsonl").read_text().strip().splitlines()[-1])
+        assert "sk-live-0123456789abcdef" not in rec["summary"]
+        assert "a@b.example" not in rec["summary"]
+
 
 # --------------------------------------------------------------------------
 # Protocol v1.0 shapes
