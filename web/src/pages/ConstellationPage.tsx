@@ -28,6 +28,11 @@ import { cn } from "@/lib/utils";
 
 type AgentStatus = "active" | "working" | "idle" | "offline";
 
+interface ProfileActivity {
+  count: number;
+  lastActiveMs: number | null;
+}
+
 interface ConstellationNode {
   id: string;
   name: string;
@@ -36,6 +41,7 @@ interface ConstellationNode {
   x: number;
   y: number;
   profile?: ProfileInfo;
+  activity?: ProfileActivity;
 }
 
 const COLORS = ["#e8c27a", "#7dd3c7", "#a78bfa", "#f0a6a6", "#93c5fd", "#facc15"];
@@ -94,12 +100,26 @@ const DEMO_PROFILES: ProfileInfo[] = [
   },
 ];
 
-function statusOf(profile: ProfileInfo): AgentStatus {
+const RECENT_ACTIVITY_MS = 5 * 60_000;
+
+function statusOf(
+  profile: ProfileInfo,
+  activity?: ProfileActivity,
+): AgentStatus {
   if (profile.gateway_running) return "active";
+  if (
+    activity?.lastActiveMs &&
+    Date.now() - activity.lastActiveMs < RECENT_ACTIVITY_MS
+  ) {
+    return "active";
+  }
   return profile.has_env ? "idle" : "offline";
 }
 
-function buildNodes(profiles: ProfileInfo[]): ConstellationNode[] {
+function buildNodes(
+  profiles: ProfileInfo[],
+  activity: Record<string, ProfileActivity> = {},
+): ConstellationNode[] {
   const source = profiles.length > 0 ? profiles.slice(0, 8) : DEMO_PROFILES;
   const n = source.length;
 
@@ -117,10 +137,11 @@ function buildNodes(profiles: ProfileInfo[]): ConstellationNode[] {
         id: "solo",
         name: source[0].display_name ?? source[0].name,
         subtitle: source[0].description || "specialist",
-        status: statusOf(source[0]),
+        status: statusOf(source[0], activity[source[0].name]),
         x: 50,
         y: 22,
         profile: source[0],
+        activity: activity[source[0].name],
       },
     ];
   }
@@ -134,10 +155,11 @@ function buildNodes(profiles: ProfileInfo[]): ConstellationNode[] {
       id: profile.name,
       name: profile.display_name ?? profile.name,
       subtitle: profile.description || "specialist",
-      status: statusOf(profile),
+      status: statusOf(profile, activity[profile.name]),
       x: 50 + Math.cos(angle) * radiusX,
       y: 50 + Math.sin(angle) * radiusY,
       profile,
+      activity: activity[profile.name],
     };
   });
 }
@@ -231,9 +253,21 @@ function DotAvatar({
   );
 }
 
+function formatLastActive(ms: number | null): string {
+  if (!ms) return "no sessions";
+  const diff = Date.now() - ms;
+  if (diff < 60_000) return "just now";
+  const minutes = Math.floor(diff / 60_000);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 48) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
 export default function ConstellationPage() {
   const navigate = useNavigate();
   const [profiles, setProfiles] = useState<ProfileInfo[] | null>(null);
+  const [activity, setActivity] = useState<Record<string, ProfileActivity>>({});
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeTick, setActiveTick] = useState(0);
@@ -257,7 +291,46 @@ export default function ConstellationPage() {
     };
   }, []);
 
-  const nodes = useMemo(() => buildNodes(profiles ?? []), [profiles]);
+  // Real activity per profile: session count + the newest last_active. This is
+  // what turns a gateway-running dot into a genuinely "active" one; the
+  // delegation pulse stays illustrative until the event bus (#30).
+  useEffect(() => {
+    if (!profiles?.length) return;
+    let alive = true;
+
+    const load = () => {
+      void Promise.all(
+        profiles.map(async (profile) => {
+          try {
+            const page = await api.getSessions(20, 0, profile.name);
+            const sessions = page.sessions ?? [];
+            const lastActiveMs =
+              sessions.reduce(
+                (max, session) => Math.max(max, (session.last_active ?? 0) * 1000),
+                0,
+              ) || null;
+            return [profile.name, { count: sessions.length, lastActiveMs }] as const;
+          } catch {
+            return [profile.name, { count: 0, lastActiveMs: null }] as const;
+          }
+        }),
+      ).then((entries) => {
+        if (alive) setActivity(Object.fromEntries(entries));
+      });
+    };
+
+    load();
+    const timer = window.setInterval(load, 20_000);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, [profiles]);
+
+  const nodes = useMemo(
+    () => buildNodes(profiles ?? [], activity),
+    [profiles, activity],
+  );
 
   // Demo delegation: until the event bus (#30) is wired, the orchestrator hands
   // work to one specialist at a time so the energy line and the avatar visibly
@@ -549,6 +622,18 @@ export default function ConstellationPage() {
                   <InspectorRow label="Model" value={selected.profile?.model ?? "auto"} />
                   <InspectorRow label="Provider" value={selected.profile?.provider ?? "Zeus router"} />
                   <InspectorRow label="Skills" value={String(selected.profile?.skill_count ?? 0)} />
+                  <InspectorRow
+                    label="Sessions"
+                    value={selected.profile ? String(selected.activity?.count ?? 0) : "—"}
+                  />
+                  <InspectorRow
+                    label="Last active"
+                    value={
+                      selected.profile
+                        ? formatLastActive(selected.activity?.lastActiveMs ?? null)
+                        : "now"
+                    }
+                  />
                   <InspectorRow
                     label="Gateway"
                     value={selected.profile?.gateway_running ? "running" : "stopped"}
