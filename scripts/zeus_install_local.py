@@ -17,6 +17,7 @@ Exit codes: 0 ok, 2 refused (zeus-release-unapproved / unsafe target), 1 failed.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import shlex
@@ -31,7 +32,10 @@ from typing import Optional
 FORBIDDEN_EXIT = 2
 PREFIX = "zeus-install:"
 RECEIPT_NAME = "receipt.json"
-RECEIPT_SCHEMA = 1
+RECEIPT_SCHEMA = 2
+# Dependency inputs whose change invalidates the venv baked into the launcher;
+# matches pm.environments.ACTIVATION_INPUTS.
+DEPENDENCY_INPUTS = ("uv.lock", "pyproject.toml", "pm/lock.json")
 ACCEPTED_ORIGINS = (
     "https://github.com/KayzenRoot/zeus-agent.git",
     "https://github.com/KayzenRoot/zeus-agent",
@@ -129,44 +133,144 @@ def run_setup(checkout: Checkout, home: Path) -> int:
         return 1
 
 
+def _install_key(checkout: Path) -> str:
+    """PM's install key: sha256 of the resolved checkout, truncated (pm.environments)."""
+    return hashlib.sha256(str(checkout.resolve()).encode("utf-8")).hexdigest()[:16]
+
+
+def _recorded_venv(home: Path, checkout: Checkout) -> Optional[Path]:
+    """The committed venv from PM's facts.json, read directly (no pm import needed)."""
+    facts = home / "installs" / _install_key(checkout.root) / "facts.json"
+    try:
+        data = json.loads(facts.read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError):
+        return None
+    venv = ((data.get("packages") or {}).get("venv") or {}).get("environment")
+    if not venv:
+        return None
+    path = Path(venv)
+    return path if path.is_dir() else None
+
+
+def launcher_target(checkout: Checkout, venv: Optional[Path]) -> Optional[Path]:
+    if venv is None:
+        return None
+    target = venv / ("Scripts/hermes.exe" if sys.platform == "win32" else "bin/hermes")
+    return target if target.is_file() else None
+
+
+def dependency_digests(checkout: Checkout) -> dict[str, str]:
+    """SHA-256 of every input that decides the dependency set (launcher freshness gate)."""
+    digests: dict[str, str] = {}
+    for name in DEPENDENCY_INPUTS:
+        path = checkout.root / name
+        try:
+            digests[name] = hashlib.sha256(path.read_bytes()).hexdigest()
+        except OSError:
+            continue
+    return digests
+
+
+def _ps_quote(value: str) -> str:
+    return value.replace("'", "''")
+
+
 def launcher_paths(root: Path) -> list[Path]:
     if sys.platform == "win32":
         return [root / "zeus.cmd", root / "zeus.ps1"]
     return [root / "bin" / "zeus"]
 
 
-def write_launchers(root: Path, checkout: Checkout, home: Path) -> list[Path]:
-    """Launchers activate the checkout's own pm environment with the isolated home."""
+def write_launchers(root: Path, checkout: Checkout, home: Path, *,
+                    target: Optional[Path], digests: dict[str, str]) -> list[Path]:
+    """Launchers exec the recorded venv while its dependency inputs are unchanged.
+
+    A changed lock/pyproject/pm-lock (or a vanished target) falls back to the
+    checkout's own activation, which re-syncs before running. Every run exports
+    the isolated HERMES_HOME; no update/bootstrap channel is enabled.
+    """
     created: list[Path] = []
     if sys.platform == "win32":
         (root / "zeus.cmd").write_text(
             '@echo off\r\n'
             'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0zeus.ps1" %*\r\n',
             encoding="utf-8")
-        (root / "zeus.ps1").write_text(
-            "# Zeus Agent local launcher — installed by scripts/zeus-install.ps1\n"
-            f"$env:HERMES_HOME = '{str(home).replace(chr(39), chr(39) * 2)}'\n"
-            f". '{str(checkout.root / 'activate.ps1').replace(chr(39), chr(39) * 2)}'\n"
-            "& hermes @args\n"
-            "exit $LASTEXITCODE\n",
-            encoding="utf-8")
+        lines = [
+            "# Zeus Agent local launcher — installed by scripts/zeus-install.ps1",
+            f"$env:HERMES_HOME = '{_ps_quote(str(home))}'",
+        ]
+        if target is not None and digests:
+            expected = "".join(
+                f"    '{_ps_quote(name)}' = '{digest}'\n"
+                for name, digest in sorted(digests.items())
+            )
+            lines += [
+                f"$repo = '{_ps_quote(str(checkout.root))}'",
+                "$expected = @{",
+                expected.rstrip("\n"),
+                "}",
+                "$fresh = $true",
+                "foreach ($name in $expected.Keys) {",
+                "    $path = Join-Path $repo $name",
+                "    if (-not (Test-Path -LiteralPath $path)) { $fresh = $false; break }",
+                "    $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLower()",
+                "    if ($actual -ne $expected[$name]) { $fresh = $false; break }",
+                "}",
+                f"$target = '{_ps_quote(str(target))}'",
+                "if ($fresh -and (Test-Path -LiteralPath $target)) {",
+                "    & $target @args",
+                "    exit $LASTEXITCODE",
+                "}",
+                "# Dependency inputs changed (or the target vanished): re-sync via activation.",
+                f". '{_ps_quote(str(checkout.root / 'activate.ps1'))}'",
+                "& hermes @args",
+                "exit $LASTEXITCODE",
+            ]
+        else:
+            lines += [
+                f". '{_ps_quote(str(checkout.root / 'activate.ps1'))}'",
+                "& hermes @args",
+                "exit $LASTEXITCODE",
+            ]
+        (root / "zeus.ps1").write_text("\n".join(lines) + "\n", encoding="utf-8")
         created += launcher_paths(root)
     else:
         launcher = root / "bin" / "zeus"
         launcher.parent.mkdir(parents=True, exist_ok=True)
-        launcher.write_text(
-            "#!/usr/bin/env bash\n"
-            "# Zeus Agent local launcher — installed by scripts/zeus-install.sh\n"
-            f"export HERMES_HOME={shlex.quote(str(home))}\n"
-            f". {shlex.quote(str(checkout.root / 'activate'))}\n"
-            'exec hermes "$@"\n',
-            encoding="utf-8")
+        lines = [
+            "#!/usr/bin/env bash",
+            "# Zeus Agent local launcher — installed by scripts/zeus-install.sh",
+            f"export HERMES_HOME={shlex.quote(str(home))}",
+        ]
+        if target is not None and digests:
+            checks = "\n".join(
+                f"[ \"$(hash_file {shlex.quote(str(checkout.root / name))})\" = {shlex.quote(digest)} ] || fresh=0"
+                for name, digest in sorted(digests.items())
+            )
+            lines += [
+                "hash_file() {",
+                "  if command -v sha256sum >/dev/null 2>&1; then sha256sum \"$1\" | cut -d' ' -f1",
+                "  else shasum -a 256 \"$1\" | cut -d' ' -f1; fi",
+                "}",
+                "fresh=1",
+                checks,
+                f"if [ \"$fresh\" = 1 ] && [ -x {shlex.quote(str(target))} ]; then",
+                f"  exec {shlex.quote(str(target))} \"$@\"",
+                "fi",
+                "# Dependency inputs changed (or the target vanished): re-sync via activation.",
+            ]
+        lines += [
+            f". {shlex.quote(str(checkout.root / 'activate'))}",
+            'exec hermes "$@"',
+        ]
+        launcher.write_text("\n".join(lines) + "\n", encoding="utf-8")
         launcher.chmod(0o755)
         created.append(launcher)
     return created
 
 
-def write_receipt(root: Path, checkout: Checkout, home: Path, launchers: list[Path]) -> Path:
+def write_receipt(root: Path, checkout: Checkout, home: Path, launchers: list[Path], *,
+                  target: Optional[Path], digests: dict[str, str]) -> Path:
     receipt = {
         "schema": RECEIPT_SCHEMA,
         "kind": "zeus-local-install",
@@ -177,6 +281,8 @@ def write_receipt(root: Path, checkout: Checkout, home: Path, launchers: list[Pa
         "root": str(root),
         "hermes_home": str(home),
         "launchers": [str(path) for path in launchers],
+        "launcher_target": str(target) if target is not None else None,
+        "dependency_inputs": digests,
         "created_paths": sorted({str(root), str(home)}),
         "release_channel": "local-development",
         "updates_enabled": False,
@@ -212,8 +318,10 @@ def install(checkout: Checkout, root: Path) -> int:
     try:
         if run_setup(checkout, home) != 0:
             raise RuntimeError("setup-hermes failed — see its output above")
-        launchers = write_launchers(root, checkout, home)
-        write_receipt(root, checkout, home, launchers)
+        target = launcher_target(checkout, _recorded_venv(home, checkout))
+        digests = dependency_digests(checkout)
+        launchers = write_launchers(root, checkout, home, target=target, digests=digests)
+        write_receipt(root, checkout, home, launchers, target=target, digests=digests)
     except BaseException:
         if created_root:
             shutil.rmtree(root, ignore_errors=True)

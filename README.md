@@ -69,7 +69,7 @@ A partir de um clone verificado deste repositório (remoto `KayzenRoot/zeus-agen
 ./scripts/zeus-install.sh --uninstall --yes
 ```
 
-O root padrão é `%LOCALAPPDATA%\ZeusAgent` (Windows) ou `$XDG_DATA_HOME/zeus-agent` (POSIX); `HERMES_HOME` fica em `<root>/home`, isolado. O recibo em `<root>/receipt.json` registra checkout, SHA, origem e caminhos criados; a desinstalação espelha o recibo e preserva sessões/memórias sem `--purge-data`. Release assinada (MSIX/DMG/publisher) continua NO-GO na issue #4.
+O root padrão é `%LOCALAPPDATA%\ZeusAgent` (Windows) ou `$XDG_DATA_HOME/zeus-agent` (POSIX); `HERMES_HOME` fica em `<root>/home`, isolado. O launcher executa o venv gravado enquanto `uv.lock`, `pyproject.toml` e `pm/lock.json` não mudarem (fast path); qualquer mudança cai no `activate` do checkout, que re-sincroniza antes de rodar. O recibo em `<root>/receipt.json` registra checkout, SHA, origem, alvo do launcher, digests dos inputs e caminhos criados; a desinstalação espelha o recibo e preserva sessões/memórias sem `--purge-data`. Release assinada (MSIX/DMG/publisher) continua NO-GO na issue #4.
 
 Esses comandos **validam código e build**, mas não equivalem a testar uma sessão real com modelo e gateway. Para o chat embutido do dashboard, o upstream depende de PTY POSIX: execute o backend no WSL2 até existir suporte nativo equivalente. O ambiente Python deve seguir o gerenciador definido pelo upstream, sem instalar pacotes aleatórios globalmente.
 

@@ -46,7 +46,11 @@ def _repo(directory: Path, origin: str = FORK) -> Path:
     directory.mkdir(parents=True, exist_ok=True)
     subprocess.run(["git", "init", "-q", str(directory)], check=True, env=_git_env())
     (directory / "setup-hermes.sh").write_text("#!/bin/sh\n", encoding="utf-8")
-    subprocess.run(["git", "-C", str(directory), "add", "setup-hermes.sh"], check=True, env=_git_env())
+    (directory / "uv.lock").write_text("version = 1\n", encoding="utf-8")
+    (directory / "pyproject.toml").write_text("[project]\nname = 'fixture'\n", encoding="utf-8")
+    (directory / "pm").mkdir(exist_ok=True)
+    (directory / "pm" / "lock.json").write_text("{}\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(directory), "add", "-A"], check=True, env=_git_env())
     subprocess.run(["git", "-C", str(directory), "commit", "-qm", "init"], check=True, env=_git_env())
     if origin:
         subprocess.run(["git", "-C", str(directory), "remote", "add", "origin", origin],
@@ -121,10 +125,21 @@ class InstallUninstallTests(unittest.TestCase):
         checkout, reason = self.module.verify_checkout(repo)
         self.assertIsNone(reason)
         root = directory / "installed"
+        key = self.module._install_key(repo)
+        venv = root / "home" / "installs" / key / "venv"
+        exe = venv / ("Scripts" if sys.platform == "win32" else "bin") / (
+            "hermes.exe" if sys.platform == "win32" else "hermes")
 
         def fake_setup(active_checkout, home):
             (home / "installs").mkdir(parents=True, exist_ok=True)
             (home / "installs" / "marker").write_text("built", encoding="utf-8")
+            exe.parent.mkdir(parents=True, exist_ok=True)
+            exe.write_text("", encoding="utf-8")
+            key = self.module._install_key(active_checkout.root)
+            facts = home / "installs" / key / "facts.json"
+            facts.parent.mkdir(parents=True, exist_ok=True)
+            facts.write_text(json.dumps({"schema": 1, "packages": {
+                "venv": {"environment": str(home / "installs" / key / "venv")}}}), encoding="utf-8")
             return 0
 
         with mock.patch.object(self.module, "run_setup", fake_setup):
@@ -142,11 +157,30 @@ class InstallUninstallTests(unittest.TestCase):
             self.assertFalse(receipt["updates_enabled"])
             self.assertEqual(Path(receipt["hermes_home"]), root / "home")
             self.assertTrue((root / "home" / "installs" / "marker").is_file())
-            launcher = Path(receipt["launchers"][0])
-            self.assertTrue(launcher.is_file())
-            text = launcher.read_text(encoding="utf-8")
+            self.assertIsNotNone(receipt["launcher_target"])
+            self.assertEqual(set(receipt["dependency_inputs"]), {"uv.lock", "pyproject.toml", "pm/lock.json"})
+            launchers = [Path(p) for p in receipt["launchers"]]
+            self.assertTrue(all(path.is_file() for path in launchers))
+            text = "\n".join(path.read_text(encoding="utf-8") for path in launchers)
             self.assertNotIn("ZEUS_DESKTOP_BOOTSTRAP_APPROVED", text)
             self.assertNotIn("ZEUS_NATIVE_UPDATES_APPROVED", text)
+            self.assertIn(str(receipt["launcher_target"]), text)
+            self.assertIn("activate", text)
+            self.assertIn("HERMES_HOME", text)
+
+    def test_launcher_falls_back_to_activation_without_a_recorded_venv(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = _repo(Path(directory) / "repo")
+            checkout, _ = self.module.verify_checkout(repo)
+            root = Path(directory) / "installed"
+            with mock.patch.object(self.module, "run_setup", lambda *_: 0):
+                code = self.module.install(checkout, root)
+            self.assertEqual(code, 0)
+            receipt = json.loads((root / "receipt.json").read_text(encoding="utf-8"))
+            self.assertIsNone(receipt["launcher_target"])
+            text = "\n".join(Path(p).read_text(encoding="utf-8") for p in receipt["launchers"])
+            self.assertIn("activate", text)
+            self.assertNotIn("hermes.exe", text)
 
     def test_failed_setup_removes_a_fresh_root(self):
         with tempfile.TemporaryDirectory() as directory:
