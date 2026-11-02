@@ -143,3 +143,12 @@ the **CORRECTION REQUIRED** verdict until independent audit confirms DoD.
 - #4, #13, #14, #19, #20 (certificado/MSIX/DMG, credenciais, VPS, go de produção).
 - **#28 (fechada como falso positivo)**: o pacote que falhou foi construído com `builder` **sem** `build` sob `HERMES_DESKTOP_VARIANT=bundled`; o stamp `payload=bundled` é gravado no build, então o boot caiu no launcher do home real. Rebuild correto (`build` + `builder` com a variante) fez o **lifecycle bundled PASSAR**: session-1 backend porta 59437, relaunch session-2 porta 54299, estado **113→116, lost 0**. Lição no bullet de desktop acima.
 - #7 sync completo (WO), #137170 residual (core loop), licenças de redistribuição na release C, full-install POSIX do fluxo B.
+
+
+## 2026-11-02 | Sync upstream v0.22.5 merged (PR #29, owner-approved)
+
+- **`main` = `57b031a5c7`** (merge commit). Upstream `v0.22.5^{} = bf0203a794`; base `8930e5205f`. Autorização explícita do owner ("aprovo o merge"); branch de sync removida.
+- **101 conflitos → 0**: 53 workflows deletados pelo Zeus (deleções mantidas), 24 i18n (upstream + marca em palavras isoladas), `electron/main.ts` (12 gates Zeus reaplicados via 3-way), PM adotou `pm/pip_check.py` upstream (lê overrides do `uv.lock`; `pm/overrides.py` removido com o teste), 4 locks regenerados, floors **filelock 4.2.4 / msgpack 1.2.4 / undici 7.30.1**, Pillow override exato aceito no teste.
+- **CI do PR**: brand-unit, dashboard-checks, Trivy, dependency gate, provenance, Windows bootstrap/installer safety, CodeQL JS e Python **PASS**. Desktop UI **11.509/11.512** (1 teste upstream flaky: `dead-session-prune`, 0/20 falhas local). CodeQL comparison: **100 anotações herdadas do upstream**; SonarCloud new-code E — triagem pendente.
+- **Pós-merge local**: `scripts/check` **12/12**; `.zeus/tests` com as 2 falhas Windows-only conhecidas (passam no WSL); ambiente PM reconstruído com **Pillow 13.0.0, PyJWT 2.15.1, certifi 2026.10.19**; dashboard na nova geração health **200**, 7 sessões/47 mensagens preservadas; `pip_check` upstream aceita o lock.
+- **Residual**: matriz Python ampla/gateway/migrations SQLite, lifecycle bundled Electron **44.9.3**, instalador WSL2 pós-sync e triagem CodeQL/Sonar herdados.
