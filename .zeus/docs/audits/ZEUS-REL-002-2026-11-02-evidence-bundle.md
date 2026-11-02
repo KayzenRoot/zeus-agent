@@ -1,6 +1,6 @@
 # ZEUS-REL-002 | Evidence Bundle — release candidate local
 
-**Candidato:** `main` em `41c7aebc6b` · **Data:** 2026-11-02
+**Candidato pré-sync:** `main` em `41c7aebc6b` · **Pós-sync:** `main` em `57b031a5c7`/`c7ccb987f3` (upstream v0.22.5 merged, PR #29) · **Data:** 2026-11-02
 **Escopo:** produção local pessoal (ADR-003), BYOK. **Veredito:** RC local pronto para decisão do owner
 (#20); distribuição assinada **NO-GO** (#4). Nada foi publicado, deployado ou enviado a VPS.
 

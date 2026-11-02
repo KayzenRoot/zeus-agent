@@ -5,6 +5,14 @@
 **Veredito do executor:** **RC local PRONTO para a decisão do owner (#20)**; **distribuição assinada NO-GO (#4)**.
 Este relatório consolida evidências; **não é aprovação independente** e não autoriza release/deploy/VPS.
 
+> **Atualização pós-sync (2026-11-02):** a `main` agora é **`57b031a5c7`** (merge do upstream
+> `v0.22.5^{}` via PR #29, aprovado pelo owner) + `c7ccb987f3` (docs). Audit gate pós-merge
+> **success** (Trivy/CodeQL js+py/provenance/Sonar BYO); `scripts/check` 12/12; PM reconstruído com
+> Pillow 13.0.0/PyJWT 2.15.1/certifi 2026.10.19; dashboard health 200 com 7 sessões/47 mensagens.
+> Os números de CodeQL/dependências neste documento descrevem o candidato **pré-sync**; os residuais
+> pós-sync (100 anotações CodeQL herdadas no diff, gate Sonar new-code, matriz ampla e lifecycle
+> Electron 44) estão registrados no checkpoint e na #7.
+
 ## 1. Checklist do DoD (`definition-of-done.md`)
 
 | # | Item | Estado | Evidência |
