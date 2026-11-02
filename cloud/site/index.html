@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Zeus Agent — Sua força de trabalho de IA</title>
+  <meta name="description" content="O orquestrador de agentes de IA para pessoas e empresas. Assine o Zeus Pro e coloque sua constelação para trabalhar." />
+  <style>
+    :root {
+      --bg: #06070a;
+      --panel: rgba(255, 255, 255, 0.035);
+      --line: rgba(255, 255, 255, 0.09);
+      --gold: #e8c27a;
+      --gold-soft: #f3dfb5;
+      --text: #f4efe3;
+      --muted: rgba(244, 239, 227, 0.56);
+      --faint: rgba(244, 239, 227, 0.34);
+      --teal: #7dd3c7;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.6 "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+    .wrap { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+    .topbar {
+      position: sticky; top: 0; z-index: 20;
+      border-bottom: 1px solid var(--line);
+      background: rgba(6, 7, 10, 0.78);
+      backdrop-filter: blur(18px);
+    }
+    .nav { display: flex; align-items: center; justify-content: space-between; height: 70px; gap: 20px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .02em; }
+    .brand svg { width: 30px; height: 30px; }
+    .nav-links { display: flex; gap: 26px; color: var(--muted); font-size: .86rem; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-actions { display: flex; align-items: center; gap: 10px; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      border: 1px solid var(--line); border-radius: 10px;
+      padding: 10px 16px; font-size: .86rem; font-weight: 600;
+      transition: .18s ease; cursor: pointer;
+    }
+    .btn:hover { border-color: rgba(232,194,122,.45); transform: translateY(-1px); }
+    .btn-gold { background: var(--gold); border-color: var(--gold); color: #171208; }
+    .btn-gold:hover { background: #f0d296; border-color: #f0d296; }
+    .btn-ghost { background: rgba(255,255,255,.03); color: var(--text); }
+    .pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      border: 1px solid rgba(232,194,122,.28); border-radius: 999px;
+      background: rgba(232,194,122,.07); color: var(--gold-soft);
+      padding: 6px 12px; font-size: .7rem; font-weight: 600;
+      letter-spacing: .14em; text-transform: uppercase;
+    }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: #86efac; box-shadow: 0 0 10px #86efac; }
+    .hero { position: relative; overflow: hidden; padding: 92px 0 80px; }
+    .hero::before {
+      content: ""; position: absolute; inset: -20% 20% auto;
+      height: 620px; background: radial-gradient(circle, rgba(232,194,122,.13), transparent 64%);
+      pointer-events: none;
+    }
+    .hero-grid { position: relative; display: grid; grid-template-columns: 1.05fr .95fr; gap: 60px; align-items: center; }
+    h1 { margin: 20px 0 18px; font-size: clamp(2.5rem, 5vw, 4.2rem); line-height: 1.02; letter-spacing: -.045em; }
+    h1 em { font-style: normal; color: var(--gold); }
+    .lede { max-width: 560px; color: var(--muted); font-size: 1.05rem; line-height: 1.7; }
+    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
+    .micro { margin-top: 16px; color: var(--faint); font-size: .76rem; }
+    .constellation { position: relative; height: 460px; }
+    .constellation svg { width: 100%; height: 100%; overflow: visible; }
+    .edge { stroke-dasharray: 2 6; animation: flow 5s linear infinite; }
+    .edge.slow { animation-duration: 7s; }
+    @keyframes flow { to { stroke-dashoffset: -32; } }
+    .hero-node { filter: drop-shadow(0 0 18px rgba(232,194,122,.35)); }
+    .section { padding: 78px 0; border-top: 1px solid var(--line); }
+    .section-head { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 34px; }
+    .kicker { color: var(--gold); font-size: .7rem; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; }
+    h2 { margin: 10px 0 8px; font-size: clamp(1.7rem, 3vw, 2.4rem); letter-spacing: -.03em; }
+    .section-head p { max-width: 520px; color: var(--muted); margin: 0; }
+    .plans { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .plan {
+      position: relative; display: flex; flex-direction: column;
+      border: 1px solid var(--line); border-radius: 18px;
+      background: var(--panel); padding: 22px;
+      transition: .2s ease;
+    }
+    .plan:hover { border-color: rgba(232,194,122,.35); transform: translateY(-3px); }
+    .plan.featured { border-color: rgba(232,194,122,.55); background: linear-gradient(180deg, rgba(232,194,122,.09), rgba(255,255,255,.02)); }
+    .plan .tag { position: absolute; top: -10px; right: 16px; background: var(--gold); color: #171208; border-radius: 999px; padding: 3px 10px; font-size: .62rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .plan h3 { margin: 0; font-size: 1rem; }
+    .price { margin: 12px 0 2px; font-size: 2rem; font-weight: 700; letter-spacing: -.04em; }
+    .price small { font-size: .74rem; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+    .plan .trial { color: var(--teal); font-size: .74rem; margin-bottom: 14px; }
+    .plan ul { margin: 0 0 20px; padding: 0; list-style: none; color: var(--muted); font-size: .8rem; }
+    .plan li { padding: 5px 0; border-top: 1px solid rgba(255,255,255,.05); }
+    .plan .btn { margin-top: auto; width: 100%; }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .step { border: 1px solid var(--line); border-radius: 16px; background: var(--panel); padding: 22px; }
+    .step .n { display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid rgba(232,194,122,.35); color: var(--gold); font-size: .72rem; font-weight: 700; }
+    .step h3 { margin: 12px 0 6px; font-size: .98rem; }
+    .step p { margin: 0; color: var(--muted); font-size: .82rem; }
+    .login-box { display: flex; align-items: center; justify-content: space-between; gap: 24px; border: 1px solid rgba(232,194,122,.22); border-radius: 18px; background: linear-gradient(135deg, rgba(232,194,122,.08), rgba(255,255,255,.02)); padding: 28px; }
+    .login-box h3 { margin: 0 0 6px; font-size: 1.2rem; }
+    .login-box p { margin: 0; color: var(--muted); font-size: .85rem; max-width: 640px; }
+    footer { padding: 34px 0 50px; color: var(--faint); font-size: .76rem; }
+    .footer-row { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+    .test-banner { background: rgba(232,194,122,.10); border-bottom: 1px solid rgba(232,194,122,.22); color: var(--gold-soft); font-size: .75rem; text-align: center; padding: 8px 12px; }
+    @media (max-width: 920px) {
+      .hero-grid, .plans, .steps { grid-template-columns: 1fr; }
+      .constellation { height: 360px; order: -1; }
+      .nav-links { display: none; }
+      .login-box { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="test-banner">Modo de teste — os links abrem o Stripe em test mode. Nenhuma cobrança real é feita.</div>
+
+  <header class="topbar">
+    <div class="wrap nav">
+      <a class="brand" href="#">
+        <svg viewBox="0 0 128 128" aria-hidden="true">
+          <defs>
+            <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffe9b8"/><stop offset=".55" stop-color="#e8c27a"/><stop offset="1" stop-color="#c9963f"/></linearGradient>
+          </defs>
+          <rect x="4" y="4" width="120" height="120" rx="28" fill="#0c1018" stroke="#2a2f3d" stroke-width="1.5"/>
+          <path d="M38 42H90L38 86H90" fill="none" stroke="url(#g)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+          <g fill="#fff4d2"><circle cx="38" cy="42" r="3.2"/><circle cx="90" cy="42" r="3.2"/><circle cx="38" cy="86" r="3.2"/><circle cx="90" cy="86" r="3.2"/></g>
+        </svg>
+        <span>ZEUS</span>
+      </a>
+      <nav class="nav-links">
+        <a href="#produto">Produto</a>
+        <a href="#planos">Planos</a>
+        <a href="#como">Como funciona</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-ghost" href="https://adequate-viper-3823.clerk.accounts.dev/sign-in" target="_blank" rel="noreferrer">Entrar</a>
+        <a class="btn btn-gold" href="#planos">Começar</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="produto">
+      <div class="wrap hero-grid">
+        <div>
+          <span class="pill"><span class="dot"></span> Agentes always-on</span>
+          <h1>Uma força de trabalho de IA.<br /><em>Orquestrada.</em></h1>
+          <p class="lede">O Zeus transforma um objetivo em uma equipe de agentes que pesquisa, executa, conversa e entrega — enquanto você acompanha cada passo na constelação.</p>
+          <div class="hero-actions">
+            <a class="btn btn-gold" href="https://buy.stripe.com/test_9B67sN0JMaBJ24b1a68bS00" target="_blank" rel="noreferrer">Assinar Pro — 2 dias grátis</a>
+            <a class="btn btn-ghost" href="#planos">Ver planos</a>
+          </div>
+          <div class="micro">Cancele quando quiser · Pagamento seguro via Stripe · Cancele durante o trial sem cobrança</div>
+        </div>
+
+        <div class="constellation" aria-hidden="true">
+          <svg viewBox="0 0 520 460">
+            <defs>
+              <linearGradient id="edgeGold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e8c27a"/><stop offset="1" stop-color="#7dd3c7"/></linearGradient>
+              <radialGradient id="nodeGold" cx="38%" cy="32%" r="70%"><stop stop-color="#fff4d2"/><stop offset="1" stop-color="#d9a441"/></radialGradient>
+            </defs>
+            <g fill="none" stroke="url(#edgeGold)" stroke-width="1.2" opacity=".66">
+              <path class="edge" d="M260 230 C 190 180, 140 150, 92 118"/>
+              <path class="edge slow" d="M260 230 C 330 175, 390 140, 432 106"/>
+              <path class="edge" d="M260 230 C 185 265, 125 292, 82 330"/>
+              <path class="edge slow" d="M260 230 C 335 270, 395 300, 438 344"/>
+              <path class="edge" d="M260 230 C 250 300, 245 350, 252 404"/>
+            </g>
+            <g>
+              <circle class="hero-node" cx="260" cy="230" r="42" fill="#0b0d13" stroke="#e8c27a" stroke-width="1.5"/>
+              <circle cx="260" cy="230" r="32" fill="url(#nodeGold)" opacity=".94"/>
+              <circle cx="249" cy="224" r="3.2" fill="#0b0d13"/><circle cx="271" cy="224" r="3.2" fill="#0b0d13"/>
+              <path d="M252 240c4 4 12 4 16 0" stroke="#0b0d13" stroke-width="2" fill="none" stroke-linecap="round"/>
+              <circle cx="92" cy="118" r="18" fill="#0b0d13" stroke="#7dd3c7" stroke-width="1.4"/>
+              <circle cx="86" cy="114" r="2" fill="#7dd3c7"/><circle cx="98" cy="114" r="2" fill="#7dd3c7"/>
+              <circle cx="432" cy="106" r="15" fill="#0b0d13" stroke="#f0a6a6" stroke-width="1.4"/>
+              <circle cx="427" cy="103" r="1.8" fill="#f0a6a6"/><circle cx="437" cy="103" r="1.8" fill="#f0a6a6"/>
+              <circle cx="82" cy="330" r="16" fill="#0b0d13" stroke="#a78bfa" stroke-width="1.4"/>
+              <circle cx="77" cy="326" r="1.8" fill="#a78bfa"/><circle cx="87" cy="326" r="1.8" fill="#a78bfa"/>
+              <circle cx="438" cy="344" r="14" fill="#0b0d13" stroke="#93c5fd" stroke-width="1.4"/>
+              <circle cx="252" cy="404" r="13" fill="#0b0d13" stroke="#facc15" stroke-width="1.4"/>
+            </g>
+            <g fill="#e8c27a">
+              <circle r="2.2"><animateMotion dur="5s" repeatCount="indefinite" path="M260 230 C 190 180, 140 150, 92 118"/></circle>
+              <circle r="2"><animateMotion dur="7s" begin="1s" repeatCount="indefinite" path="M260 230 C 330 175, 390 140, 432 106"/></circle>
+              <circle r="2.2"><animateMotion dur="6s" begin=".5s" repeatCount="indefinite" path="M260 230 C 185 265, 125 292, 82 330"/></circle>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="planos">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <div class="kicker">Planos</div>
+            <h2>Escolha o ritmo da sua constelação</h2>
+            <p>Assinatura mensal, trimestral, semestral ou anual. Como o modelo é BYOK, você escolhe o provedor dentro do app.</p>
+          </div>
+          <span class="pill">2 dias grátis</span>
+        </div>
+        <div class="plans">
+          <article class="plan">
+            <h3>Mensal</h3>
+            <div class="price">R$ 990 <small>/mês</small></div>
+            <div class="trial">2 dias de trial</div>
+            <ul><li>Orquestrador + agentes</li><li>Constelação ao vivo</li><li>BYOK</li></ul>
+            <a class="btn btn-gold" href="https://buy.stripe.com/test_9B67sN0JMaBJ24b1a68bS00" target="_blank" rel="noreferrer">Assinar mensal</a>
+          </article>
+          <article class="plan">
+            <h3>Trimestral</h3>
+            <div class="price">R$ 2.670 <small>/trimestre</small></div>
+            <div class="trial">R$ 890/mês · 10% off</div>
+            <ul><li>Tudo do mensal</li><li>Economia de 10%</li><li>Checkout seguro</li></ul>
+            <a class="btn btn-ghost" href="https://buy.stripe.com/test_14A00l78a7px5gnf0W8bS01" target="_blank" rel="noreferrer">Assinar trimestral</a>
+          </article>
+          <article class="plan">
+            <h3>Semestral</h3>
+            <div class="price">R$ 5.040 <small>/semestre</small></div>
+            <div class="trial">R$ 840/mês · 15% off</div>
+            <ul><li>Tudo do mensal</li><li>Economia de 15%</li><li>Suporte prioritário</li></ul>
+            <a class="btn btn-ghost" href="https://buy.stripe.com/test_8x2cN7akmeRZdMTaKG8bS02" target="_blank" rel="noreferrer">Assinar semestral</a>
+          </article>
+          <article class="plan featured">
+            <span class="tag">Melhor valor</span>
+            <h3>Anual</h3>
+            <div class="price">R$ 9.480 <small>/ano</small></div>
+            <div class="trial">R$ 790/mês · 20% off</div>
+            <ul><li>Tudo do mensal</li><li>Economia de 20%</li><li>Recursos enterprise em breve</li></ul>
+            <a class="btn btn-ghost" href="https://buy.stripe.com/test_7sY8wR646aBJ6kr8Cy8bS03" target="_blank" rel="noreferrer">Assinar anual</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="como">
+      <div class="wrap">
+        <div class="section-head">
+          <div><div class="kicker">Como funciona</div><h2>Do objetivo à entrega</h2></div>
+        </div>
+        <div class="steps">
+          <div class="step"><span class="n">01</span><h3>Assine o Zeus Pro</h3><p>Checkout Stripe, 2 dias grátis, cancele quando quiser.</p></div>
+          <div class="step"><span class="n">02</span><h3>Entre com e-mail ou telefone</h3><p>O mesmo login abre o Zeus no desktop e no dashboard.</p></div>
+          <div class="step"><span class="n">03</span><h3>Descreva o objetivo</h3><p>O Orquestrador monta a equipe e você acompanha a energia entre os agentes.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="wrap">
+        <div class="login-box">
+          <div>
+            <h3>Já é assinante?</h3>
+            <p>Entre com e-mail ou telefone para abrir sua conta. O acesso ao runtime é liberado pelo entitlement do Zeus Cloud (em integração).</p>
+          </div>
+          <a class="btn btn-gold" href="https://adequate-viper-3823.clerk.accounts.dev/sign-in" target="_blank" rel="noreferrer">Entrar na conta</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap footer-row">
+      <span>© 2026 Zeus Agent · Produto local-first · MIT upstream preservado</span>
+      <span>Test mode · Termos e privacidade serão publicados antes do live mode</span>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,50 @@
+{
+  "currency": "brl",
+  "trial_days": 2,
+  "mode": "test",
+  "clerk": {
+    "app_id": "app_3LZQvceu62Q3uvSFc27zP0oekXj",
+    "instance_id": "ins_3LZQvgwvGabslL3kb3dKiuQDAc6",
+    "frontend_api": "adequate-viper-3823.clerk.accounts.dev",
+    "publishable_key": "pk_test_YWRlcXVhdGUtdmlwZXItMzgyMy5jbGVyay5hY2NvdW50cy5kZXYk",
+    "native_redirect_url": "zeus://auth/callback"
+  },
+  "plans": {
+    "monthly": {
+      "name": "Zeus Pro - Mensal",
+      "amount": 99000,
+      "interval": "month",
+      "interval_count": 1,
+      "product_id": "prod_VYbHywAKtOdw8K",
+      "price_id": "price_1UXU5LRtfVHyZXkvkSTUS7Jz",
+      "payment_link": "https://buy.stripe.com/test_9B67sN0JMaBJ24b1a68bS00"
+    },
+    "quarterly": {
+      "name": "Zeus Pro - Trimestral",
+      "amount": 267000,
+      "interval": "month",
+      "interval_count": 3,
+      "product_id": "prod_VYbHHpFhteuTQt",
+      "price_id": "price_1UXU5NRtfVHyZXkvAFPIZD4q",
+      "payment_link": "https://buy.stripe.com/test_14A00l78a7px5gnf0W8bS01"
+    },
+    "semiannual": {
+      "name": "Zeus Pro - Semestral",
+      "amount": 504000,
+      "interval": "month",
+      "interval_count": 6,
+      "product_id": "prod_VYbHvDxrrYlCML",
+      "price_id": "price_1UXU5PRtfVHyZXkvhYBmyRts",
+      "payment_link": "https://buy.stripe.com/test_8x2cN7akmeRZdMTaKG8bS02"
+    },
+    "annual": {
+      "name": "Zeus Pro - Anual",
+      "amount": 948000,
+      "interval": "month",
+      "interval_count": 12,
+      "product_id": "prod_VYbIGHHht2qM2j",
+      "price_id": "price_1UXU5RRtfVHyZXkv3Jx3AjrQ",
+      "payment_link": "https://buy.stripe.com/test_7sY8wR646aBJ6kr8Cy8bS03"
+    }
+  }
+}
