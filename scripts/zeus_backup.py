@@ -93,6 +93,10 @@ def restore_backup(archive: Path, home: Path, assume_yes: bool = False) -> None:
                 target.mkdir(parents=True, exist_ok=True)
                 continue
             if member.filename.startswith("dbs/") and member.filename.endswith(tuple(DB_EXTENSIONS)):
+                # ``dbs/`` is an archive-internal namespace; restore must put the
+                # database where the app reads it (``<home>/state.db``,
+                # ``<home>/profiles/<p>/state.db``), never under a literal dbs/ dir.
+                target = home / member.filename[len("dbs/"):]
                 # Restore through the sqlite API too: a live target with WAL
                 # state must not be clobbered by a raw rename.
                 target.parent.mkdir(parents=True, exist_ok=True)

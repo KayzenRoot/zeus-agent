@@ -28,6 +28,15 @@ def synthetic_home(tmp_path: Path) -> Path:
         conn.commit()
     finally:
         conn.close()
+    # A profile's own database must round-trip to profiles/<p>/state.db, not dbs/.
+    (home / "profiles" / "p").mkdir(parents=True)
+    conn = sqlite3.connect(home / "profiles" / "p" / "state.db")
+    try:
+        conn.execute("CREATE TABLE t (id TEXT PRIMARY KEY, v TEXT)")
+        conn.execute("INSERT INTO t VALUES ('b', '2')")
+        conn.commit()
+    finally:
+        conn.close()
     return home
 
 
@@ -58,6 +67,7 @@ def test_backup_excludes_volatile_and_includes_state(synthetic_home: Path, tmp_p
     assert "sessions/sess-1.json" in names
     assert "skills/demo/SKILL.md" in names
     assert "dbs/state.db" in names
+    assert "dbs/profiles/p/state.db" in names
     assert not any("audio_cache" in n for n in names)  # volatile cache excluded
     assert not any(n.endswith("-wal") or n.endswith("-shm") for n in names)
 
@@ -84,11 +94,18 @@ def test_backup_db_is_queryable_and_restore_round_trips(synthetic_home: Path, tm
     assert (target / "config.yaml").read_text(encoding="utf-8") == "provider: deepseek\n"
     assert (target / "sessions" / "sess-1.json").exists()
     assert not (target / "audio_cache").exists()  # volatile dirs do not resurrect
-    conn = sqlite3.connect(target / "dbs" / "state.db")
+    # Databases restore to the app's real paths, not under the archive's dbs/ namespace.
+    conn = sqlite3.connect(target / "state.db")
     try:
         assert conn.execute("SELECT v FROM t WHERE id='a'").fetchone() == ("1",)
     finally:
         conn.close()
+    conn = sqlite3.connect(target / "profiles" / "p" / "state.db")
+    try:
+        assert conn.execute("SELECT v FROM t WHERE id='b'").fetchone() == ("2",)
+    finally:
+        conn.close()
+    assert not (target / "dbs").exists(), "restore must not leave the dbs/ namespace"
 
 
 def test_retention_prunes_old_archives(synthetic_home: Path, tmp_path: Path) -> None:
