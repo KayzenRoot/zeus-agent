@@ -115,3 +115,28 @@ the **CORRECTION REQUIRED** verdict until independent audit confirms DoD.
 - Native evidence: packaged-app lifecycle smoke ×2 sessions (health 200, exit 0, 113/113 home entries preserved, exe sha256 `0050a761…`); WSL2 backend/CLI/dashboard with real auth 401; `hermes update` refusal at runtime on Windows and WSL2; runner↔machine JS parity 10.783/10.783 after 4 root-cause test fixes.
 - Remaining tracks (NOT part of this WO's verdict): MSIX/publisher/DMG/deep links NO-GO (#4, #20); real-model chat/PTY requires owner BYOK; CodeQL 756 inherited alerts — per-class dismissal authorized by the owner, to be executed post-merge with per-alert justification; installer Zeus-owned design proposed, implementation requires its own WO (#5).
 - Distribution remains NO-GO: APPROVED here is the import/brand work order, not a release authorization (#20 defines the separate release gate).
+
+
+## 2026-11-01/02 | Produção local viva, confiabilidade, instalador e dependências
+
+**HEAD de referência:** `ffee36711b` (main). Nada aqui autoriza release assinada, deploy ou VPS.
+
+### Issues encerradas com evidência
+- **#2, #3, #6, #10, #11, #15** — identidade, E2E multiagente, gates e documentação (commits anteriores na main).
+- **#12 Control Room** — cartões de perfil com atividade real provada ao vivo (default 5 sessões, analyst 3, auditor 1; isolação confirmada pelos números distintos), Kanban, auth, estados vazios, tema Liquid Glass. `25b3f91716`.
+- **#9 Confiabilidade** — ESTOP passou a cobrir **todos** os dispatchers: `hermes kanban dispatch` e o daemon standalone agora recusam dispatch pausado (`--json` com `paused: true`), com prova ao vivo (pause → refused → resume → operando) e 5 contratos novos. Budget demonstrado ao vivo (`--max-turns 1` → "Iteration budget exhausted (1/1)"). Rate-limit/circuit breakers cobertos por 74+65 testes. Relatos upstream triados; #146973 coberto no código, #146955 não reproduzido, #137170 residual documentado. Audit gate **success** (`0416f0b069`).
+
+### Instalador Zeus-owned (fluxo B da #5)
+- `scripts/zeus-install.{sh,ps1,cmd}` + `scripts/zeus_install_local.py`: só opera em checkout verificado (origin KayzenRoot, HEAD, árvore limpa), root isolado, `HERMES_HOME` próprio, recibo espelhável, uninstall preservando dados reais.
+- Execução real Windows: instalação completa (1.8 GB), launcher operante, fast path por digests dos inputs (**1,95 s** vs 12,5 s do activate), uninstall sem tocar no perfil real (7 sessões/47 mensagens). 15 contratos; gate 12/12. Commits `677b1d32c7`, `f35838f2fe`, `af08b3cd15`.
+- Issue #5 permanece aberta: release assinada (#4), auditoria de mirrors, WSL2 e checkpoint/DoD final.
+
+### Dependências
+- **#27 (nova)** — npm audit 59 (2 critical/8 high) → **52 (0 critical/1 high)** via bumps diretos (concurrently, electron 40.10.6, zod) e overrides (axios 1.20.0, fast-uri 3.1.8, follow-redirects 1.16.2, joi 18.3.1, @xmldom 0.8.15, shell-quote 1.12.0), com exclusões datadas no `.npmrc`. Resta Electron OpenURL (fix só em major) — incremento dedicado. Commit `df95e99a27`.
+- **#7 prep** — comparação read-only com `v0.22.5` (tag → `bf0203a794`): 6.044 commits, 5.387 arquivos, 181 commits de segurança; superfície de conflito de identidade em 4 arquivos. Backports críticos aplicados: PyJWT 2.15.1, certifi 2026.10.19, aiohttp 3.14.5; `uv.lock` regenerado; floors atualizados. Relatório em `audits/ZEUS-SYNC-001-2026-11-01-upstream-comparison.md`; sync completo exige WO própria. Commit `ffee36711b`.
+- **PM override-aware** — `uv pip check` passou a tolerar somente conflito coberto por `[tool.uv] override-dependencies` cuja versão instalada satisfaz o intervalo (o caso Pillow 13 × browser-harness); qualquer outro conflito continua fatal. Corrige o bootstrap de todo ambiente novo. 22 contratos; `pm/overrides.py`.
+- **Produção local** — dashboard reiniciado na geração PM atualizada (`certifi 2026.10.19`, `pyjwt 2.15.1`, `aiohttp 3.14.5`), health 200, 7 sessões/47 mensagens preservadas. `displayVersion` aparece "unknown" ao rodar da geração PM (metadado de release ausente no venv instalado) — cosmético, sem impacto funcional.
+
+### Ainda aberto / owner-gated
+- #4, #13, #14, #19, #20 (certificado/MSIX/DMG, credenciais, VPS, go de produção).
+- #7 sync completo (WO), #27 residual Electron major, #137170 residual (core loop), auditoria de mirrors do instalador, validação WSL2 do fluxo B.

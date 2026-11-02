@@ -369,17 +369,18 @@ def uninstall(root: Path, *, confirmed: bool, purge_data: bool) -> int:
             Path(launcher).unlink(missing_ok=True)
         except OSError as exc:
             print(f"{PREFIX} could not remove launcher {launcher}: {exc}", file=sys.stderr)
+    receipt_path.unlink(missing_ok=True)
     if purge_data or not user_data:
-        # The environment itself is installer-created state; only real session or
-        # memory content (or an explicit --purge-data) keeps the home behind.
-        shutil.rmtree(home, ignore_errors=True)
+        # The environment (and the POSIX bin/ holding the launcher) is
+        # installer-created state; only real session or memory content keeps
+        # the home behind (or an explicit --purge-data forces removal).
+        shutil.rmtree(root, ignore_errors=True)
     else:
         _say(f"kept user data at {home} (pass --purge-data to delete it)")
-    receipt_path.unlink(missing_ok=True)
-    try:
-        root.rmdir()
-    except OSError:
-        pass
+        try:
+            root.rmdir()
+        except OSError:
+            pass
     _say(f"uninstalled Zeus local from {root}")
     return 0
 
