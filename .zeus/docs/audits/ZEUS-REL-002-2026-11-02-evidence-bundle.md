@@ -38,7 +38,7 @@
 | WS Host/Origin/rebinding | 37/37 testes |
 | SSRF media proxy | redirects revalidados por hop; testes dedicados |
 | Segredos | Trivy secrets 0; nenhum no Git; backup tratado como segredo |
-| CodeQL | 908 alertas herdados abertos (triagem por classe em #8); top classes: path-injection 311, log-injection 229, overly-permissive-file 78, URL-substring 56 |
+| CodeQL | 908 alertas herdados abertos (triagem por classe em #8); top classes: path-injection 311, log-injection 229, overly-permissive-file 78, URL-substring 56. **Hardening aplicado**: os 10 sites **não-teste** de `py/incomplete-url-substring-sanitization` passaram a casar host/path (Azure/MiniMax auth, beta 1M, Gemini native/OpenAI-compat, StepFun, Ollama) + 10 testes anti-spoofing; os 46 restantes são asserções de teste |
 
 ### Confiabilidade
 - ESTOP cobre gateway + `kanban dispatch` + daemon; provado ao vivo (pause → refused → resume).
