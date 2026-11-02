@@ -45,7 +45,7 @@ Este relatório consolida evidências; **não é aprovação independente** e n�
 | WS Host/Origin/auth | 37/37 |
 | Web | typecheck + **429/429** + lint 0 erros + build |
 | Desktop | typecheck 0; lint **0 erros**; UI **1.225/1.225 arquivos**; build; `pack --dir`; smoke do app; **PTY node-pty sob Electron 42**; pacote **bundled** gera `Zeus Agent Bundled.exe` + payload |
-| Desktop lifecycle (bundled) | 🟡 app abre, carrega janela e sai limpo; **backend não sobe** porque o boot resolveu o launcher do home real em vez do payload selado (#28) — achado de boot-resolution, não de Electron |
+| Desktop lifecycle (bundled) | ✅ **PASS** — `Zeus Agent Bundled.exe` (Electron 42.11.18): session-1 backend na porta 59437, relaunch session-2 na 54299, estado preservado **113→116, lost 0**; sandbox isolado |
 | Desktop platform suite | 342/375 arquivos; 20 falhas local-only de ambiente (HERMES_PYTHON, fixtures de packaging, git temp, ozone/ssh/tray Windows) — CI Linux cobre |
 
 ## 4. Funcionalidade viva (produção local)
@@ -66,10 +66,6 @@ Este relatório consolida evidências; **não é aprovação independente** e n�
 5. **#137170**: loop de chamadas mutantes idênticas com resultado variável não é interrompido; mitigações `max_turns`/`run_budget`/ESTOP.
 6. **Platform suite local**: 20 falhas de ambiente no host Windows (não regressões; CI Linux cobre).
 7. 429 real do provedor não induzido; evidência por testes de contrato.
-8. **Desktop bundled (#28)**: em sandbox isolado o boot prefere o launcher do home real (Python base sem
-   `ruamel`) ao payload selado, então o lifecycle serve-ready não completa. O app **abre e sai limpo**
-   sob Electron 42 e o pacote contém payload válido; a correção de resolução é pré-requisito da release
-   desktop (#4), não da produção via navegador.
 
 ## 6. Decisões do owner
 
