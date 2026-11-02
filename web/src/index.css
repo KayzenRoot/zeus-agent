@@ -400,3 +400,18 @@ html.zeus-glass ::selection { background: rgba(255, 199, 89, 0.30); }
   html.zeus-glass body::after { animation: none; }
   html.zeus-glass * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* Constellation (#30) — flowing delegation edges. Motion is illustrative
+   until the live event bus lands; the component labels that in the footer. */
+@keyframes zeus-constellation-dash {
+  to { stroke-dashoffset: -8; }
+}
+
+.zeus-constellation-edge {
+  stroke-dasharray: 1.5 3;
+  animation: zeus-constellation-dash 2.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zeus-constellation-edge { animation: none; }
+}
