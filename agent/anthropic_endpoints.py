@@ -10,9 +10,9 @@ cycle.
 
 from urllib.parse import urlparse
 
-from utils import base_url_host_matches, base_url_hostname
+from utils import base_url_host_matches, base_url_hostname, base_url_path
 
-_MINIMAX_ANTHROPIC_PREFIXES = ("https://api.minimax.io/anthropic", "https://api.minimaxi.com/anthropic")
+_MINIMAX_ANTHROPIC_HOSTS = ("api.minimax.io", "api.minimaxi.com")
 
 
 def _normalize_base_url_text(base_url) -> str:
@@ -120,15 +120,34 @@ def _is_nous_portal_endpoint(base_url: str | None) -> bool:
     return bool(override_host) and base_url_hostname(base_url or "") == override_host
 
 
+def _is_minimax_anthropic_endpoint(base_url: str | None) -> bool:
+    """MiniMax's Anthropic-compatible endpoints, which reject the fine-grained-tool-streaming and
+    context-1m betas (stripped even though MiniMax also uses Bearer auth).
+
+    Host + path-prefix match, never a raw-URL substring/startswith: ``api.minimax.io.evil`` and
+    ``evil.com/api.minimax.io/anthropic`` stay on the x-api-key path.
+    """
+    normalized = _normalize_base_url_text(base_url)
+    path = base_url_path(normalized)
+    on_minimax_host = any(base_url_host_matches(normalized, host) for host in _MINIMAX_ANTHROPIC_HOSTS)
+    return on_minimax_host and (path == "/anthropic" or path.startswith("/anthropic/"))
+
+
+def _is_azure_host(base_url: str | None) -> bool:
+    """True only when the URL's *hostname* is azure.com or a subdomain (services.ai/openai.azure)."""
+    return base_url_host_matches(_normalize_base_url_text(base_url), "azure.com")
+
+
 def _requires_bearer_auth(base_url: str | None) -> bool:
     """Providers needing ``Authorization: Bearer`` instead of ``x-api-key``: MiniMax, Azure AI
-    Foundry, Palantir Foundry's LLM proxy, CommandCode, Nous Portal. Palantir/CommandCode use
-    hostname matching (not substring) so ``evil.com/palantirfoundry`` paths don't trigger it."""
+    Foundry, Palantir Foundry's LLM proxy, CommandCode, Nous Portal. Every branch matches the
+    hostname/path, never the raw URL, so ``evil.com/azure.com`` or ``…/minimax.io/anthropic``
+    paths do not change the auth header."""
     normalized = _normalized_lower(base_url)
     return (
         _is_nous_portal_endpoint(base_url)
-        or normalized.startswith(_MINIMAX_ANTHROPIC_PREFIXES)
-        or "azure.com" in normalized
+        or _is_minimax_anthropic_endpoint(base_url)
+        or _is_azure_host(normalized)
         or base_url_host_matches(normalized, "palantirfoundry.com")
         or base_url_host_matches(normalized, "api.commandcode.ai")
     )
@@ -136,13 +155,7 @@ def _requires_bearer_auth(base_url: str | None) -> bool:
 
 def _base_url_needs_context_1m_beta(base_url: str | None) -> bool:
     """Endpoints that still gate 1M context behind a beta (Azure)."""
-    return "azure.com" in _normalize_base_url_text(base_url).lower()
-
-
-def _is_minimax_anthropic_endpoint(base_url: str | None) -> bool:
-    """MiniMax's Anthropic-compatible endpoints, which reject the fine-grained-tool-streaming and
-    context-1m betas (stripped even though MiniMax also uses Bearer auth)."""
-    return _normalized_lower(base_url).startswith(_MINIMAX_ANTHROPIC_PREFIXES)
+    return _is_azure_host(base_url)
 
 
 def _is_azure_anthropic_endpoint(base_url: str | None) -> bool:

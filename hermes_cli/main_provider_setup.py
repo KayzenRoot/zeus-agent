@@ -8,6 +8,7 @@ import contextlib
 
 from typing import Optional
 from hermes_cli.model_setup_flows_common import _ask, _ensure_dict_section, _print_numbered, _radiolist, _say
+from utils import base_url_host_matches
 
 
 def _is_profile_api_key_provider(provider_id: str) -> bool:
@@ -760,8 +761,8 @@ def _prompt_api_key(pconfig, existing_key: str, provider_id: str = "", existing_
 
 
 def _infer_stepfun_region(base_url: str) -> str:
-    """Infer the current StepFun region from the configured endpoint."""
-    return "china" if "api.stepfun.com" in (base_url or "").strip().lower() else "international"
+    """Infer the current StepFun region from the configured endpoint (hostname, not path)."""
+    return "china" if base_url_host_matches((base_url or "").strip(), "api.stepfun.com") else "international"
 
 
 def _stepfun_base_url_for_region(region: str) -> str:

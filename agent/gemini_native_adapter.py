@@ -22,6 +22,7 @@ import httpx
 from agent.bounded_response import read_streaming_error_body
 from agent.retry_utils import parse_retry_after_seconds
 from agent.gemini_schema import prepare_gemini_tool_parameters, sanitize_gemini_tool_parameters
+from utils import base_url_host_matches, base_url_path
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +122,7 @@ def is_vertex_express_base_url(base_url: str) -> bool:
     ``…/projects/{p}/locations/{r}/endpoints/openapi`` base is OpenAI-compatible and must stay off
     the native adapter."""
     normalized = str(base_url or "").strip().lower()
-    return "aiplatform.googleapis.com" in normalized and "/projects/" not in normalized
+    return base_url_host_matches(normalized, "aiplatform.googleapis.com") and "/projects/" not in base_url_path(normalized)
 
 
 def normalize_gemini_base_url(base_url: Optional[str]) -> str:
@@ -158,7 +159,7 @@ def is_native_gemini_base_url(base_url: str) -> bool:
     normalized = str(base_url or "").strip().rstrip("/").lower()
     if normalized.endswith("/openai"):
         return False
-    return "generativelanguage.googleapis.com" in normalized or is_vertex_express_base_url(normalized)
+    return base_url_host_matches(normalized, "generativelanguage.googleapis.com") or is_vertex_express_base_url(normalized)
 
 
 def gemini_accepts_parameters_json_schema(base_url: str) -> bool:
@@ -221,7 +222,7 @@ def wrong_gemini_surface_guidance(base_url: str, api_key: str, err_status: str) 
     normalized = str(base_url or "").strip().lower()
     if is_vertex_express_base_url(normalized):
         return _STUDIO_KEY_ON_EXPRESS_GUIDANCE
-    if "generativelanguage.googleapis.com" in normalized and str(api_key or "").strip().upper().startswith("AQ."):
+    if base_url_host_matches(normalized, "generativelanguage.googleapis.com") and str(api_key or "").strip().upper().startswith("AQ."):
         return _EXPRESS_KEY_ON_STUDIO_GUIDANCE
     return ""
 

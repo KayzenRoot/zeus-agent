@@ -18,6 +18,7 @@ from agent.moonshot_schema import is_moonshot_model, sanitize_moonshot_tools
 from agent.prompt_builder import DEVELOPER_ROLE_MODELS
 from agent.transports.base import ProviderTransport
 from agent.transports.types import NormalizedResponse, ToolCall, Usage
+from utils import base_url_host_matches, base_url_path
 
 # xAI reserves ``tool_search`` for its server-side tool (HTTP 400 on client
 # declarations); aliased on the wire, mapped back in normalize_response.
@@ -232,7 +233,10 @@ def _raise_gemini_thinking_max_tokens(model: str, reasoning_config: dict | None,
 
 def _is_gemini_openai_compat_base_url(base_url: Any) -> bool:
     normalized = str(base_url or "").strip().rstrip("/").lower()
-    return bool(normalized) and "generativelanguage.googleapis.com" in normalized and normalized.endswith("/openai")
+    return (
+        base_url_host_matches(normalized, "generativelanguage.googleapis.com")
+        and base_url_path(normalized).endswith("/openai")
+    )
 
 
 def _is_openai_api_base_url(base_url: Any) -> bool:

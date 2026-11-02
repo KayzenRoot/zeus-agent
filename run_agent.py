@@ -719,9 +719,13 @@ class AIAgent(
             return False
         base = self._base_url_lower
         # Ollama Cloud (hosted service or :cloud proxy) forwards finish_reason faithfully — do not rewrite.
-        if "ollama.com" in base or ":cloud" in model_lower:
+        if base_url_host_matches(base, "ollama.com") or ":cloud" in model_lower:
             return False
-        if "ollama" in base or ":11434" in base:
+        from utils import base_url_origin
+
+        host = getattr(self, "_base_url_hostname", "") or base_url_hostname(base)
+        _, _, port = base_url_origin(base)
+        if "ollama" in host.split(".")[0] or port == 11434:
             return True
         return provider_lower == "ollama"
 
