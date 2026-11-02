@@ -48,22 +48,20 @@ afterEach(() => {
 })
 
 describe('onboarding Picker', () => {
-  it('features Nous Portal and hides other providers behind a disclosure', () => {
+  it('hides Nous Portal and presents the BYOK providers directly', () => {
     setProviders([makeOAuthProvider('anthropic', 'Anthropic Claude'), makeOAuthProvider('nous', 'Nous Portal')])
     render(<Picker ctx={ctx} />)
 
-    expect(screen.getByText('Nous Portal')).toBeTruthy()
-    expect(screen.getByText('Recommended')).toBeTruthy()
-    // Fireworks stays behind the disclosure with the other alternatives; only
-    // Nous Portal is visible before the user expands the list.
-    expect(screen.queryByText('Fireworks AI')).toBeNull()
-    expect(screen.queryByText('Anthropic Account')).toBeNull()
+    // Subscription-first (EXP-002): the managed Nous Portal is not offered
+    // on first run, and there is no disclosure gate to expand.
+    expect(screen.queryByText('Nous Portal')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Other providers' })).toBeNull()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Other providers' }))
-
+    expect(screen.getByText('OpenCode Go')).toBeTruthy()
+    expect(screen.getByText('OpenAI / ChatGPT')).toBeTruthy()
+    expect(screen.getByText('Anthropic / Claude')).toBeTruthy()
     expect(screen.getByText('Fireworks AI')).toBeTruthy()
     expect(screen.getByText('Anthropic Account')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Collapse' })).toBeTruthy()
   })
 
   it('shows every provider directly when Nous Portal is absent', () => {

@@ -17,7 +17,6 @@ import { $desktopBoot, type DesktopBootState } from '@/store/boot'
 import { $freeTierStatus, FREE_TIER_MODEL, freeTierSetupFailure } from '@/store/free-tier'
 import { openFreeTierSignIn } from '@/store/free-tier-sign-in'
 import { $setupReadyTick } from '@/store/live-sync'
-import { $localModelsEnabled } from '@/store/local-models-flag'
 import {
   $desktopOnboarding,
   ackFreeTierIntro,
@@ -45,7 +44,7 @@ import { DecodedLabel } from './glyph'
 import {
   FeaturedProviderRow,
   FireworksProviderRow,
-  LocalModelsProviderRow,
+  KeyProviderRow,
   OpenRouterProviderRow,
   ProviderRow,
   sortProviders
@@ -82,47 +81,50 @@ export interface ApiKeyOption {
   short?: string
 }
 
-// Curated order mirrors CANONICAL_PROVIDERS: Fireworks sits #2 overall (after
-// Nous Portal OAuth), ahead of OpenRouter and the rest of the key catalog.
-const API_KEY_OPTIONS: ApiKeyOption[] = [
-  {
-    id: 'fireworks',
-    name: 'Fireworks AI',
-    envKey: 'FIREWORKS_API_KEY',
-    docsUrl: 'https://app.fireworks.ai/settings/users/api-keys'
-  },
-  {
-    id: 'openrouter',
-    name: 'OpenRouter',
-    envKey: 'OPENROUTER_API_KEY',
-    docsUrl: 'https://openrouter.ai/keys'
-  },
-  {
-    id: 'openai',
-    name: 'OpenAI',
-    envKey: 'OPENAI_API_KEY',
-    docsUrl: 'https://platform.openai.com/api-keys'
-  },
-  {
-    id: 'gemini',
-    name: 'Google Gemini',
-    envKey: 'GEMINI_API_KEY',
-    docsUrl: 'https://aistudio.google.com/app/apikey'
-  },
-  {
-    id: 'xai',
-    name: 'xAI Grok',
-    envKey: 'XAI_API_KEY',
-    docsUrl: 'https://console.x.ai/'
-  },
-  {
-    id: 'local',
-    name: 'Local / custom endpoint',
-    envKey: 'OPENAI_BASE_URL',
-    docsUrl: 'https://github.com/NousResearch/hermes-agent#bring-your-own-endpoint',
-    placeholder: 'http://127.0.0.1:8000/v1'
-  }
+// Curated BYOK order for the first-run and the Providers key form. Zeus is
+// subscription-first: the managed Nous Portal and the self-hosted endpoint
+// (OPENAI_BASE_URL) are intentionally NOT offered here — self-hosted lives
+// under Settings → Advanced for enterprise. The providers below are the ones
+// people actually bring: OpenCode Go, OpenAI, Anthropic, MiniMax, DeepSeek,
+// Gemini, xAI, Fireworks and OpenRouter.
+// [id, name, envKey, docsUrl, short]. Descriptions are derived so the table
+// stays one line per provider (and avoids the duplicated object literals the
+// quality gate flags).
+const API_KEY_SPECS: readonly (readonly [string, string, string, string, string])[] = [
+  ['opencode-go', 'OpenCode Go', 'OPENCODE_GO_API_KEY', 'https://opencode.ai/docs/', 'assinatura OpenCode Go'],
+  ['openai', 'OpenAI / ChatGPT', 'OPENAI_API_KEY', 'https://platform.openai.com/api-keys', 'modelos GPT'],
+  ['anthropic', 'Anthropic / Claude', 'ANTHROPIC_API_KEY', 'https://console.anthropic.com/settings/keys', 'modelos Claude'],
+  ['minimax', 'MiniMax', 'MINIMAX_API_KEY', 'https://platform.minimaxi.com/', 'modelos MiniMax'],
+  ['deepseek', 'DeepSeek', 'DEEPSEEK_API_KEY', 'https://platform.deepseek.com/api_keys', 'modelos DeepSeek'],
+  ['gemini', 'Google Gemini', 'GEMINI_API_KEY', 'https://aistudio.google.com/app/apikey', 'modelos Gemini'],
+  ['xai', 'xAI Grok', 'XAI_API_KEY', 'https://console.x.ai/', 'modelos Grok'],
+  ['fireworks', 'Fireworks AI', 'FIREWORKS_API_KEY', 'https://app.fireworks.ai/settings/users/api-keys', 'API direta'],
+  ['openrouter', 'OpenRouter', 'OPENROUTER_API_KEY', 'https://openrouter.ai/keys', 'uma chave, muitos modelos']
 ]
+
+const API_KEY_OPTIONS: ApiKeyOption[] = API_KEY_SPECS.map(([id, name, envKey, docsUrl, short]) => ({
+  id,
+  name,
+  envKey,
+  docsUrl,
+  short,
+  description:
+    id === 'opencode-go'
+      ? 'Use your OpenCode Go plan through its OpenAI-compatible endpoint.'
+      : `Direct access to ${name} models.`
+}))
+
+// Advanced/enterprise only: the onboarding catalog filters this row out, but
+// Settings → Providers can still configure a self-hosted endpoint.
+API_KEY_OPTIONS.push({
+  id: 'local',
+  name: 'Local / custom endpoint',
+  envKey: 'OPENAI_BASE_URL',
+  docsUrl: 'https://github.com/KayzenRoot/zeus-agent',
+  placeholder: 'http://127.0.0.1:8000/v1',
+  short: 'self-hosted',
+  description: 'Point Zeus at a local or self-hosted OpenAI-compatible endpoint.'
+})
 
 // Build the FULL API-key provider catalog from the backend model options so the
 // onboarding / Providers key form lists every `api_key` provider `hermes model`
@@ -170,7 +172,9 @@ function useApiKeyCatalog(scope: OnboardingContext['scope']): ApiKeyOption[] {
 
       const envKey = row.key_env
 
-      if (!envKey || seenEnv.has(envKey)) {
+      // Subscription-first onboarding: a self-hosted endpoint is an advanced
+      // enterprise setting, not a first-run choice.
+      if (row.slug === 'local' || envKey === 'OPENAI_BASE_URL' || !envKey || seenEnv.has(envKey)) {
         continue
       }
 
@@ -618,7 +622,17 @@ export function Picker({ ctx }: { ctx: OnboardingContext }) {
     setOnboardingMode('apikey')
   }
 
-  const ordered = useMemo(() => (providers ? sortProviders(providers) : []), [providers])
+  // Subscription-first first-run: the managed Nous Portal and the
+  // self-hosted endpoint are not offered here. Self-hosted remains an
+  // advanced Settings path for enterprise installs.
+  const ordered = useMemo(
+    () =>
+      providers
+        ? sortProviders(providers).filter(provider => provider.id !== 'nous' && provider.id !== 'local')
+        : [],
+    [providers]
+  )
+
   const hasOauth = ordered.length > 0
   const apiKeyOptions = useApiKeyCatalog(ctx.scope)
 
@@ -661,33 +675,22 @@ export function Picker({ ctx }: { ctx: OnboardingContext }) {
   const collapsible = Boolean(featured)
   const showRest = !collapsible || showAll
 
-  // "Run models locally" leaves the picker for Settings -> Providers ->
-  // Local Models, where install/download live. First-run: persist the skip
-  // (same contract as ChooseLaterLink) so the blocking overlay never
-  // re-nags; manual mode just closes. window.location keeps this picker
-  // router-independent (it renders outside the route tree on first run).
-  const openLocalModels = () => {
-    if (manual) {
-      closeManualOnboarding()
-    } else {
-      dismissFirstRunOnboarding()
-    }
-
-    window.location.hash = '#/settings?tab=providers&pview=local'
-  }
-
   return (
     <div className="grid gap-2">
       <div className="grid max-h-[60dvh] gap-2 overflow-y-auto p-1">
         {featured ? <FeaturedProviderRow onSelect={select} provider={featured} /> : null}
-        {/* The no-account path: everything runs on this machine. Shipped
-            behind the --local launch flag. (Fireworks moved into the
-            expanded list on main.) */}
-        {$localModelsEnabled.get() ? <LocalModelsProviderRow onClick={openLocalModels} /> : null}
         {showRest ? (
           <>
-            {/* Fireworks leads the expanded list, matching CANONICAL_PROVIDERS
-                (Nous → Fireworks), but stays hidden until the user opens it. */}
+            {/* BYOK-first choices. These rows open the key form already
+                scoped to the provider's env var. */}
+            {API_KEY_OPTIONS.slice(0, 5).map(option => (
+              <KeyProviderRow
+                key={option.envKey}
+                onClick={() => openKeyForm(option.envKey)}
+                pitch={option.description ?? ''}
+                title={option.name}
+              />
+            ))}
             <FireworksProviderRow onClick={() => openKeyForm('FIREWORKS_API_KEY')} />
             {rest.map(p => (
               <ProviderRow key={p.id} onSelect={select} provider={p} />
