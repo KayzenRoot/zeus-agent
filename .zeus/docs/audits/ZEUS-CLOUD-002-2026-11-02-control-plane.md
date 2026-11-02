@@ -17,7 +17,10 @@
 - **Persistência SQLite** de entitlement por `user_id` do Clerk, com busca por subscription id para
   eventos que chegam sem metadata.
 - **Trava de live mode:** chave `sk_live_` recusada na inicialização até `ZEUS_CLOUD_ALLOW_LIVE=1`,
-  que exige go-live aprovado pelo owner.
+  que exige go-live aprovado pelo owner; `dev:` auth é recusado com chave live mesmo após o opt-in.
+- **Fail-closed:** checkout não pago ou fora de `mode=subscription` não concede acesso; se a
+  leitura da assinatura no Stripe falhar, o usuário fica `pending` (inativo) até um evento
+  `customer.subscription.*` verificado.
 - **Landing autenticada:** os botões dos quatro planos chamam o serviço com o token da sessão Clerk;
   Payment Links deixaram de ser o caminho de compra porque não carregam a identidade do usuário.
   Modal Clerk validado no Chrome existente; `afterSignInUrl` depreciado corrigido para
@@ -25,9 +28,10 @@
 
 ## Evidência local
 
-- `scripts/run_tests.sh tests/cloud/test_cloud_service.py` — **13/13 PASS** (auth, checkout,
+- `scripts/run_tests.sh tests/cloud/test_cloud_service.py` — **15/15 PASS** (auth, checkout,
   identidade na assinatura, assinatura de webhook válida/inválida/expirada, trial, cancelamento,
-  expiração de período, fallback por subscription e trava de live mode).
+  expiração de período, fallback por subscription, checkout não pago, falha de leitura da
+  assinatura em fail-closed e trava de dev auth/live mode).
 - `python scripts/check` — **12/12 ok** (ruff + code health incluídos).
 - Smoke HTTP real em `127.0.0.1:9129`: `/health` → `{"ok":true,...,"mode":"test"}`;
   `/api/plans` → catálogo; `/api/entitlement` sem token → 401; com dev auth → inativo.

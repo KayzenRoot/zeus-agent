@@ -26,7 +26,10 @@ def current_user(
         raise HTTPException(status_code=401, detail="missing bearer token")
 
     # Local development only: `ZEUS_CLOUD_DEV_AUTH=1` accepts `dev:<user_id>`.
+    # Never with a live key, even if the live-mode startup guard was lifted.
     if os.getenv("ZEUS_CLOUD_DEV_AUTH") == "1" and token.startswith("dev:"):
+        if settings.stripe_secret.startswith("sk_live_"):
+            raise HTTPException(status_code=403, detail="dev auth is disabled with a live Stripe key")
         user_id = token[4:].strip()
         if user_id:
             return user_id

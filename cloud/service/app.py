@@ -155,7 +155,17 @@ def _checkout_completed(
             status = str(subscription.get("status") or status)
             period_end = subscription.get("current_period_end")
         except stripe_api.StripeError:
-            pass
+            # Fail closed: record the link but grant nothing until a subscription
+            # event (or a retry) supplies a verified status and period end.
+            store.upsert(
+                user_id=str(user_id),
+                plan=str(plan),
+                status="pending",
+                customer_id=session.get("customer"),
+                subscription_id=str(subscription_id),
+                current_period_end=None,
+            )
+            return
 
     store.upsert(
         user_id=str(user_id),

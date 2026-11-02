@@ -110,7 +110,9 @@ def test_live_stripe_key_is_refused_until_the_owner_opts_in(
         create_app(live)
 
     monkeypatch.setenv("ZEUS_CLOUD_ALLOW_LIVE", "1")
-    create_app(live)
+    monkeypatch.setenv("ZEUS_CLOUD_DEV_AUTH", "1")
+    client = TestClient(create_app(live))
+    assert client.get("/api/entitlement", headers=_headers()).status_code == 403
 
 
 def test_unknown_user_has_no_entitlement(client: TestClient) -> None:
@@ -325,6 +327,38 @@ def test_cancelled_subscription_revokes_access(client: TestClient) -> None:
     assert entitlement["active"] is False
     assert entitlement["plan"] == "monthly"
     assert entitlement["status"] == "canceled"
+
+
+def test_subscription_fetch_failure_fails_closed(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def unreachable(_settings: Settings, _subscription_id: str) -> dict[str, Any]:
+        raise stripe_api.StripeError("temporary Stripe failure")
+
+    monkeypatch.setattr("cloud.service.app.stripe_api.fetch_subscription", unreachable)
+
+    _post_event(
+        client,
+        {
+            "id": "evt_fetch_fail",
+            "type": "checkout.session.completed",
+            "data": {
+                "object": {
+                    "id": "cs_test_fetch_fail",
+                    "mode": "subscription",
+                    "payment_status": "paid",
+                    "client_reference_id": "user_fetch_fail",
+                    "subscription": "sub_fetch_fail",
+                    "metadata": {"zeus_plan": "monthly"},
+                }
+            },
+        },
+    )
+
+    entitlement = client.get("/api/entitlement", headers=_headers("user_fetch_fail")).json()
+    assert entitlement["active"] is False
+    assert entitlement["plan"] == "monthly"
+    assert entitlement["status"] == "pending"
 
 
 def test_subscription_event_resolves_owner_from_stored_subscription(

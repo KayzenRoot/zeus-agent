@@ -97,7 +97,8 @@ scripts/run_tests.sh tests/cloud/test_cloud_service.py
 ```
 
 Cobrem autenticação, criação de checkout, assinatura de webhook (válida/inválida/expirada),
-trial, cancelamento, expiração de período e a trava de live mode.
+trial, cancelamento, expiração de período, checkout não pago, falha de leitura da assinatura em
+fail-closed e a trava de live mode.
 
 ## Pendências antes do release
 
