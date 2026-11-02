@@ -355,6 +355,60 @@ async function serveBackendReady(hermesHome, label, offset) {
   throw new Error(`[${label}] no announced serve backend answered /api/health within ${LIFECYCLE_TIMEOUT_MS}ms (announced ports: ${[...announced].join(', ') || 'none'}; probes: ${[...tried].map(([p, r]) => `${p}:${r}`).join(', ') || 'none'}; log: ${logPath})`)
 }
 
+// Source-backend lifecycle: the desktop attaches to the local gateway daemon
+// (`gateway ensure`), which never announces the serve contract. The app's own
+// readiness signal is the boot line; the isolated HERMES_HOME keeps it away
+// from the host's gateway. The serve contract remains the bundled-mode gate.
+async function gatewayBackendReady(hermesHome, label, offset) {
+  const logPath = path.join(hermesHome, 'logs', 'desktop.log')
+  const deadline = Date.now() + LIFECYCLE_TIMEOUT_MS
+  while (Date.now() < deadline) {
+    let text = ''
+    try {
+      text = fs.readFileSync(logPath, 'utf8').slice(offset)
+    } catch { /* log not created yet */ }
+    if (/\[boot\] Hermes gateway is ready/.test(text)) return { gateway: true }
+    await new Promise(resolve => setTimeout(resolve, 500))
+  }
+  throw new Error(`[${label}] source backend never reported "[boot] Hermes gateway is ready" within ${LIFECYCLE_TIMEOUT_MS}ms (log: ${logPath})`)
+}
+
+function sourceCli() {
+  if (!LIFECYCLE_BACKEND_ROOT) return null
+  const candidates = PLATFORM === 'win32'
+    ? [path.join(LIFECYCLE_BACKEND_ROOT, '.venv', 'Scripts', 'hermes.exe'), path.join(LIFECYCLE_BACKEND_ROOT, 'venv', 'Scripts', 'hermes.exe')]
+    : [path.join(LIFECYCLE_BACKEND_ROOT, '.venv', 'bin', 'hermes'), path.join(LIFECYCLE_BACKEND_ROOT, 'venv', 'bin', 'hermes')]
+  return candidates.find(candidate => fs.existsSync(candidate)) ?? null
+}
+
+// The desktop's local gateway is a daemon on purpose (it survives app
+// restarts; `gateway stop --all` is its off switch). The sandbox has its own
+// HERMES_HOME, so stopping here can only reach the throwaway gateway. Without
+// it the sandbox locks stay busy and Windows refuses the directory removal.
+function stopSourceGateway(hermesHome) {
+  const cli = sourceCli()
+  if (!cli) return
+  const result = spawnSync(cli, ['gateway', 'stop', '--all'], {
+    env: { ...process.env, HERMES_HOME: hermesHome },
+    timeout: 60_000,
+    windowsHide: true
+  })
+  if (result.error) console.warn(`  gateway stop failed: ${result.error.message}`)
+  else if (result.status !== 0) console.warn(`  gateway stop exited ${result.status}`)
+}
+
+// Windows drops directory handles asynchronously after the last close; rmSync
+// with retries is the documented path, and a cleanup failure must not mask the
+// real lifecycle error.
+function removeSandbox(sandbox) {
+  try {
+    fs.rmSync(sandbox, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 })
+    console.log(`  sandbox removed: ${sandbox}`)
+  } catch (err) {
+    console.warn(`  sandbox cleanup failed (left for inspection): ${sandbox}: ${err.message}`)
+  }
+}
+
 // Everything the first session created in the isolated home must survive the
 // quit + relaunch cycle. Transient scratch (*.tmp/.lock/.part) is excluded:
 // a healthy later session may clean up stale temp files — that is not loss.
@@ -401,8 +455,10 @@ async function runLifecycle() {
       try {
         const window = await app.firstWindow({ timeout: LIFECYCLE_TIMEOUT_MS })
         console.log(`[${label}] first window: ${window.url()}`)
-        const ready = await serveBackendReady(hermesHome, label, offset)
-        console.log(`[${label}] READY: serve backend announced port ${ready.port}, /api/health → 200`)
+        const ready = LIFECYCLE_BACKEND_ROOT
+          ? await gatewayBackendReady(hermesHome, label, offset)
+          : await serveBackendReady(hermesHome, label, offset)
+        console.log(`[${label}] READY: ${ready.gateway ? 'local gateway ready (source backend)' : `serve backend announced port ${ready.port}, /api/health → 200`}`)
         sessions.push({ label, appPid: proc.pid, ...ready, windowUrl: window.url() })
         if (label === 'session-1') preservedBefore = snapshotHome(hermesHome)
       } finally {
@@ -429,9 +485,11 @@ async function runLifecycle() {
     console.log('  preservation: all pre-relaunch home entries survived the quit + relaunch cycle')
     console.log(JSON.stringify({ sandbox, userDataDir, hermesHome, backendRoot: env.HERMES_DESKTOP_HERMES_ROOT || null, sessions, preserved: { before: preservedBefore.length, after: preservedAfter.length, lost: 0 } }, null, 2))
   } finally {
+    // Stop the sandbox's daemon before removing its directory: app.close() is
+    // the renderer's quit path, not the gateway's (by design it survives).
+    stopSourceGateway(hermesHome)
     if (!LIFECYCLE_KEEP) {
-      fs.rmSync(sandbox, { recursive: true, force: true })
-      console.log(`  sandbox removed: ${sandbox}`)
+      removeSandbox(sandbox)
     } else {
       console.log(`  sandbox kept (HERMES_DESKTOP_LIFECYCLE_KEEP=1): ${sandbox}`)
     }
