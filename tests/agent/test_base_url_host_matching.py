@@ -11,6 +11,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from agent.anthropic_endpoints import (
+    _is_vertex_ai_endpoint,
     _base_url_needs_context_1m_beta,
     _is_minimax_anthropic_endpoint,
     _requires_bearer_auth,
@@ -69,6 +70,13 @@ def test_gemini_openai_compat_requires_host_and_openai_path():
         "https://evil.com/generativelanguage.googleapis.com/v1beta/openai") is False
     assert _is_gemini_openai_compat_base_url(
         "https://generativelanguage.googleapis.com/v1beta") is False
+
+
+def test_vertex_regional_hosts_are_domain_scoped():
+    assert _is_vertex_ai_endpoint("https://aiplatform.googleapis.com") is True
+    assert _is_vertex_ai_endpoint("https://us-central1-aiplatform.googleapis.com") is True
+    assert _is_vertex_ai_endpoint("https://evil-aiplatform.googleapis.com.evil.example") is False
+    assert _is_vertex_ai_endpoint("https://evil.example/aiplatform.googleapis.com") is False
 
 
 def test_stepfun_region_uses_the_endpoint_host():

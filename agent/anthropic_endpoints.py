@@ -182,9 +182,14 @@ def _is_bedrock_runtime_endpoint(base_url: str | None) -> bool:
 
 
 def _is_vertex_ai_endpoint(base_url: str | None) -> bool:
-    """Vertex AI hosts: global ``aiplatform.googleapis.com`` and regional ``<region>-aiplatform.googleapis.com``."""
+    """Vertex AI hosts: global ``aiplatform.googleapis.com`` and regional ``<region>-aiplatform.googleapis.com``.
+
+    The domain is matched explicitly (not as a raw suffix on the whole host): a lookalike
+    ``evil-aiplatform.googleapis.com.evil.example`` must not opt into Vertex handling.
+    """
     host = base_url_hostname(base_url or "")
-    return host == "aiplatform.googleapis.com" or host.endswith("-aiplatform.googleapis.com")
+    label, _, rest = host.partition(".")
+    return host == "aiplatform.googleapis.com" or (rest == "googleapis.com" and label.endswith("-aiplatform"))
 
 
 def _is_claude_platform_endpoint(base_url: str | None) -> bool:
