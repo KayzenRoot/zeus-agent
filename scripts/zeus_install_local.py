@@ -332,6 +332,19 @@ def install(checkout: Checkout, root: Path) -> int:
     return 0
 
 
+def _has_user_data(home: Path) -> bool:
+    """Real session/memory content, not the empty directories a first run creates."""
+    for name in ("sessions", "memories"):
+        directory = home / name
+        if directory.is_dir() and any(directory.iterdir()):
+            return True
+    state = home / "state.db"
+    try:
+        return state.is_file() and state.stat().st_size > 0
+    except OSError:
+        return True
+
+
 def uninstall(root: Path, *, confirmed: bool, purge_data: bool) -> int:
     root = root.expanduser().resolve()
     receipt_path = root / RECEIPT_NAME
@@ -344,7 +357,7 @@ def uninstall(root: Path, *, confirmed: bool, purge_data: bool) -> int:
     if receipt.get("kind") != "zeus-local-install":
         return _refuse("receipt does not belong to a Zeus local install")
     home = Path(receipt.get("hermes_home") or root / "home")
-    user_data = any((home / name).exists() for name in ("sessions", "memories", "state.db"))
+    user_data = _has_user_data(home)
     if not confirmed:
         _say(f"would remove launchers + receipt under {root}")
         _say(f"would {'PURGE' if purge_data else 'keep'} user data at {home}"
@@ -356,15 +369,13 @@ def uninstall(root: Path, *, confirmed: bool, purge_data: bool) -> int:
             Path(launcher).unlink(missing_ok=True)
         except OSError as exc:
             print(f"{PREFIX} could not remove launcher {launcher}: {exc}", file=sys.stderr)
-    if purge_data:
+    if purge_data or not user_data:
+        # The environment itself is installer-created state; only real session or
+        # memory content (or an explicit --purge-data) keeps the home behind.
         shutil.rmtree(home, ignore_errors=True)
-    elif user_data:
+    else:
         _say(f"kept user data at {home} (pass --purge-data to delete it)")
     receipt_path.unlink(missing_ok=True)
-    if not purge_data and home.exists() and any(home.iterdir()):
-        _say(f"kept {home}; remove it manually once its data is no longer needed")
-    elif not purge_data:
-        shutil.rmtree(home, ignore_errors=True)
     try:
         root.rmdir()
     except OSError:

@@ -203,6 +203,14 @@ class InstallUninstallTests(unittest.TestCase):
             self.assertTrue(sessions.is_dir(), "sessions must survive a default uninstall")
             self.assertEqual(self.module.uninstall(root, confirmed=True, purge_data=False), 2)
 
+    def test_uninstall_removes_a_home_with_only_empty_data_dirs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root, _ = self._install(Path(directory))
+            (root / "home" / "sessions").mkdir(parents=True)
+            (root / "home" / "memories").mkdir(parents=True)
+            self.assertEqual(self.module.uninstall(root, confirmed=True, purge_data=False), 0)
+            self.assertFalse(root.exists(), "empty sessions/memories dirs are not user data")
+
     def test_uninstall_purge_removes_the_isolated_home(self):
         with tempfile.TemporaryDirectory() as directory:
             root, _ = self._install(Path(directory))
