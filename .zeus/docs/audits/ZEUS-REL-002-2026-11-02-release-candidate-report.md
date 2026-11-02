@@ -26,7 +26,7 @@ Este relatório consolida evidências; **não é aprovação independente** e n�
 | npm produção | **0 critical / 0 high** (18 total) |
 | Dependabot (todos os manifestos) | **0 critical / 0 high** (56 abertos: 41 medium, 15 low) — era 144 (1c/45h) |
 | Locks separados | sidecar **0 findings**; website 0 high |
-| CodeQL | 736 alertas herdados abertos (baseline 908); triagem por lote e hardenings em [`ZEUS-SEC-002-2026-11-02-codeql-campaign.md`](ZEUS-SEC-002-2026-11-02-codeql-campaign.md); restam path-injection 311 e log-injection 229 por alerta |
+| CodeQL | 733 alertas herdados abertos (baseline 908); triagem por lote e hardenings em [`ZEUS-SEC-002-2026-11-02-codeql-campaign.md`](ZEUS-SEC-002-2026-11-02-codeql-campaign.md); restam path-injection 311 e log-injection 229 por alerta |
 | SSRF/dashboard | media proxy revalida allowlist em redirects; WS Host/Origin coberto em `/api/pty`, `/api/ws`, `/api/pub`, `/api/events` (37/37 testes) |
 | Segredos | só no `.env` do home; `.gitignore` cobre; backups contêm `.env` por design |
 

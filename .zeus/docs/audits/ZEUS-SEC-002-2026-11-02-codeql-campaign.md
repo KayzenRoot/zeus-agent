@@ -1,6 +1,6 @@
 # ZEUS-SEC-002 | CodeQL campaign — inventário e decisões por lote
 
-**Data:** 2026-11-02 · **Baseline:** 908 alertas abertos · **Estado:** **736 abertos**
+**Data:** 2026-11-02 · **Baseline:** 908 alertas abertos · **Estado:** **733 abertos**
 **Regra:** nenhuma demissão em massa sem motivo por classe; hardenings reais onde o alerta era
 código de produção.
 
@@ -9,11 +9,11 @@ código de produção.
 | Ação | Alertas | Motivo |
 |---|---|---|
 | Hardenings de código | ~9 fechados pelo rescan | ver §3 |
-| Dismiss `used in tests` | **147** | localização em `tests/` — código não distribuído, sem caminho de produção |
+| Dismiss `used in tests` | **148** | localização em `tests/` — código não distribuído, sem caminho de produção (inclui 1 `bad-code-sanitization` em `update-marker.test.ts`) |
 | Dismiss `won't fix` (TLS) | **11** | `verify=False` só com `ssl_verify: false` explícito do usuário; padrão = trust store do SO; warning de inseguro |
 | Dismiss `won't fix` (ECB) | **2** | AES-128-ECB exigido pelo protocolo Tencent iLink para mídia |
-| Dismiss `false positive` | **3** | transcripts de delegação redigem via `_redact`; CodeQL não modela o sanitizer custom |
-| **Total reduzido** | **172** | 908 → 736 |
+| Dismiss `false positive` | **5** | 3 transcripts de delegação (`_redact` não modelado) + 2 `bad-code-sanitization` do desktop (todo valor é `JSON.stringify`) |
+| **Total reduzido** | **175** | 908 → 733 |
 
 ## 2. Verificação
 
@@ -33,7 +33,7 @@ após cada lote (a chamada de PATCH não é evidência sozinha).
 | `950fb0a6c4` | ReDoS: corpo temperado na chave privada; grupos possessivos no quoter FTS5; testes com limite de tempo |
 | `a9d9209db4` | A2A audit redige o resumo antes de gravar; teste garante token/e-mail ausentes |
 
-## 4. O que permanece (736)
+## 4. O que permanece (733)
 
 | Regra | Abertos | Por que não demitir em bloco |
 |---|---|---|
