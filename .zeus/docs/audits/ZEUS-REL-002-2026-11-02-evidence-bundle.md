@@ -38,7 +38,7 @@
 | WS Host/Origin/rebinding | 37/37 testes |
 | SSRF media proxy | redirects revalidados por hop; testes dedicados |
 | Segredos | Trivy secrets 0; nenhum no Git; backup tratado como segredo |
-| CodeQL | 906 alertas herdados abertos (triagem por classe em #8); top classes: path-injection 311, log-injection 229, overly-permissive-file 78. **Hardening aplicado**: 10 sites **não-teste** de `py/incomplete-url-substring-sanitization` passaram a casar host/path + 10 testes anti-spoofing; ReDoS de chave privada e FTS5 limitados (testes com tempo); 2 alertas ECB do iLink demitidos como protocolo obrigatório |
+| CodeQL | **736** alertas herdados abertos (era 908): 147 **somente de teste** demitidos (`used in tests`), 11 TLS demitidos como opt-in explícito (`ssl_verify:false`), 2 ECB do iLink como protocolo obrigatório, 3 transcripts como FP (`_redact`), ~9 fechados pelo rescan. Hardening: 10 sites URL-substring → host/path (+10 testes); ReDoS de chave privada/FTS5 limitados (testes temporizados); A2A audit redige antes de gravar. Restam path-injection 311 e log-injection 229, por alerta |
 
 ### Confiabilidade
 - ESTOP cobre gateway + `kanban dispatch` + daemon; provado ao vivo (pause → refused → resume).
