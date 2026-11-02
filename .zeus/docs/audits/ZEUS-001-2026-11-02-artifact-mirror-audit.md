@@ -69,8 +69,8 @@ lock    : 71b2fef860abe467217a538ff31de02f5258807c0129f771846f87bd029aafc5   ✅
 
 ```bash
 python -c "import json; d=json.load(open('pm/lock.json')); print(d['packages']['ripgrep']['artifacts']['win32-x64']['sha256'])"
-curl -sSL -o /tmp/ripgrep.zip https://hermes-assets.nousresearch.com/upstream/sha256/<sha256>
-sha256sum /tmp/ripgrep.zip
+curl -sSL -o "$TMPDIR/ripgrep.zip" https://hermes-assets.nousresearch.com/upstream/sha256/<sha256>
+sha256sum "$TMPDIR/ripgrep.zip"
 gh api repos/<owner>/<repo> --jq '.license.spdx_id'
 ```
 
