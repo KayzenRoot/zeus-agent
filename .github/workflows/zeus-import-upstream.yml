@@ -27,7 +27,7 @@ jobs:
       WORK_BRANCH: work/ZEUS-001-import-brand
     steps:
       - name: Checkout destination with full local history
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: true
