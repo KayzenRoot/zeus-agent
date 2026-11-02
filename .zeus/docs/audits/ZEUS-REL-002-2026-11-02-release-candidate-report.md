@@ -13,6 +13,13 @@ Este relatório consolida evidências; **não é aprovação independente** e n�
 > pós-sync (100 anotações CodeQL herdadas no diff, gate Sonar new-code, matriz ampla e lifecycle
 > Electron 44) estão registrados no checkpoint e na #7.
 
+> **Recomendação SonarCloud (owner):** o gate “new code” fica E/E porque o merge traz 5.387
+> arquivos upstream como código novo. Opções: (a) aceitar o vermelho neste merge pontual e, logo
+> após, fixar a baseline de new-code no commit do merge (ex.: versão `0.22.5-zeus.1`) para que PRs
+> futuros julguem apenas mudanças Zeus; ou (b) excluir o merge do gate. Não diluir regras do gate.
+> O audit gate próprio (Trivy/CodeQL/provenance) está verde; a decisão é de configuração do projeto
+> Sonar no owner.
+
 ## 1. Checklist do DoD (`definition-of-done.md`)
 
 | # | Item | Estado | Evidência |
