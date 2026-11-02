@@ -140,4 +140,5 @@ the **CORRECTION REQUIRED** verdict until independent audit confirms DoD.
 
 ### Ainda aberto / owner-gated
 - #4, #13, #14, #19, #20 (certificado/MSIX/DMG, credenciais, VPS, go de produção).
+- **#28** (novo): no pacote **bundled** em sandbox isolado o boot do desktop resolve o launcher do home real (Python base sem `ruamel`) em vez do payload selado; app abre/janela/exit 0 sob Electron 42, backend não anuncia ready. Pré-requisito da release desktop (#4), não da produção via navegador.
 - #7 sync completo (WO), #137170 residual (core loop), licenças de redistribuição na release C, full-install POSIX do fluxo B.
