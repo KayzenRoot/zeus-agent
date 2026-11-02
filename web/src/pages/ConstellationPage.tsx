@@ -264,6 +264,83 @@ function formatLastActive(ms: number | null): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
+function InspectorPanel({
+  error,
+  onOpenProfiles,
+  selected,
+}: {
+  error: string | null;
+  onOpenProfiles: () => void;
+  selected: ConstellationNode;
+}) {
+  return (
+    <aside className="rounded-[1.4rem] border border-white/10 bg-white/[0.025] p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-white/35">
+            Inspector
+          </div>
+          <div className="mt-1 text-lg font-semibold text-white/90">{selected.name}</div>
+          <div className="mt-1 text-xs leading-5 text-white/45">{selected.subtitle}</div>
+        </div>
+        <Badge className="border-white/10 bg-white/5 text-white/60">
+          {selected.profile ? STATUS_STYLES[selected.status].label : "master"}
+        </Badge>
+      </div>
+
+      <div className="mt-5 grid gap-2">
+        <InspectorRow label="Model" value={selected.profile?.model ?? "auto"} />
+        <InspectorRow label="Provider" value={selected.profile?.provider ?? "Zeus router"} />
+        <InspectorRow label="Skills" value={String(selected.profile?.skill_count ?? 0)} />
+        <InspectorRow
+          label="Sessions"
+          value={selected.profile ? String(selected.activity?.count ?? 0) : "—"}
+        />
+        <InspectorRow
+          label="Last active"
+          value={
+            selected.profile
+              ? formatLastActive(selected.activity?.lastActiveMs ?? null)
+              : "now"
+          }
+        />
+        <InspectorRow
+          label="Gateway"
+          value={selected.profile?.gateway_running ? "running" : "stopped"}
+        />
+      </div>
+
+      {selected.profile ? (
+        <>
+          <div className="mt-5 rounded-xl border border-white/10 bg-black/20 p-3 text-[0.7rem] leading-5 text-white/40">
+            <span className="text-white/55">Profile path</span>
+            <div className="mt-1 truncate font-mono text-white/70">{selected.profile.path}</div>
+          </div>
+          <Button
+            className="mt-4 w-full"
+            ghost
+            onClick={onOpenProfiles}
+            prefix={<ArrowUpRight className="size-3.5" />}
+          >
+            Open profiles
+          </Button>
+        </>
+      ) : (
+        <div className="mt-5 rounded-xl border border-[#e8c27a]/20 bg-[#e8c27a]/5 p-3 text-[0.72rem] leading-5 text-[#e8c27a]/80">
+          The orchestrator decomposes a mission, picks specialists and keeps the budget. Live
+          delegation tracing is tracked in #30.
+        </div>
+      )}
+
+      {error ? (
+        <p className="mt-4 text-[0.7rem] leading-5 text-red-300/70">
+          Could not load profiles: {error}
+        </p>
+      ) : null}
+    </aside>
+  );
+}
+
 export default function ConstellationPage() {
   const navigate = useNavigate();
   const [profiles, setProfiles] = useState<ProfileInfo[] | null>(null);
@@ -602,76 +679,11 @@ export default function ConstellationPage() {
             </div>
           </section>
 
-          <aside className="rounded-[1.4rem] border border-white/10 bg-white/[0.025] p-5">
-            {selected ? (
-              <>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-white/35">
-                      Inspector
-                    </div>
-                    <div className="mt-1 text-lg font-semibold text-white/90">{selected.name}</div>
-                    <div className="mt-1 text-xs leading-5 text-white/45">{selected.subtitle}</div>
-                  </div>
-                  <Badge className="border-white/10 bg-white/5 text-white/60">
-                    {selected.profile ? STATUS_STYLES[selected.status].label : "master"}
-                  </Badge>
-                </div>
-
-                <div className="mt-5 grid gap-2">
-                  <InspectorRow label="Model" value={selected.profile?.model ?? "auto"} />
-                  <InspectorRow label="Provider" value={selected.profile?.provider ?? "Zeus router"} />
-                  <InspectorRow label="Skills" value={String(selected.profile?.skill_count ?? 0)} />
-                  <InspectorRow
-                    label="Sessions"
-                    value={selected.profile ? String(selected.activity?.count ?? 0) : "—"}
-                  />
-                  <InspectorRow
-                    label="Last active"
-                    value={
-                      selected.profile
-                        ? formatLastActive(selected.activity?.lastActiveMs ?? null)
-                        : "now"
-                    }
-                  />
-                  <InspectorRow
-                    label="Gateway"
-                    value={selected.profile?.gateway_running ? "running" : "stopped"}
-                  />
-                </div>
-
-                {selected.profile ? (
-                  <>
-                    <div className="mt-5 rounded-xl border border-white/10 bg-black/20 p-3 text-[0.7rem] leading-5 text-white/40">
-                      <span className="text-white/55">Profile path</span>
-                      <div className="mt-1 truncate font-mono text-white/70">{selected.profile.path}</div>
-                    </div>
-                    <Button
-                      className="mt-4 w-full"
-                      ghost
-                      onClick={() => navigate("/profiles")}
-                      prefix={<ArrowUpRight className="size-3.5" />}
-                    >
-                      Open profiles
-                    </Button>
-                  </>
-                ) : (
-                  <div className="mt-5 rounded-xl border border-[#e8c27a]/20 bg-[#e8c27a]/5 p-3 text-[0.72rem] leading-5 text-[#e8c27a]/80">
-                    The orchestrator decomposes a mission, picks specialists and keeps the budget.
-                    Live delegation tracing is tracked in #30.
-                  </div>
-                )}
-
-                {error ? (
-                  <p className="mt-4 text-[0.7rem] leading-5 text-red-300/70">
-                    Could not load profiles: {error}
-                  </p>
-                ) : null}
-              </>
-            ) : (
-              <p className="text-sm text-white/50">No agents yet.</p>
-            )}
-          </aside>
+          <InspectorPanel
+            error={error}
+            onOpenProfiles={() => navigate("/profiles")}
+            selected={selected}
+          />
         </div>
       </div>
     </div>
