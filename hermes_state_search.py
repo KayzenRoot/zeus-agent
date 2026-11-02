@@ -844,8 +844,9 @@ class SessionSearchMixin:
         sanitized = re.sub(r"(?i)^(AND|OR|NOT)\b\s*", "", sanitized.strip())
         sanitized = re.sub(r"(?i)\s+(AND|OR|NOT)\s*$", "", sanitized.strip())
         # 5. Quote dotted/hyphenated/underscored terms in ONE pass (sequential passes
-        # double-quote ``my-app.config``).
-        sanitized = re.sub(r"\b(\w+(?:[._-]\w+)+)\b", r'"\1"', sanitized)
+        # double-quote ``my-app.config``). Possessive runs keep a pathological query
+        # (thousands of separators with no term end) from backtracking quadratically.
+        sanitized = re.sub(r"\b(\w++(?:[._-]\w++)++)\b", r'"\1"', sanitized)
         # 6. Restore preserved quoted phrases.
         for i, quoted in enumerate(_quoted_parts):
             sanitized = sanitized.replace(f"\x00Q{i}\x00", quoted)

@@ -1633,3 +1633,23 @@ class TestRedactForEgress:
         from agent import redact as R
         monkeypatch.setattr(R, "redact_sensitive_text", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
         assert R.redact_for_egress("sk-live-0123456789abcdef") == R.REDACTION_UNAVAILABLE
+
+
+class TestPrivateKeyRedaction:
+    """Private-key blocks redact; an unterminated BEGIN storm cannot backtrack."""
+
+    def test_private_key_block_is_redacted(self):
+        text = (
+            "-----BEGIN RSA PRIVATE KEY-----\n"
+            "MIIEowIBAAKCAQEA0123456789abcdef\n"
+            "-----END RSA PRIVATE KEY-----"
+        )
+        assert "[REDACTED PRIVATE KEY]" in redact_sensitive_text(text)
+
+    def test_unterminated_begin_storm_stays_linear(self):
+        # Many BEGINs with no END: the tempered body must not rescan to EOF per marker.
+        text = ("-----BEGIN PRIVATE KEY-----" + "A" * 1_000) * 200
+        started = time.perf_counter()
+        redact_sensitive_text(text)
+        elapsed = time.perf_counter() - started
+        assert elapsed < 2.0, f"private-key redaction took {elapsed:.2f}s"
