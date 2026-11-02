@@ -76,7 +76,7 @@ jobs:
           npm run --workspace apps/desktop test:ui -- --reporter=verbose 2>&1 | tee zeus-ci-evidence/desktop-ui-full.log
       - name: Save Windows diagnostics even when tests fail
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: zeus-win-js-tests-${{ inputs.node_major || '26.4.0' }}-${{ github.run_id }}
           path: zeus-ci-evidence/

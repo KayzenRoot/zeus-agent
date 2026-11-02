@@ -136,7 +136,7 @@ jobs:
         run: rm -f zeus-trivy-results.json
       - name: Upload sanitized finding IDs and affected packages only
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: zeus-trivy-sanitized-${{ github.run_id }}
           path: zeus-ci-evidence/trivy-sanitized-findings.json
@@ -232,7 +232,7 @@ jobs:
           PY
       - name: Upload sanitized JSON manifest (no scanner raw output)
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: zeus-audit-${{ github.run_id }}
           path: zeus-ci-evidence/audit-manifest.json
