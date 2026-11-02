@@ -133,6 +133,8 @@ module.exports = {
     icon: macIconResource(__dirname),
     // The afterSign hook owns notarization, including keychain-profile builds.
     notarize: false,
+    // Electron 44 no longer supports macOS 11 or 12.
+    minimumSystemVersion: '13.0',
     // Refuse to embed a legacy or environment-injected macOS update feed.
     publish: null,
     category: 'public.app-category.developer-tools',
