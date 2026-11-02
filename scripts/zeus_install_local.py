@@ -59,11 +59,16 @@ def _refuse(message: str) -> int:
     return FORBIDDEN_EXIT
 
 
-def _git(checkout: Path, *args: str) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        ["git", "-C", str(checkout), *args],
-        capture_output=True, text=True, timeout=30, check=False,
-    )
+def _git(checkout: Path, *args: str, timeout: int = 180) -> subprocess.CompletedProcess:
+    """Run git in the checkout; a slow WSL 9p mount must not look like a dirty tree."""
+    try:
+        return subprocess.run(
+            ["git", "-C", str(checkout), *args],
+            capture_output=True, text=True, timeout=timeout, check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return subprocess.CompletedProcess(
+            args, 124, "", f"git {args[0]} timed out after {timeout}s")
 
 
 def verify_checkout(checkout: Path) -> tuple[Optional[Checkout], Optional[str]]:
@@ -87,6 +92,9 @@ def verify_checkout(checkout: Path) -> tuple[Optional[Checkout], Optional[str]]:
     if head.returncode != 0:
         return None, "cannot resolve HEAD"
     dirty = _git(checkout, "status", "--porcelain", "--untracked-files=no")
+    if dirty.returncode == 124:
+        return None, ("git status timed out — a WSL /mnt/d mount is very slow; clone to the "
+                      "Linux filesystem or retry")
     if dirty.returncode != 0:
         return None, "cannot inspect the working tree"
     if dirty.stdout.strip():

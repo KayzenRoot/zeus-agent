@@ -94,6 +94,29 @@ class CheckoutVerificationTests(unittest.TestCase):
             self.assertEqual(checkout.origin, FORK)
             self.assertEqual(len(checkout.head), 40)
 
+    def test_git_timeout_is_a_completed_process_with_124(self):
+        with mock.patch.object(self.module.subprocess, "run",
+                               side_effect=subprocess.TimeoutExpired("git", 180)):
+            result = self.module._git(Path("."), "status")
+        self.assertEqual(result.returncode, 124)
+        self.assertIn("timed out", result.stderr)
+
+    def test_slow_git_status_is_refused_with_a_wsl_hint(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = _repo(Path(directory) / "repo")
+            real_git = self.module._git
+
+            def fake_git(checkout, *args, timeout=180):
+                if args and args[0] == "status":
+                    return subprocess.CompletedProcess(args, 124, "", "git status timed out")
+                return real_git(checkout, *args, timeout=timeout)
+
+            with mock.patch.object(self.module, "_git", fake_git):
+                checkout, reason = self.module.verify_checkout(repo)
+            self.assertIsNone(checkout)
+            self.assertIn("timed out", reason)
+            self.assertIn("WSL", reason)
+
 
 class RootValidationTests(unittest.TestCase):
     def setUp(self):
