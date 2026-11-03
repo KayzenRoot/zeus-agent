@@ -134,6 +134,7 @@ def test_unknown_user_has_no_entitlement(client: TestClient) -> None:
         "plan": None,
         "status": "inactive",
         "current_period_end": None,
+        "seats": 0,
         "features": [],
     }
 
@@ -394,6 +395,68 @@ def test_billing_portal_session_posts_customer_and_return_url(
     }
 
 
+def test_entitlement_exposes_the_plan_seat_count(client: TestClient) -> None:
+    _seed_active(client, "user_seats", plan="annual")
+
+    entitlement = client.get("/api/entitlement", headers=_headers("user_seats")).json()
+    assert entitlement["seats"] == 10
+    assert "agents:10" in entitlement["features"]
+
+
+def test_device_authorization_enforces_the_seat_limit(client: TestClient) -> None:
+    _seed_active(client, "user_seat_limit", plan="monthly")
+    for index in range(5):
+        response = client.post(
+            "/api/device/authorize",
+            json={"device_id": f"seat-device-{index}"},
+            headers=_headers("user_seat_limit"),
+        )
+        assert response.status_code == 200
+
+    sixth = client.post(
+        "/api/device/authorize",
+        json={"device_id": "seat-device-sixth"},
+        headers=_headers("user_seat_limit"),
+    )
+    assert sixth.status_code == 409
+
+    existing = client.post(
+        "/api/device/authorize",
+        json={"device_id": "seat-device-0"},
+        headers=_headers("user_seat_limit"),
+    )
+    assert existing.status_code == 200
+
+    client.post("/api/devices/seat-device-0/revoke", headers=_headers("user_seat_limit"))
+    replacement = client.post(
+        "/api/device/authorize",
+        json={"device_id": "seat-device-replacement"},
+        headers=_headers("user_seat_limit"),
+    )
+    assert replacement.status_code == 200
+
+
+def test_audit_lists_device_actions_without_secrets(client: TestClient) -> None:
+    _seed_active(client, "user_audit")
+    client.post(
+        "/api/device/authorize",
+        json={"device_id": "audit-device-1", "device_name": "Desk"},
+        headers=_headers("user_audit"),
+    )
+    client.post("/api/devices/audit-device-1/revoke", headers=_headers("user_audit"))
+
+    response = client.get("/api/audit?limit=10", headers=_headers("user_audit"))
+    assert response.status_code == 200
+    events = response.json()["events"]
+    assert [event["event"] for event in events] == ["device.revoke", "device.authorize"]
+    assert events[0]["detail"] == {"device_id": "audit-device-1"}
+    assert events[1]["detail"] == {"device_id": "audit-device-1", "name": "Desk"}
+
+
+def test_audit_rejects_an_out_of_range_limit(client: TestClient) -> None:
+    assert client.get("/api/audit?limit=0", headers=_headers()).status_code == 422
+
+
 def test_devices_can_be_listed_and_revoked(client: TestClient) -> None:
     _seed_active(client, "user_devices")
     device_id = "device-list-123"
@@ -417,16 +480,12 @@ def test_devices_can_be_listed_and_revoked(client: TestClient) -> None:
     assert revoked.status_code == 200
     assert client.get("/api/devices", headers=_headers("user_devices")).json()[0]["revoked"] is True
 
-    new_code = client.post(
+    reauthorized = client.post(
         "/api/device/authorize",
         json={"device_id": device_id},
         headers=_headers("user_devices"),
-    ).json()["code"]
-    exchange = client.post(
-        "/api/device/exchange",
-        json={"code": new_code, "device_id": device_id},
     )
-    assert exchange.status_code == 403
+    assert reauthorized.status_code == 403
 
     token = client.post(
         "/api/entitlement/token",

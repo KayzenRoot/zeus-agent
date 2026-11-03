@@ -7,7 +7,7 @@ import secrets
 import time
 from typing import Any
 
-from fastapi import Depends, FastAPI, HTTPException, Path, Request
+from fastapi import Depends, FastAPI, HTTPException, Path, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -17,6 +17,7 @@ from .entitlements import (
     EntitlementNotConfigured,
     is_active,
     plan_features,
+    plan_seats,
     sign_entitlement,
 )
 from .settings import Settings
@@ -86,6 +87,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         url = session.get("url")
         if not url:
             raise HTTPException(status_code=502, detail="Stripe returned no checkout URL")
+        store.audit(user_id=user, event="checkout.created", detail={"plan": body.plan})
         return {"url": url, "id": session.get("id")}
 
     @app.get("/api/entitlement")
@@ -98,6 +100,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "plan": row["plan"] if row else None,
             "status": row["status"] if row else "inactive",
             "current_period_end": current_period_end,
+            "seats": plan_seats(row["plan"]) if row and active else 0,
             "features": plan_features(row["plan"]) if row and active else [],
         }
 
@@ -120,6 +123,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         url = session.get("url")
         if not url:
             raise HTTPException(status_code=502, detail="Stripe returned no portal URL")
+        store.audit(user_id=user, event="billing.portal", detail={"customer_id": str(customer_id)})
         return {"url": url}
 
     @app.post("/api/entitlement/token")
@@ -142,8 +146,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         body: DeviceAuthorizeRequest,
         user: str = Depends(current_user),
     ) -> dict[str, Any]:
-        if not is_active(store.get(user)):
+        row = store.get(user)
+        if not is_active(row):
             raise HTTPException(status_code=403, detail="no active subscription")
+        existing = store.get_device(body.device_id)
+        if existing is not None and existing["user_id"] != user:
+            raise HTTPException(status_code=409, detail="device belongs to another account")
+        if existing is not None and existing["revoked_at"] is not None:
+            raise HTTPException(status_code=403, detail="device is revoked")
+        if existing is None and store.count_active_devices(user) >= plan_seats(row["plan"]):
+            raise HTTPException(status_code=409, detail="seat limit reached")
         if not store.upsert_device(
             device_id=body.device_id,
             user_id=user,
@@ -157,6 +169,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             user_id=user,
             device_id=body.device_id,
             expires_at=expires_at,
+        )
+        store.audit(
+            user_id=user,
+            event="device.authorize",
+            detail={"device_id": body.device_id, "name": body.device_name.strip() or None},
         )
         return {"code": code, "expires_at": expires_at}
 
@@ -180,7 +197,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     ) -> dict[str, bool]:
         if not store.revoke_device(user_id=user, device_id=device_id):
             raise HTTPException(status_code=404, detail="device not found")
+        store.audit(user_id=user, event="device.revoke", detail={"device_id": device_id})
         return {"revoked": True}
+
+    @app.get("/api/audit")
+    def audit(
+        limit: int = Query(default=50, ge=1, le=100),
+        user: str = Depends(current_user),
+    ) -> dict[str, Any]:
+        return {"events": store.list_audit(user, limit=limit)}
 
     @app.post("/api/device/exchange")
     def exchange_device(body: DeviceExchangeRequest) -> dict[str, Any]:
@@ -198,9 +223,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if not is_active(row, now=now):
             raise HTTPException(status_code=403, detail="no active subscription")
         try:
-            return sign_entitlement(settings, row, device_id=body.device_id, now=now)
+            token = sign_entitlement(settings, row, device_id=body.device_id, now=now)
         except EntitlementNotConfigured as error:
             raise HTTPException(status_code=503, detail="entitlement signing is not configured") from error
+        store.audit(
+            user_id=str(code_row["user_id"]),
+            event="device.exchange",
+            detail={"device_id": body.device_id},
+        )
+        return token
 
     @app.post("/api/stripe/webhook")
     async def stripe_webhook(request: Request) -> dict[str, bool]:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+import json
 import time
 from pathlib import Path
 from typing import Any
@@ -39,6 +40,15 @@ CREATE TABLE IF NOT EXISTS devices (
 );
 CREATE INDEX IF NOT EXISTS devices_user
     ON devices (user_id);
+CREATE TABLE IF NOT EXISTS audit_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    event TEXT NOT NULL,
+    detail TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS audit_events_user
+    ON audit_events (user_id, created_at);
 """
 
 
@@ -217,3 +227,48 @@ class EntitlementStore:
                 "SELECT revoked_at FROM devices WHERE device_id = ?", (device_id,)
             ).fetchone()
         return bool(row and row["revoked_at"] is not None)
+
+    def get_device(self, device_id: str) -> dict[str, Any] | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM devices WHERE device_id = ?", (device_id,)
+            ).fetchone()
+        return dict(row) if row else None
+
+    def count_active_devices(self, user_id: str) -> int:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT COUNT(*) FROM devices WHERE user_id = ? AND revoked_at IS NULL",
+                (user_id,),
+            ).fetchone()
+        return int(row[0]) if row else 0
+
+    def audit(self, *, user_id: str, event: str, detail: dict[str, Any]) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                "INSERT INTO audit_events (user_id, event, detail, created_at) VALUES (?, ?, ?, ?)",
+                (user_id, event, json.dumps(detail, ensure_ascii=False), int(time.time())),
+            )
+
+    def list_audit(self, user_id: str, *, limit: int = 50) -> list[dict[str, Any]]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT id, event, detail, created_at FROM audit_events "
+                "WHERE user_id = ? ORDER BY id DESC LIMIT ?",
+                (user_id, limit),
+            ).fetchall()
+        events = []
+        for row in rows:
+            try:
+                detail = json.loads(row["detail"])
+            except ValueError:
+                detail = {}
+            events.append(
+                {
+                    "id": int(row["id"]),
+                    "event": row["event"],
+                    "detail": detail if isinstance(detail, dict) else {},
+                    "created_at": int(row["created_at"]),
+                }
+            )
+        return events
