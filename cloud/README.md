@@ -42,6 +42,8 @@ troque por `https://api.<domínio>`.
 | `POST /api/device/authorize` | Bearer Clerk JWT | gera código de ativação de 10 min para o dispositivo |
 | `POST /api/device/exchange` | código de uso único | troca código + `device_id` pelo token assinado |
 | `POST /api/billing/portal` | Bearer Clerk JWT | abre o Customer Portal do Stripe (cancelar/trocar plano) |
+| `GET /api/devices` | Bearer Clerk JWT | lista dispositivos e status de revogação |
+| `POST /api/devices/{device_id}/revoke` | Bearer Clerk JWT | revoga um dispositivo |
 | `POST /api/stripe/webhook` | assinatura Stripe | `checkout.session.completed` e `customer.subscription.*` |
 
 O entitlement só fica ativo com status `active`/`trialing` **e** período não expirado.
@@ -120,7 +122,8 @@ scripts/run_tests.sh tests/cloud/test_cloud_service.py
 
 Cobrem autenticação, criação de checkout, assinatura de webhook (válida/inválida/expirada),
 trial, cancelamento, expiração de período, checkout não pago, checkout pending até o evento de
-assinatura, ativação por device code, portal do cliente e a trava de live mode.
+assinatura, ativação por device code, portal do cliente, listagem/revogação de dispositivos e a
+trava de live mode.
 
 ## Pendências antes do release
 
