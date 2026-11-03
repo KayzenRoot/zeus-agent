@@ -137,6 +137,7 @@ def test_unknown_user_has_no_entitlement(client: TestClient) -> None:
         "current_period_end": None,
         "seats": 0,
         "features": [],
+        "scope": "user",
     }
 
 
@@ -562,8 +563,10 @@ def test_checkout_forwards_the_authenticated_user_and_plan(
 ) -> None:
     calls: dict[str, str] = {}
 
-    def fake_checkout(_settings: Settings, *, user_id: str, plan_key: str) -> dict[str, str]:
-        calls.update(user_id=user_id, plan_key=plan_key)
+    def fake_checkout(
+        _settings: Settings, *, user_id: str, plan_key: str, org_id: str | None = None
+    ) -> dict[str, str]:
+        calls.update(user_id=user_id, plan_key=plan_key, org_id=org_id or "")
         return {"id": "cs_test_1", "url": "https://checkout.stripe.test/cs_test_1"}
 
     monkeypatch.setattr("cloud.service.app.stripe_api.create_checkout_session", fake_checkout)
@@ -575,7 +578,103 @@ def test_checkout_forwards_the_authenticated_user_and_plan(
         "url": "https://checkout.stripe.test/cs_test_1",
         "id": "cs_test_1",
     }
-    assert calls == {"user_id": "user_123", "plan_key": "monthly"}
+    assert calls == {"user_id": "user_123", "plan_key": "monthly", "org_id": ""}
+
+
+def test_checkout_carries_the_organization(settings: Settings, monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_request(
+        _secret: str,
+        method: str,
+        path: str,
+        data: dict[str, str] | None = None,
+        *,
+        idempotency_key: str | None = None,
+    ) -> dict[str, str]:
+        captured.update(data=data or {})
+        return {"id": "cs_org", "url": "https://checkout.stripe.test/cs_org"}
+
+    monkeypatch.setattr(stripe_api, "_request", fake_request)
+
+    stripe_api.create_checkout_session(
+        settings, user_id="user_org", plan_key="monthly", org_id="org_1"
+    )
+    assert captured["data"]["metadata[zeus_org_id]"] == "org_1"
+    assert captured["data"]["subscription_data[metadata][zeus_org_id]"] == "org_1"
+
+
+def test_organization_entitlement_and_seat_scope(client: TestClient) -> None:
+    client.app.state.store.upsert(
+        user_id="org_owner",
+        org_id="org_1",
+        plan="monthly",
+        status="active",
+        customer_id="cus_org",
+        current_period_end=int(time.time()) + 86_400,
+    )
+    client.app.dependency_overrides[current_identity] = lambda: Identity(
+        "org_owner", "org_1", "org:admin"
+    )
+    try:
+        owner_entitlement = client.get("/api/entitlement", headers=_headers("org_owner")).json()
+        assert owner_entitlement["active"] is True
+        assert owner_entitlement["scope"] == "organization"
+        assert owner_entitlement["seats"] == 5
+
+        assert (
+            client.post(
+                "/api/device/authorize",
+                json={"device_id": "org-device-owner"},
+                headers=_headers("org_owner"),
+            ).status_code
+            == 200
+        )
+
+        client.app.dependency_overrides[current_identity] = lambda: Identity(
+            "member", "org_1", "org:member"
+        )
+        member_entitlement = client.get("/api/entitlement", headers=_headers("member")).json()
+        assert member_entitlement["active"] is True
+        assert member_entitlement["scope"] == "organization"
+        assert (
+            client.post(
+                "/api/device/authorize",
+                json={"device_id": "org-device-member"},
+                headers=_headers("member"),
+            ).status_code
+            == 200
+        )
+        assert (
+            client.post(
+                "/api/devices/org-device-owner/revoke", headers=_headers("member")
+            ).status_code
+            == 403
+        )
+        assert (
+            client.post(
+                "/api/checkout", json={"plan": "monthly"}, headers=_headers("member")
+            ).status_code
+            == 403
+        )
+        assert client.post("/api/billing/portal", headers=_headers("member")).status_code == 403
+
+        client.app.dependency_overrides[current_identity] = lambda: Identity(
+            "org_owner", "org_1", "org:admin"
+        )
+        assert (
+            client.post(
+                "/api/devices/org-device-owner/revoke", headers=_headers("org_owner")
+            ).status_code
+            == 200
+        )
+        devices = client.get("/api/devices", headers=_headers("org_owner")).json()
+        assert {row["device_id"] for row in devices} == {
+            "org-device-owner",
+            "org-device-member",
+        }
+    finally:
+        client.app.dependency_overrides.clear()
 
 
 def test_checkout_rejects_an_unknown_plan(client: TestClient) -> None:

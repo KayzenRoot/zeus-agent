@@ -129,6 +129,13 @@ trial, cancelamento, expiração de período, checkout não pago, checkout pendi
 assinatura, ativação por device code, portal do cliente, seats, listagem/revogação de
 dispositivos, auditoria/export e a trava de live mode.
 
+## Organizations
+
+Quando o JWT do Clerk traz `org_id`, o checkout grava a Organization na sessão/assinatura e o
+entitlement passa a valer para os membros dessa Organization. Seats e dispositivos são contados
+por Organization; `org:admin`/`org:owner` podem revogar dispositivos e abrir o portal. Membros
+podem ativar dispositivos dentro dos seats. SSO/SAML/OIDC exige configurar o IdP no Clerk.
+
 ## Pendências antes do release
 
 1. SSO/SAML/OIDC e seats por Organization: requerem o IdP do owner configurado no Clerk; o

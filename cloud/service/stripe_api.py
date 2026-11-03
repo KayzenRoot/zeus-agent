@@ -51,6 +51,7 @@ def create_checkout_session(
     *,
     user_id: str,
     plan_key: str,
+    org_id: str | None = None,
 ) -> dict[str, Any]:
     plan = settings.plan(plan_key)
     if plan is None:
@@ -72,6 +73,9 @@ def create_checkout_session(
         "cancel_url": settings.cancel_url,
         "allow_promotion_codes": "true",
     }
+    if org_id:
+        payload["metadata[zeus_org_id]"] = org_id
+        payload["subscription_data[metadata][zeus_org_id]"] = org_id
     return _request(
         settings.stripe_secret,
         "POST",
