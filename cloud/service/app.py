@@ -7,6 +7,7 @@ import hashlib
 import io
 import json
 import secrets
+import sqlite3
 import time
 from typing import Any
 
@@ -17,11 +18,13 @@ from pydantic import BaseModel, Field
 from . import stripe_api
 from .auth import Identity, current_identity
 from .entitlements import (
+    FEATURES,
     EntitlementNotConfigured,
     is_active,
     plan_features,
     plan_seats,
     sign_entitlement,
+    signing_key_configured,
 )
 from .settings import Settings
 from .store import EntitlementStore
@@ -65,7 +68,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {
             "ok": True,
             "service": "zeus-cloud",
-            "mode": "live" if settings.stripe_secret.startswith("sk_live_") else "test",
+            "mode": _stripe_mode(settings),
+        }
+
+    @app.get("/api/readiness")
+    def readiness() -> dict[str, Any]:
+        checks = {
+            "stripe": bool(settings.stripe_secret),
+            "stripe_webhook": bool(settings.stripe_webhook_secret),
+            "clerk": bool(settings.clerk_frontend_api),
+            "entitlement_signing": signing_key_configured(settings)
+            and settings.entitlement_ttl_days > 0,
+            "plans": _plans_configured(settings),
+            "database": _database_ready(store),
+        }
+        return {
+            "ready": all(checks.values()),
+            "checks": checks,
+            "mode": _stripe_mode(settings),
         }
 
     @app.get("/api/plans")
@@ -329,6 +349,28 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"received": True}
 
     return app
+
+
+def _stripe_mode(settings: Settings) -> str:
+    return "live" if settings.stripe_secret.startswith("sk_live_") else "test"
+
+
+def _plans_configured(settings: Settings) -> bool:
+    try:
+        plans = settings.plans().get("plans") or {}
+    except (OSError, ValueError):
+        return False
+    return all(
+        isinstance(plans.get(key), dict) and str(plans[key].get("price_id") or "").strip()
+        for key in FEATURES
+    )
+
+
+def _database_ready(store: EntitlementStore) -> bool:
+    try:
+        return store.ping()
+    except sqlite3.Error:
+        return False
 
 
 def _first_price(obj: dict[str, Any]) -> str | None:

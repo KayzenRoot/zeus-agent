@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Política de Privacidade — Zeus Agent</title>
+  <style>
+    :root { --bg:#06070a; --line:rgba(255,255,255,.09); --gold:#e8c27a; --text:#f4efe3; --muted:rgba(244,239,227,.62); }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font:15px/1.7 "Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+    a { color:var(--gold); }
+    .wrap { width:min(900px,calc(100% - 40px)); margin:0 auto; padding:48px 0 80px; }
+    .top { display:flex; justify-content:space-between; gap:16px; align-items:center; padding:18px 0; border-bottom:1px solid var(--line); }
+    .brand { font-weight:800; letter-spacing:.04em; color:var(--gold); }
+    h1 { font-size:2rem; letter-spacing:-.03em; margin:36px 0 8px; }
+    h2 { font-size:1.1rem; margin:30px 0 8px; color:var(--gold); }
+    p, li { color:var(--muted); }
+    .note { border:1px solid rgba(232,194,122,.3); background:rgba(232,194,122,.07); border-radius:12px; padding:14px 16px; color:var(--text); }
+    .foot { margin-top:40px; padding-top:18px; border-top:1px solid var(--line); font-size:.8rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <a class="brand" href="index.html">ZEUS</a>
+      <a href="index.html">Voltar ao site</a>
+    </div>
+
+    <h1>Política de Privacidade</h1>
+    <p>Vigência: 3 de novembro de 2026.</p>
+
+    <p class="note">Modelo operacional sujeito a revisão jurídica antes do go-live. Os campos entre
+    colchetes devem ser preenchidos pelo proprietário do serviço.</p>
+
+    <h2>1. Controlador</h2>
+    <p><strong>[RAZÃO SOCIAL]</strong>, CNPJ <strong>[CNPJ]</strong>, com endereço em
+    <strong>[ENDEREÇO]</strong>. Encarregado/DPO: <strong>[NOME/EMAIL DO DPO]</strong>.</p>
+
+    <h2>2. Dados que tratamos</h2>
+    <ul>
+      <li><strong>Conta Clerk:</strong> e-mail, telefone, identificadores de usuário e Organization,
+        papéis e metadados de sessão.</li>
+      <li><strong>Assinatura Stripe:</strong> identificadores de cliente/assinatura, plano, status,
+        período e recibos. O Zeus não recebe o número completo do cartão.</li>
+      <li><strong>Dispositivos:</strong> identificador aleatório do dispositivo, nome opcional,
+        timestamps de ativação/uso e status de revogação.</li>
+      <li><strong>Auditoria:</strong> eventos de checkout, ativação, troca de código, portal e
+        revogação.</li>
+      <li><strong>Suporte:</strong> mensagens e anexos que você enviar voluntariamente.</li>
+    </ul>
+
+    <h2>3. Finalidades e bases legais</h2>
+    <p>Usamos os dados para autenticar a conta, cobrar e gerenciar a assinatura, liberar o
+    entitlement, prevenir fraude, cumprir obrigações legais e prestar suporte. As bases legais
+    incluem execução de contrato, cumprimento de obrigação legal, legítimo interesse e
+    consentimento quando aplicável (LGPD, art. 7º).</p>
+
+    <h2>4. Compartilhamento</h2>
+    <p>Compartilhamos o mínimo necessário com <strong>Clerk</strong> (autenticação),
+    <strong>Stripe</strong> (pagamento e portal), provedores de infraestrutura e autoridades quando
+    exigido por lei. Não vendemos dados pessoais.</p>
+
+    <h2>5. Transferência internacional</h2>
+    <p>Alguns subprocessadores podem tratar dados fora do Brasil. Nesses casos, buscamos garantias
+    contratuais e mecanismos previstos na LGPD.</p>
+
+    <h2>6. Retenção</h2>
+    <p>Mantemos dados de conta e assinatura enquanto a relação existir e pelo prazo necessário para
+    obrigações legais, fiscais e defesa de direitos. Eventos de auditoria são mantidos pelo período
+    necessário à segurança e à conformidade.</p>
+
+    <h2>7. Seus direitos</h2>
+    <p>Você pode solicitar confirmação de tratamento, acesso, correção, anonimização, portabilidade,
+    eliminação, informação sobre compartilhamento e revogação de consentimento, nos termos da LGPD.
+    Envie o pedido para <strong>[E-MAIL DE SUPORTE]</strong>.</p>
+
+    <h2>8. Segurança</h2>
+    <p>Usamos TLS, tokens de sessão, segregação por usuário/Organization, verificação de assinatura
+    de webhook, entitlement Ed25519 vinculado ao dispositivo e auditoria. Nenhum sistema é
+    absolutamente imune; incidentes relevantes serão tratados conforme a lei.</p>
+
+    <h2>9. Cookies</h2>
+    <p>O site usa cookies essenciais de autenticação do Clerk e do Stripe. Não usamos cookies de
+    publicidade próprios.</p>
+
+    <h2>10. Alterações</h2>
+    <p>Podemos atualizar esta política. Mudanças materiais serão comunicadas antes de produzirem
+    efeito.</p>
+
+    <div class="foot">
+      <a href="index.html">Zeus Agent</a> · <a href="terms.html">Termos de uso</a>
+    </div>
+  </div>
+</body>
+</html>
