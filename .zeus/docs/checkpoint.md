@@ -208,3 +208,10 @@ the **CORRECTION REQUIRED** verdict until independent audit confirms DoD.
 - **Limite consciente**: identificadores internos (`hermes_cli`, `HERMES_*`, `@hermes/*`, `X-Hermes-Session-Token`), caminhos de dados e atribuição MIT permanecem; renomeá-los apariam imports/dados/proveniência. Wake word padrão `hey hermes` também ficou intacta.
 - **Verificação**: CI #54 14/14 verde (incl. desktop 11.513 testes), `.zeus/tests/test_rebrand.py` 5/5, `scripts/check` 12/12; desktop reconstruído, empacotado e aberto no PC com interface Zeus e backend ready. Evidência: `audits/ZEUS-CLEANUP-001-2026-11-03.md`.
 - **Ainda aberto**: #50 auto-healing owner-gated, #51 enterprise, #52 live mode/deploy; `apps/desktop/build` locked no Windows.
+
+## 2026-11-03 | Auto-healing determinístico owner-gated (#55 merged)
+
+- **PR #55 MERGED `1731603b40`**: `zeus heal status|plan|apply` com diagnóstico de gateway/estado/disco/entitlement.
+- **Sem correção silenciosa**: `apply` recusa ação fora do plano, recusa sem TTY e exige `APPROVE` digitado pelo owner; só `restart-gateway` é executado nesta camada. Auditoria em `logs/heal-audit.jsonl` 0600.
+- **Verificação**: 6/6 testes; smoke real `gateway running`, 60.2 GB, entitlement active, sem problemas; `scripts/check` 12/12; CI #55 14/14 verde.
+- **Residual**: orquestrador mestre/distribuição de skills, aprovação no desktop e outras ações (lock órfão, rotação de logs, reparo com backup) ficam para a próxima WO. Evidência: `audits/ZEUS-HEAL-001-2026-11-03-owner-approved-healing.md`.
