@@ -147,12 +147,18 @@ def _public_key(settings: Settings) -> bytes:
     )
 
 
-def _seed_active(client: TestClient, user_id: str, plan: str = "annual") -> None:
+def _seed_active(
+    client: TestClient,
+    user_id: str,
+    plan: str = "annual",
+    customer_id: str | None = None,
+) -> None:
     client.app.state.store.upsert(
         user_id=user_id,
         plan=plan,
         status="active",
         current_period_end=int(time.time()) + 86_400,
+        customer_id=customer_id,
     )
 
 
@@ -318,6 +324,74 @@ def test_tracked_public_key_is_a_valid_ed25519_key() -> None:
     root = Path(__file__).resolve().parents[2]
     pem = (root / "cloud" / "entitlement_public_key.pem").read_bytes()
     assert isinstance(serialization.load_pem_public_key(pem), Ed25519PublicKey)
+
+
+def test_billing_portal_returns_the_stripe_url_for_a_customer(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _seed_active(client, "user_portal", customer_id="cus_portal")
+    calls: dict[str, str] = {}
+
+    def fake_portal(_settings: Settings, *, customer_id: str, return_url: str) -> dict[str, str]:
+        calls.update(customer_id=customer_id, return_url=return_url)
+        return {"url": "https://billing.stripe.test/session"}
+
+    monkeypatch.setattr("cloud.service.app.stripe_api.create_billing_portal_session", fake_portal)
+
+    response = client.post("/api/billing/portal", headers=_headers("user_portal"))
+
+    assert response.status_code == 200
+    assert response.json() == {"url": "https://billing.stripe.test/session"}
+    assert calls == {
+        "customer_id": "cus_portal",
+        "return_url": "http://127.0.0.1:9120/?portal=done",
+    }
+
+
+def test_billing_portal_rejects_an_account_without_a_stripe_customer(
+    client: TestClient,
+) -> None:
+    _seed_active(client, "user_no_customer")
+
+    response = client.post("/api/billing/portal", headers=_headers("user_no_customer"))
+    assert response.status_code == 404
+
+
+def test_billing_portal_rejects_an_inactive_subscription(client: TestClient) -> None:
+    response = client.post("/api/billing/portal", headers=_headers("user_inactive_portal"))
+    assert response.status_code == 403
+
+
+def test_billing_portal_session_posts_customer_and_return_url(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_request(
+        _secret: str,
+        method: str,
+        path: str,
+        data: dict[str, str] | None = None,
+        *,
+        idempotency_key: str | None = None,
+    ) -> dict[str, str]:
+        captured.update(method=method, path=path, data=data or {}, key=idempotency_key)
+        return {"url": "https://billing.stripe.test/session"}
+
+    monkeypatch.setattr(stripe_api, "_request", fake_request)
+
+    result = stripe_api.create_billing_portal_session(
+        settings,
+        customer_id="cus_1",
+        return_url="http://127.0.0.1:9120/?portal=done",
+    )
+
+    assert result == {"url": "https://billing.stripe.test/session"}
+    assert captured["path"] == "/billing_portal/sessions"
+    assert captured["data"] == {
+        "customer": "cus_1",
+        "return_url": "http://127.0.0.1:9120/?portal=done",
+    }
 
 
 def test_checkout_forwards_the_authenticated_user_and_plan(

@@ -284,8 +284,12 @@
           <div>
             <h3>Já é assinante?</h3>
             <p>Entre com e-mail ou telefone para abrir sua conta. O acesso ao runtime é liberado pelo entitlement do Zeus Cloud.</p>
+            <p class="checkout-status" id="portal-status" role="status" aria-live="polite"></p>
           </div>
-          <a class="btn btn-gold" data-signin href="https://adequate-viper-3823.clerk.accounts.dev/sign-in">Entrar na conta</a>
+          <div style="display:flex; gap:10px; flex-wrap:wrap">
+            <a class="btn btn-gold" data-signin href="https://adequate-viper-3823.clerk.accounts.dev/sign-in">Entrar na conta</a>
+            <button class="btn btn-ghost" id="portal-button" type="button">Gerenciar assinatura</button>
+          </div>
         </div>
       </div>
     </section>
@@ -467,6 +471,47 @@
           activationButton.removeAttribute("aria-busy");
         }
       });
+    }
+
+    const portalButton = document.getElementById("portal-button");
+    const portalStatus = document.getElementById("portal-status");
+    const setPortalStatus = (message, kind) => {
+      if (!portalStatus) return;
+      portalStatus.textContent = message;
+      portalStatus.dataset.kind = kind || "info";
+    };
+    portalButton?.addEventListener("click", async () => {
+      portalButton.setAttribute("aria-busy", "true");
+      setPortalStatus("Abrindo o portal da assinatura…");
+      try {
+        const clerk = await getClerk();
+        if (!clerk.user) {
+          setPortalStatus("Entre com e-mail ou telefone e clique novamente.");
+          clerk.openSignIn({ fallbackRedirectUrl: window.location.href });
+          return;
+        }
+        const token = await clerk.session?.getToken();
+        if (!token) throw new Error("Sessão expirada. Entre novamente.");
+        const response = await fetch(`${API_BASE}/api/billing/portal`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          throw new Error(body.detail || `Portal indisponível (${response.status}).`);
+        }
+        const { url } = await response.json();
+        if (!url) throw new Error("O Stripe não retornou uma URL do portal.");
+        window.location.assign(url);
+      } catch (error) {
+        setPortalStatus(error.message || "Não foi possível abrir o portal.", "error");
+      } finally {
+        portalButton.removeAttribute("aria-busy");
+      }
+    });
+
+    if (new URLSearchParams(window.location.search).get("portal") === "done") {
+      setPortalStatus("Assinatura atualizada.");
     }
 
     const checkoutState = new URLSearchParams(window.location.search).get("checkout");

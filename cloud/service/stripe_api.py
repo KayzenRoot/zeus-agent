@@ -81,6 +81,20 @@ def create_checkout_session(
     )
 
 
+def create_billing_portal_session(
+    settings: Settings,
+    *,
+    customer_id: str,
+    return_url: str,
+) -> dict[str, Any]:
+    return _request(
+        settings.stripe_secret,
+        "POST",
+        "/billing_portal/sessions",
+        {"customer": customer_id, "return_url": return_url},
+    )
+
+
 def verify_webhook(
     payload: bytes,
     signature_header: str,
