@@ -67,8 +67,6 @@ import { installApplicationMenuAfterFirstWindow } from './application-menu-start
 import { stopBackendChild as stopBackendChildImpl, waitForBackendExit } from './backend-child'
 import {
   execText,
-  isPidOnlyStartMarker,
-  processStartMarker,
   REAP_PROBE_TIMEOUT_MS
 } from './backend-claim'
 import { createBackendConnectionState } from './backend-connection-state'
@@ -76,6 +74,7 @@ import { assertDescriptorStillOwned, forgetFailedDescriptor } from './backend-de
 import { BackendDialClaims } from './backend-dial-claim'
 import { buildDesktopBackendEnv, profileBackendParentEnv } from './backend-env'
 import { isReauthRequiredError, waitForHermesReady } from './backend-health'
+import { backendParentMatches, processIdentityMatches } from './backend-identity'
 import {
   backendCommandMatches,
   createBackendOwnership,
@@ -307,6 +306,7 @@ import {
   tightenSecretFileMode,
   writeSecretFileAtomic
 } from './hardening'
+import { startHealApprovalWatcher } from './heal-approval'
 import { assertNotPassiveSpawn } from './host-backend-singleton'
 import { HERMES_HUB_FALLBACK_ORIGIN, HERMES_HUB_ORIGIN, isHermesHubClipboardWrite } from './hub-iframe-policy'
 import { requestHudClose } from './hud-close'
@@ -1918,6 +1918,7 @@ function registerMediaProtocol(): void {
 }
 
 let mainWindow = null
+let stopHealApproval: (() => void) | null = null
 const backendConnectionState = createBackendConnectionState<ReturnType<typeof spawn>, any>()
 
 const localBackendLifecycle = createLocalBackendLifecycle<ChildProcess>({
@@ -4126,30 +4127,6 @@ async function backendCommandForPid(pid) {
   }
 }
 
-async function processIdentityMatches(identity, timeoutMs: number = 30_000) {
-  // Degraded PID-only identity (#93608): the start-marker probe failed while
-  // the child was verifiably alive, so only PID liveness can be checked here.
-  // backendIdentityMatches layers the command-line check on top before
-  // anything destructive relies on the answer.
-  if (isPidOnlyStartMarker(identity.startMarker)) {
-    try {
-      process.kill(identity.pid, 0)
-
-      return true
-    } catch (error) {
-      const code = (error as NodeJS.ErrnoException | null)?.code
-
-      return code === 'ESRCH' || code === 'ENOENT' ? false : code === 'EPERM' ? true : undefined
-    }
-  }
-
-  try {
-    return (await processStartMarker(identity.pid, timeoutMs)) === identity.startMarker
-  } catch (error) {
-    return error?.code === 'ENOENT' || error?.code === 'ESRCH' ? false : undefined
-  }
-}
-
 async function backendIdentityMatches(identity) {
   const processMatches = await processIdentityMatches(identity, REAP_PROBE_TIMEOUT_MS)
 
@@ -4160,22 +4137,6 @@ async function backendIdentityMatches(identity) {
   const command = await backendCommandForPid(identity.pid)
 
   return command === null ? undefined : backendCommandMatches(command)
-}
-
-// True when the recorded parent Electron is still running (same PID AND start
-// marker); false when it is gone or its PID was reused; undefined when the
-// ownership record predates parent tracking. Undefined deliberately falls back
-// to the pre-parent reap behaviour so legacy orphan cleanup keeps working.
-async function backendParentMatches(entry) {
-  if (!Number.isInteger(entry.parentPid) || typeof entry.parentStartMarker !== 'string' || !entry.parentStartMarker) {
-    return undefined
-  }
-
-  try {
-    return (await processStartMarker(entry.parentPid, REAP_PROBE_TIMEOUT_MS)) === entry.parentStartMarker
-  } catch (error) {
-    return error?.code === 'ENOENT' || error?.code === 'ESRCH' ? false : undefined
-  }
 }
 
 async function stopOwnedBackend(identity) {
@@ -13688,6 +13649,32 @@ function closeQuickEntryWindow() {
   quickEntryWindow = null
 }
 
+function startHealDesktopApproval(): void {
+  if (stopHealApproval) {
+    return
+  }
+
+  stopHealApproval = startHealApprovalWatcher({
+    home: HERMES_HOME,
+    getWindow: () =>
+      mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible() ? mainWindow : null,
+    resolveBackend: async () => {
+      const backend = await resolveHermesBackend([])
+
+      return {
+        command: backend.command,
+        args: backend.args,
+        env: backend.env,
+        root: backend.root,
+        shell: backend.shell
+      }
+    },
+    showDialog: (window, options) => dialog.showMessageBox(window, options),
+    log: rememberLog
+  })
+  app.once('will-quit', () => stopHealApproval?.())
+}
+
 function createWindow() {
   const icon = getAppIconPath()
   const savedWindowState = readWindowState()
@@ -18076,6 +18063,7 @@ app.whenReady().then(() => {
     setApplicationMenu: menu => Menu.setApplicationMenu(menu),
     createWindow
   })
+  startHealDesktopApproval()
 
   // Win/Linux cold start: the launching hermes:// URL is in our own argv.
   const _coldStartLink = _extractDeepLink(process.argv)
