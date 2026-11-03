@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Zeus Agent — Sua força de trabalho de IA</title>
   <meta name="description" content="O orquestrador de agentes de IA para pessoas e empresas. Assine o Zeus Pro e coloque sua constelação para trabalhar." />
+  <meta name="zeus-cloud-api" content="http://127.0.0.1:9121" />
   <style>
     :root {
       --bg: #06070a;
@@ -47,6 +48,8 @@
       transition: .18s ease; cursor: pointer;
     }
     .btn:hover { border-color: rgba(232,194,122,.45); transform: translateY(-1px); }
+    .btn[disabled] { opacity: .55; cursor: progress; transform: none; }
+    .btn[aria-busy="true"] { opacity: .55; pointer-events: none; }
     .btn-gold { background: var(--gold); border-color: var(--gold); color: #171208; }
     .btn-gold:hover { background: #f0d296; border-color: #f0d296; }
     .btn-ghost { background: rgba(255,255,255,.03); color: var(--text); }
@@ -98,6 +101,8 @@
     .plan ul { margin: 0 0 20px; padding: 0; list-style: none; color: var(--muted); font-size: .8rem; }
     .plan li { padding: 5px 0; border-top: 1px solid rgba(255,255,255,.05); }
     .plan .btn { margin-top: auto; width: 100%; }
+    .checkout-status { min-height: 1.3em; margin: 16px 0 0; color: var(--teal); font-size: .8rem; }
+    .checkout-status[data-kind="error"] { color: #f0a6a6; }
     .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
     .step { border: 1px solid var(--line); border-radius: 16px; background: var(--panel); padding: 22px; }
     .step .n { display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid rgba(232,194,122,.35); color: var(--gold); font-size: .72rem; font-weight: 700; }
@@ -118,7 +123,7 @@
   </style>
 </head>
 <body>
-  <div class="test-banner">Modo de teste — os links abrem o Stripe em test mode. Nenhuma cobrança real é feita.</div>
+  <div class="test-banner">Modo de teste — o checkout usa Stripe test mode. Nenhuma cobrança real é feita.</div>
 
   <header class="topbar">
     <div class="wrap nav">
@@ -139,7 +144,7 @@
         <a href="#como">Como funciona</a>
       </nav>
       <div class="nav-actions">
-        <a class="btn btn-ghost" href="https://adequate-viper-3823.clerk.accounts.dev/sign-in" target="_blank" rel="noreferrer">Entrar</a>
+        <a class="btn btn-ghost" data-signin href="https://adequate-viper-3823.clerk.accounts.dev/sign-in">Entrar</a>
         <a class="btn btn-gold" href="#planos">Começar</a>
       </div>
     </div>
@@ -153,7 +158,7 @@
           <h1>Uma força de trabalho de IA.<br /><em>Orquestrada.</em></h1>
           <p class="lede">O Zeus transforma um objetivo em uma equipe de agentes que pesquisa, executa, conversa e entrega — enquanto você acompanha cada passo na constelação.</p>
           <div class="hero-actions">
-            <a class="btn btn-gold" href="https://buy.stripe.com/test_9B67sN0JMaBJ24b1a68bS00" target="_blank" rel="noreferrer">Assinar Pro — 2 dias grátis</a>
+            <a class="btn btn-gold" data-plan="monthly" href="#planos">Assinar Pro — 2 dias grátis</a>
             <a class="btn btn-ghost" href="#planos">Ver planos</a>
           </div>
           <div class="micro">Cancele quando quiser · Pagamento seguro via Stripe · Cancele durante o trial sem cobrança</div>
@@ -212,21 +217,21 @@
             <div class="price">R$ 990 <small>/mês</small></div>
             <div class="trial">2 dias de trial</div>
             <ul><li>Orquestrador + agentes</li><li>Constelação ao vivo</li><li>BYOK</li></ul>
-            <a class="btn btn-gold" href="https://buy.stripe.com/test_9B67sN0JMaBJ24b1a68bS00" target="_blank" rel="noreferrer">Assinar mensal</a>
+            <a class="btn btn-gold" data-plan="monthly" href="#planos">Assinar mensal</a>
           </article>
           <article class="plan">
             <h3>Trimestral</h3>
             <div class="price">R$ 2.670 <small>/trimestre</small></div>
             <div class="trial">R$ 890/mês · 10% off</div>
             <ul><li>Tudo do mensal</li><li>Economia de 10%</li><li>Checkout seguro</li></ul>
-            <a class="btn btn-ghost" href="https://buy.stripe.com/test_14A00l78a7px5gnf0W8bS01" target="_blank" rel="noreferrer">Assinar trimestral</a>
+            <a class="btn btn-ghost" data-plan="quarterly" href="#planos">Assinar trimestral</a>
           </article>
           <article class="plan">
             <h3>Semestral</h3>
             <div class="price">R$ 5.040 <small>/semestre</small></div>
             <div class="trial">R$ 840/mês · 15% off</div>
             <ul><li>Tudo do mensal</li><li>Economia de 15%</li><li>Suporte prioritário</li></ul>
-            <a class="btn btn-ghost" href="https://buy.stripe.com/test_8x2cN7akmeRZdMTaKG8bS02" target="_blank" rel="noreferrer">Assinar semestral</a>
+            <a class="btn btn-ghost" data-plan="semiannual" href="#planos">Assinar semestral</a>
           </article>
           <article class="plan featured">
             <span class="tag">Melhor valor</span>
@@ -234,9 +239,10 @@
             <div class="price">R$ 9.480 <small>/ano</small></div>
             <div class="trial">R$ 790/mês · 20% off</div>
             <ul><li>Tudo do mensal</li><li>Economia de 20%</li><li>Recursos enterprise em breve</li></ul>
-            <a class="btn btn-ghost" href="https://buy.stripe.com/test_7sY8wR646aBJ6kr8Cy8bS03" target="_blank" rel="noreferrer">Assinar anual</a>
+            <a class="btn btn-ghost" data-plan="annual" href="#planos">Assinar anual</a>
           </article>
         </div>
+        <p class="checkout-status" id="checkout-status" role="status" aria-live="polite"></p>
       </div>
     </section>
 
@@ -246,7 +252,7 @@
           <div><div class="kicker">Como funciona</div><h2>Do objetivo à entrega</h2></div>
         </div>
         <div class="steps">
-          <div class="step"><span class="n">01</span><h3>Assine o Zeus Pro</h3><p>Checkout Stripe, 2 dias grátis, cancele quando quiser.</p></div>
+          <div class="step"><span class="n">01</span><h3>Assine o Zeus Pro</h3><p>Entre com e-mail ou telefone e abra o checkout Stripe autenticado, com 2 dias grátis.</p></div>
           <div class="step"><span class="n">02</span><h3>Entre com e-mail ou telefone</h3><p>O mesmo login abre o Zeus no desktop e no dashboard.</p></div>
           <div class="step"><span class="n">03</span><h3>Descreva o objetivo</h3><p>O Orquestrador monta a equipe e você acompanha a energia entre os agentes.</p></div>
         </div>
@@ -258,9 +264,9 @@
         <div class="login-box">
           <div>
             <h3>Já é assinante?</h3>
-            <p>Entre com e-mail ou telefone para abrir sua conta. O acesso ao runtime é liberado pelo entitlement do Zeus Cloud (em integração).</p>
+            <p>Entre com e-mail ou telefone para abrir sua conta. O acesso ao runtime é liberado pelo entitlement do Zeus Cloud.</p>
           </div>
-          <a class="btn btn-gold" href="https://adequate-viper-3823.clerk.accounts.dev/sign-in" target="_blank" rel="noreferrer">Entrar na conta</a>
+          <a class="btn btn-gold" data-signin href="https://adequate-viper-3823.clerk.accounts.dev/sign-in">Entrar na conta</a>
         </div>
       </div>
     </section>
@@ -272,5 +278,121 @@
       <span>Test mode · Termos e privacidade serão publicados antes do live mode</span>
     </div>
   </footer>
+
+  <!-- Exact Clerk version pinned for SRI; bump the URL and hash together. -->
+  <script
+    async
+    crossorigin="anonymous"
+    integrity="sha384-LHRDhAkzuUtCC23BjnUfCyHTnckclkFVsJ+6INMm96oc9tB1RXrraLiG7QlTWgGa"
+    data-clerk-publishable-key="pk_test_YWRlcXVhdGUtdmlwZXItMzgyMy5jbGVyay5hY2NvdW50cy5kZXYk"
+    src="https://adequate-viper-3823.clerk.accounts.dev/npm/@clerk/clerk-js@5.128.0/dist/clerk.browser.js"
+  ></script>
+  <script>
+    const API_BASE =
+      document.querySelector('meta[name="zeus-cloud-api"]')?.content ||
+      "http://127.0.0.1:9121";
+    const CLERK_TIMEOUT_MS = 10000;
+    let checkoutInFlight = false;
+
+    function setStatus(message, kind) {
+      const status = document.getElementById("checkout-status");
+      status.textContent = message;
+      status.dataset.kind = kind || "info";
+    }
+
+    async function getClerk() {
+      const started = Date.now();
+      while (!window.Clerk) {
+        if (Date.now() - started > CLERK_TIMEOUT_MS) {
+          throw new Error("Login indisponível. Verifique a conexão e tente novamente.");
+        }
+        await new Promise((resolve) => setTimeout(resolve, 120));
+      }
+      await window.Clerk.load();
+      return window.Clerk;
+    }
+
+    async function startCheckout(plan, button) {
+      if (checkoutInFlight) return;
+      checkoutInFlight = true;
+      button.setAttribute("aria-busy", "true");
+      setStatus("Conectando à sua conta…");
+      try {
+        const clerk = await getClerk();
+        if (!clerk.user) {
+          setStatus("Entre com e-mail ou telefone para continuar.");
+          clerk.openSignIn({
+            fallbackRedirectUrl: window.location.href,
+          });
+          return;
+        }
+        const token = await clerk.session?.getToken();
+        if (!token) throw new Error("Sessão expirada. Entre novamente.");
+        setStatus("Abrindo checkout seguro…");
+        const response = await fetch(`${API_BASE}/api/checkout`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ plan }),
+        });
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          throw new Error(body.detail || `Checkout indisponível (${response.status}).`);
+        }
+        const session = await response.json();
+        if (!session.url) throw new Error("O Stripe não retornou uma URL de checkout.");
+        window.location.assign(session.url);
+      } catch (error) {
+        setStatus(error.message || "Não foi possível abrir o checkout.", "error");
+      } finally {
+        checkoutInFlight = false;
+        button.removeAttribute("aria-busy");
+      }
+    }
+
+    document.querySelectorAll("[data-plan]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        startCheckout(button.dataset.plan, button);
+      });
+    });
+
+    document.querySelectorAll("[data-signin]").forEach((link) => {
+      link.addEventListener("click", async (event) => {
+        event.preventDefault();
+        try {
+          const clerk = await getClerk();
+          if (clerk.user) {
+            clerk.openUserProfile();
+          } else {
+            clerk.openSignIn({
+              afterSignInUrl: window.location.href,
+              afterSignUpUrl: window.location.href,
+            });
+          }
+        } catch (_error) {
+          window.location.assign(link.href);
+        }
+      });
+    });
+
+    getClerk()
+      .then((clerk) => {
+        if (!clerk.user) return;
+        document.querySelectorAll("[data-signin]").forEach((link) => {
+          link.textContent = "Minha conta";
+        });
+      })
+      .catch(() => {});
+
+    const checkoutState = new URLSearchParams(window.location.search).get("checkout");
+    if (checkoutState === "success") {
+      setStatus("Assinatura iniciada. O acesso é liberado quando o Stripe confirma o pagamento.");
+    } else if (checkoutState === "cancel") {
+      setStatus("Checkout cancelado. Você pode tentar novamente quando quiser.");
+    }
+  </script>
 </body>
 </html>

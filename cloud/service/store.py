@@ -1,0 +1,106 @@
+"""SQLite entitlement store for the Zeus Cloud control plane."""
+
+from __future__ import annotations
+
+import sqlite3
+import time
+from pathlib import Path
+from typing import Any
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS entitlements (
+    user_id TEXT PRIMARY KEY,
+    plan TEXT NOT NULL,
+    status TEXT NOT NULL,
+    stripe_customer_id TEXT,
+    stripe_subscription_id TEXT,
+    current_period_end INTEGER,
+    updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS entitlements_subscription
+    ON entitlements (stripe_subscription_id);
+"""
+
+
+class EntitlementStore:
+    def __init__(self, path: Path | str) -> None:
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with self._connect() as connection:
+            connection.executescript(SCHEMA)
+
+    def _connect(self) -> sqlite3.Connection:
+        connection = sqlite3.connect(self.path)
+        connection.row_factory = sqlite3.Row
+        return connection
+
+    def upsert(
+        self,
+        *,
+        user_id: str,
+        plan: str,
+        status: str,
+        customer_id: str | None = None,
+        subscription_id: str | None = None,
+        current_period_end: int | None = None,
+    ) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO entitlements (
+                    user_id, plan, status, stripe_customer_id,
+                    stripe_subscription_id, current_period_end, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    plan = excluded.plan,
+                    status = excluded.status,
+                    stripe_customer_id = COALESCE(excluded.stripe_customer_id, entitlements.stripe_customer_id),
+                    stripe_subscription_id = COALESCE(excluded.stripe_subscription_id, entitlements.stripe_subscription_id),
+                    current_period_end = COALESCE(excluded.current_period_end, entitlements.current_period_end),
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    user_id,
+                    plan,
+                    status,
+                    customer_id,
+                    subscription_id,
+                    current_period_end,
+                    int(time.time()),
+                ),
+            )
+
+    def get(self, user_id: str) -> dict[str, Any] | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM entitlements WHERE user_id = ?", (user_id,)
+            ).fetchone()
+        return dict(row) if row else None
+
+    def link(
+        self,
+        *,
+        user_id: str,
+        customer_id: str | None,
+        subscription_id: str | None,
+    ) -> None:
+        """Attach Stripe ids without touching an existing plan/status/period."""
+        with self._connect() as connection:
+            connection.execute(
+                """
+                UPDATE entitlements SET
+                    stripe_customer_id = COALESCE(?, stripe_customer_id),
+                    stripe_subscription_id = COALESCE(?, stripe_subscription_id),
+                    updated_at = ?
+                WHERE user_id = ?
+                """,
+                (customer_id, subscription_id, int(time.time()), user_id),
+            )
+
+    def find_by_subscription(self, subscription_id: str) -> dict[str, Any] | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM entitlements WHERE stripe_subscription_id = ?",
+                (subscription_id,),
+            ).fetchone()
+        return dict(row) if row else None
