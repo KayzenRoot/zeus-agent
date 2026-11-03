@@ -226,3 +226,9 @@ the **CORRECTION REQUIRED** verdict until independent audit confirms DoD.
 
 - **PR #57 MERGED `eb0bdbaf5f`**: `current_identity` extrai `org_id`/`org_role` do Clerk; `GET /api/identity`; `GET /api/audit/export?format=csv|json`; seção Auditoria na landing com export; 38/38 testes cloud, CI 14/14.
 - **Residual #51**: SSO/SAML/OIDC exige o IdP do owner no Clerk; seats e auditoria agregados por Organization exigem mapear a Organization assinante. Live mode/deploy seguem owner-gated. Evidência: `audits/ZEUS-ENTERPRISE-002-2026-11-03-org-context-audit-export.md`.
+
+## 2026-11-03 | Enterprise camada 3: seats por Organization (#58 merged)
+
+- **PR #58 MERGED `3de8468b2d`**: `org_id` em entitlements/devices/audit, propagado pelo checkout e webhooks; membros compartilham entitlement e seats; admin/owner podem revogar/abrir portal; member não pode checkout/portal/revogação; auditoria/export no escopo da Organization.
+- **Verificação**: cloud 40/40 testes, `scripts/check` 12/12, CI #58 14/14 (desktop 26m50s).
+- **Residual #51**: SSO/SAML/OIDC exige o IdP do owner no Clerk; papéis finos e convites/remoção de membros ficam no Clerk. Live mode/deploy seguem owner-gated. Evidência: `audits/ZEUS-ENTERPRISE-003-2026-11-03-org-seats.md`.
