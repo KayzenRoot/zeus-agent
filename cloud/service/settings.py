@@ -23,6 +23,8 @@ class Settings:
     cancel_url: str
     trial_days: int = 2
     allowed_origins: tuple[str, ...] = ()
+    entitlement_private_key_b64: str = ""
+    entitlement_ttl_days: int = 7
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -44,6 +46,8 @@ class Settings:
             cancel_url=os.getenv("ZEUS_CLOUD_CANCEL_URL", "http://127.0.0.1:9120/?checkout=cancel"),
             trial_days=int(os.getenv("ZEUS_CLOUD_TRIAL_DAYS", "2")),
             allowed_origins=origins,
+            entitlement_private_key_b64=os.getenv("ZEUS_ENTITLEMENT_PRIVATE_KEY_B64", "").strip(),
+            entitlement_ttl_days=int(os.getenv("ZEUS_ENTITLEMENT_TTL_DAYS", "7")),
         )
 
     def plans(self) -> dict[str, Any]:

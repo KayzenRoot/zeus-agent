@@ -68,6 +68,8 @@ agent-browser/
 # Private keys
 *.ppk
 *.pem
+# Public entitlement verification key (private keys remain ignored).
+!cloud/entitlement_public_key.pem
 privvy*
 images/
 __pycache__/

@@ -38,12 +38,18 @@ troque por `https://api.<domínio>`.
 | `GET /api/plans` | pública | catálogo de `cloud/plans.json` |
 | `POST /api/checkout` | Bearer Clerk JWT | `{ "plan": "monthly" }` → `{ "url", "id" }` |
 | `GET /api/entitlement` | Bearer Clerk JWT | plano, status, fim do período e features |
+| `POST /api/entitlement/token` | Bearer Clerk JWT | `{ "device_id": "..." }` → token Ed25519 de 7 dias |
 | `POST /api/stripe/webhook` | assinatura Stripe | `checkout.session.completed` e `customer.subscription.*` |
 
 O entitlement só fica ativo com status `active`/`trialing` **e** período não expirado.
 `checkout.session.completed` grava `pending`; a ativação usa o objeto autoritativo de
 `customer.subscription.*`, sem buscar a assinatura por um ID recebido no webhook. O runtime
 offline vai aplicar uma janela de tolerância própria (próxima camada).
+
+O token de `POST /api/entitlement/token` é assinado com **Ed25519**, tem `iss=zeus-cloud`, `sub`,
+`plan`, `features`, `seats`, `device_id` e validade de 7 dias (`ZEUS_ENTITLEMENT_TTL_DAYS`). A
+chave pública fica em [`entitlement_public_key.pem`](entitlement_public_key.pem); a privada só no
+`.env`. O runtime valida assinatura, `device_id` e `exp` antes de liberar o app.
 
 ## Variáveis de ambiente
 
@@ -60,6 +66,8 @@ STRIPE_PRICE_MONTHLY=price_...
 STRIPE_PRICE_QUARTERLY=price_...
 STRIPE_PRICE_SEMIANNUAL=price_...
 STRIPE_PRICE_ANNUAL=price_...
+ZEUS_ENTITLEMENT_PRIVATE_KEY_B64=...   # 32 bytes Ed25519 em base64; nunca commitar
+ZEUS_ENTITLEMENT_TTL_DAYS=7
 ```
 
 Opcionais: `ZEUS_CLOUD_DB` (default `~/.zeus-cloud/entitlements.db`), `ZEUS_CLOUD_PORT` (default

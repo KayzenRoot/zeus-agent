@@ -2,28 +2,30 @@
 
 from __future__ import annotations
 
-import time
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from . import stripe_api
 from .auth import current_user
+from .entitlements import (
+    EntitlementNotConfigured,
+    is_active,
+    plan_features,
+    sign_entitlement,
+)
 from .settings import Settings
 from .store import EntitlementStore
-
-FEATURES: dict[str, list[str]] = {
-    "monthly": ["constellation", "sync", "agents:5"],
-    "quarterly": ["constellation", "sync", "agents:5", "priority_support"],
-    "semiannual": ["constellation", "sync", "agents:8", "priority_support"],
-    "annual": ["constellation", "sync", "agents:10", "priority_support"],
-}
 
 
 class CheckoutRequest(BaseModel):
     plan: str
+
+
+class TokenRequest(BaseModel):
+    device_id: str = Field(min_length=8, max_length=128)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -77,18 +79,27 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def entitlement(user: str = Depends(current_user)) -> dict[str, Any]:
         row = store.get(user)
         current_period_end = int(row["current_period_end"]) if row and row["current_period_end"] else None
-        active = bool(
-            row
-            and row["status"] in {"active", "trialing"}
-            and (current_period_end is None or current_period_end > int(time.time()))
-        )
+        active = is_active(row)
         return {
             "active": active,
             "plan": row["plan"] if row else None,
             "status": row["status"] if row else "inactive",
             "current_period_end": current_period_end,
-            "features": FEATURES.get(row["plan"], []) if row and active else [],
+            "features": plan_features(row["plan"]) if row and active else [],
         }
+
+    @app.post("/api/entitlement/token")
+    def entitlement_token(
+        body: TokenRequest,
+        user: str = Depends(current_user),
+    ) -> dict[str, Any]:
+        row = store.get(user)
+        if not is_active(row):
+            raise HTTPException(status_code=403, detail="no active subscription")
+        try:
+            return sign_entitlement(settings, row, device_id=body.device_id)
+        except EntitlementNotConfigured as error:
+            raise HTTPException(status_code=503, detail="entitlement signing is not configured") from error
 
     @app.post("/api/stripe/webhook")
     async def stripe_webhook(request: Request) -> dict[str, bool]:
