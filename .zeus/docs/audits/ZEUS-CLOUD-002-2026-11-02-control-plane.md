@@ -3,6 +3,7 @@
 **Data:** 2026-11-02
 **Escopo:** serviço `zeus-cloud` local, test mode. Nenhuma cobrança real, deploy ou publicação.
 **Status:** implementado e verificado localmente; sem aprovação independente.
+**Merge:** PR #44, merge commit `84766f6402` (2026-11-03), autorizado pelo owner; audit gate da main **success** (run 41607735506).
 
 ## Entregue
 

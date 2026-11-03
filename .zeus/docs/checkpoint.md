@@ -180,3 +180,13 @@ the **CORRECTION REQUIRED** verdict until independent audit confirms DoD.
 - **Stripe** (conta PromptApp, test mode): 4 produtos/preços BRL criados de forma idempotente (`prod_VYbHywAKtOdw8K`/`price_1UXU5LRtfVHyZXkvkSTUS7Jz` mensal; `prod_VYbHHpFhteuTQt`/`price_1UXU5NRtfVHyZXkvAFPIZD4q` trimestral; `prod_VYbHvDxrrYlCML`/`price_1UXU5PRtfVHyZXkvhYBmyRts` semestral; `prod_VYbIGHHht2qM2j`/`price_1UXU5RRtfVHyZXkv3Jx3AjrQ` anual), **trial 2 dias** nos Payment Links. Chave de teste e Price IDs no `.env` local.
 - **Landing comercial** em `cloud/site/index.html` (dark/Zeus, 4 planos, checkout Stripe, entrada Clerk) servida em `http://127.0.0.1:9120/`; configuração não secreta em `cloud/plans.json`; guia em `cloud/README.md`.
 - **Evidência**: `audits/ZEUS-CLOUD-001-2026-11-02-vendor-setup.md`. **Nenhuma cobrança real**, nenhuma migração para live mode, nenhum deploy. Gate de assinatura/entitlement e serviço `zeus-cloud` continuam em #34/#35.
+
+## 2026-11-03 | ZEUS-CLOUD-002 merged: control plane de checkout/entitlement (test mode)
+
+- **PR #44 MERGED** com autorização do owner ("autorizado"); merge commit **`84766f6402`**; branch `feat/zeus-cloud-control-plane` removida. Commits: `de8002e083` (hook ruff pinado), `a745f3a6ed` (control plane), `959d785613` (SRI Clerk), `5c266ca855` (SSRF) e `3cb16eafe6` (ordenação).
+- **Serviço** `cloud/service/`: `POST /api/checkout` (Clerk JWT → Stripe, trial 2 dias), `POST /api/stripe/webhook` (HMAC, tolerância 300 s), `GET /api/entitlement` (active/trialing + período), SQLite por `user_id`; `GET /health` e `/api/plans`; trava `sk_live_` e `dev:` auth bloqueado com chave live.
+- **Landing** `cloud/site/index.html`: checkout autenticado; Payment Links não concedem acesso; Clerk pinado em `5.128.0` com SRI sha384.
+- **Fail-closed**: checkout não pago não concede; `checkout.session.completed` grava `pending`; `customer.subscription.*` ativa com status/período; evento de assinatura adiantado + checkout atrasado não rebaixa; sem fetch por ID de webhook (SSRF parcial do CodeQL fechado).
+- **Evidência**: 15/15 testes; `scripts/check` 12/12; PR #44 **14/14 checks PASS** (CodeQL JS+Python, Sonar gate+analysis, Trivy, desktop-static 26m18s, Evidence/CI audit gate); audit gate da main no merge commit **success** (run 41607735506).
+- **Residual**: o runtime desktop/CLI ainda não consulta o entitlement nem aplica grace offline (próximo incremento); portal/cancelamento, webhook público, domínio, live mode e deploy seguem owner-gated. Nenhuma cobrança real.
+- Evidência: `audits/ZEUS-CLOUD-002-2026-11-02-control-plane.md`.
