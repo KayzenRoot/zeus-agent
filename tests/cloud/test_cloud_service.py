@@ -256,6 +256,53 @@ def test_completed_checkout_links_subscription_and_stays_pending(client: TestCli
     assert "agents:5" in entitlement["features"]
 
 
+def test_late_checkout_event_does_not_downgrade_an_active_subscription(
+    client: TestClient,
+) -> None:
+    _post_event(
+        client,
+        {
+            "id": "evt_sub_first",
+            "type": "customer.subscription.created",
+            "data": {
+                "object": {
+                    "id": "sub_ordered",
+                    "customer": "cus_ordered",
+                    "status": "active",
+                    "current_period_end": int(time.time()) + 2_592_000,
+                    "metadata": {
+                        "zeus_user_id": "user_ordered",
+                        "zeus_plan": "monthly",
+                    },
+                }
+            },
+        },
+    )
+    _post_event(
+        client,
+        {
+            "id": "evt_checkout_late",
+            "type": "checkout.session.completed",
+            "data": {
+                "object": {
+                    "id": "cs_test_ordered",
+                    "mode": "subscription",
+                    "payment_status": "paid",
+                    "client_reference_id": "user_ordered",
+                    "customer": "cus_ordered",
+                    "subscription": "sub_ordered",
+                    "metadata": {"zeus_plan": "monthly"},
+                }
+            },
+        },
+    )
+
+    entitlement = client.get("/api/entitlement", headers=_headers("user_ordered")).json()
+    assert entitlement["active"] is True
+    assert entitlement["status"] == "active"
+    assert entitlement["current_period_end"] is not None
+
+
 def test_unpaid_checkout_does_not_grant_access(client: TestClient) -> None:
     _post_event(
         client,

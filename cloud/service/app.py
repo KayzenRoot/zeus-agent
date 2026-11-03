@@ -150,14 +150,22 @@ def _checkout_completed(
     # The authoritative status and period come from customer.subscription.*,
     # whose object is delivered by Stripe. Never fetch by an ID taken from a
     # webhook body: that is an SSRF sink and an unnecessary trust hop.
-    store.upsert(
-        user_id=str(user_id),
-        plan=str(plan),
-        status="pending",
-        customer_id=session.get("customer"),
-        subscription_id=str(subscription_id) if subscription_id else None,
-        current_period_end=None,
-    )
+    if store.get(str(user_id)) is None:
+        store.upsert(
+            user_id=str(user_id),
+            plan=str(plan),
+            status="pending",
+            customer_id=session.get("customer"),
+            subscription_id=str(subscription_id) if subscription_id else None,
+            current_period_end=None,
+        )
+    else:
+        # A subscription event may have arrived first; only attach the ids.
+        store.link(
+            user_id=str(user_id),
+            customer_id=session.get("customer"),
+            subscription_id=str(subscription_id) if subscription_id else None,
+        )
 
 
 def _subscription_changed(

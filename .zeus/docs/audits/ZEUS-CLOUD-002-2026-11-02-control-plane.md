@@ -28,10 +28,10 @@
 
 ## Evidência local
 
-- `scripts/run_tests.sh tests/cloud/test_cloud_service.py` — **14/14 PASS** (auth, checkout,
+- `scripts/run_tests.sh tests/cloud/test_cloud_service.py` — **15/15 PASS** (auth, checkout,
   identidade na assinatura, assinatura de webhook válida/inválida/expirada, trial, cancelamento,
-  expiração de período, fallback por subscription, checkout não pago e trava de dev auth/live
-  mode).
+  expiração de período, fallback por subscription, ordem invertida sem downgrade, checkout não
+  pago e trava de dev auth/live mode).
 - `python scripts/check` — **12/12 ok** (ruff + code health incluídos).
 - Smoke HTTP real em `127.0.0.1:9129`: `/health` → `{"ok":true,...,"mode":"test"}`;
   `/api/plans` → catálogo; `/api/entitlement` sem token → 401; com dev auth → inativo.

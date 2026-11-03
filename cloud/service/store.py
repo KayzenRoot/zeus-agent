@@ -77,6 +77,26 @@ class EntitlementStore:
             ).fetchone()
         return dict(row) if row else None
 
+    def link(
+        self,
+        *,
+        user_id: str,
+        customer_id: str | None,
+        subscription_id: str | None,
+    ) -> None:
+        """Attach Stripe ids without touching an existing plan/status/period."""
+        with self._connect() as connection:
+            connection.execute(
+                """
+                UPDATE entitlements SET
+                    stripe_customer_id = COALESCE(?, stripe_customer_id),
+                    stripe_subscription_id = COALESCE(?, stripe_subscription_id),
+                    updated_at = ?
+                WHERE user_id = ?
+                """,
+                (customer_id, subscription_id, int(time.time()), user_id),
+            )
+
     def find_by_subscription(self, subscription_id: str) -> dict[str, Any] | None:
         with self._connect() as connection:
             row = connection.execute(
