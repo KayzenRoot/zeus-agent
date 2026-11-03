@@ -1026,6 +1026,11 @@ The only action implemented in this layer is `restart-gateway`; its rollback is 
 `hermes gateway restart` or `hermes gateway stop`. Destructive, network, credential, financial and
 deploy actions are out of scope.
 
+When Zeus Desktop is running, it watches the proposal directory and shows a native modal for each
+pending proposal with the action, reason, signals and rollback. Only an explicit **Aprovar** click
+runs the CLI through the same TTY + `APPROVE` gate; closing or rejecting the modal records a
+rejection and executes nothing.
+
 ## `hermes dump`
 
 ```bash
