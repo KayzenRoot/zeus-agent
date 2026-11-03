@@ -200,3 +200,11 @@ the **CORRECTION REQUIRED** verdict until independent audit confirms DoD.
 - **Evidência final**: 32/32 testes cloud no branch combinado, 7/7 runtime, `scripts/check` 12/12; audit gate da main no merge `b651fcb71a` **success** (run 41652890848). Test token de test mode ativo no home real até 2026-11-10 (pode ser removido para voltar ao gate).
 - **Residual/owner-gated**: issues **#50** (auto-healing com aprovação do owner), **#51** (seats/SSO/auditoria enterprise) e **#52** (live mode/domínio/deploy/termos). Nenhuma cobrança real, VPS ou deploy.
 - Evidências: `audits/ZEUS-CLOUD-003-2026-11-03-signed-entitlement-token.md`, `ZEUS-CLOUD-004-2026-11-03-runtime-gate.md`, `ZEUS-CLOUD-005-2026-11-03-billing-portal.md`, `ZEUS-CLOUD-006-2026-11-03-device-management.md`.
+
+## 2026-11-03 | Limpeza de artefatos e rebranding visível (#54 merged)
+
+- **PR #54 MERGED `da8dd58fed`**: caches/artefatos ignored removidos, `.cache/desktop-inputs` movido para fora do checkout, branches mergeadas removidas e `payment_link` obsoletos retirados do catálogo.
+- **Branding visível**: 60 arquivos de i18n desktop/web + 11 da TUI com valores Hermes→Zeus (0 chaves renomeadas); strings de console, gateway, catálogo, plugins, canais, status, notificações e onboarding; skin built-ins com branding Zeus; README/SECURITY rebrandados; console script **`zeus`** adicionado.
+- **Limite consciente**: identificadores internos (`hermes_cli`, `HERMES_*`, `@hermes/*`, `X-Hermes-Session-Token`), caminhos de dados e atribuição MIT permanecem; renomeá-los apariam imports/dados/proveniência. Wake word padrão `hey hermes` também ficou intacta.
+- **Verificação**: CI #54 14/14 verde (incl. desktop 11.513 testes), `.zeus/tests/test_rebrand.py` 5/5, `scripts/check` 12/12; desktop reconstruído, empacotado e aberto no PC com interface Zeus e backend ready. Evidência: `audits/ZEUS-CLEANUP-001-2026-11-03.md`.
+- **Ainda aberto**: #50 auto-healing owner-gated, #51 enterprise, #52 live mode/deploy; `apps/desktop/build` locked no Windows.
