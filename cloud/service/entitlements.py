@@ -34,6 +34,10 @@ def plan_features(plan: str | None) -> list[str]:
     return list(FEATURES.get(plan or "", []))
 
 
+def plan_seats(plan: str | None) -> int:
+    return SEATS.get(plan or "", 1)
+
+
 def is_active(row: dict[str, Any] | None, *, now: int | None = None) -> bool:
     if not row or row.get("status") not in {"active", "trialing"}:
         return False
@@ -73,7 +77,7 @@ def sign_entitlement(
         "sub": str(row["user_id"]),
         "plan": plan,
         "features": plan_features(plan),
-        "seats": SEATS.get(plan, 1),
+        "seats": plan_seats(plan),
         "device_id": device_id,
         "iat": issued_at,
         "exp": expires_at,

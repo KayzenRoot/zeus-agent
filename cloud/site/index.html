@@ -554,11 +554,23 @@
         });
         if (!response.ok) throw new Error(`Não foi possível carregar dispositivos (${response.status}).`);
         const devices = await response.json();
+        const entitlementResponse = await fetch(`${API_BASE}/api/entitlement`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const entitlement = entitlementResponse.ok ? await entitlementResponse.json() : {};
+        const seats = Number.isInteger(entitlement.seats) ? entitlement.seats : null;
+        const used = devices.filter(device => !device.revoked).length;
         if (!devices.length) {
-          setDevicesStatus("Nenhum dispositivo ativado ainda.");
+          setDevicesStatus(
+            seats === null
+              ? "Nenhum dispositivo ativado ainda."
+              : `Nenhum dispositivo ativado ainda. 0 de ${seats} seats em uso.`,
+          );
           return;
         }
-        setDevicesStatus("");
+        setDevicesStatus(
+          seats === null ? "" : `${used} de ${seats} seats em uso.`,
+        );
         for (const device of devices) {
           const card = document.createElement("article");
           card.className = "plan";
