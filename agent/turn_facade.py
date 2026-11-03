@@ -16,6 +16,23 @@ from agent.lazy_forward import forward as _forward
 logger = logging.getLogger("run_agent")
 
 
+def _entitlement_blocked_result(
+    conversation_history: list[dict[str, Any]] | None,
+    error: Exception,
+) -> dict[str, Any]:
+    """Typed refusal before prompt/session work; leaves the cached prefix untouched."""
+    return {
+        "final_response": str(error),
+        "messages": list(conversation_history or []),
+        "api_calls": 0,
+        "completed": False,
+        "failed": True,
+        "error": "entitlement_required",
+        "failure_reason": "entitlement_required",
+        "failure_retryable": False,
+    }
+
+
 class TurnFacadeMixin:
     """run_conversation()/chat() (see module docstring)."""
 
@@ -32,6 +49,13 @@ class TurnFacadeMixin:
         prelude: Optional[Generator]=None,
     ) -> dict[str, Any]:
         """Forwarder — see ``agent.conversation_loop.run_conversation``."""
+        from zeus_entitlement import EntitlementRequired, require_entitlement
+
+        try:
+            require_entitlement()
+        except EntitlementRequired as entitlement_error:
+            return _entitlement_blocked_result(conversation_history, entitlement_error)
+
         # A review shares this session_id for cache parity: fence review startup or interrupt
         # an admitted request and await its exit before opening live-turn instrumentation.
         # Foreground priority is retained if the review does not acknowledge within the bounded deadline

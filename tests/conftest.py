@@ -178,6 +178,9 @@ except AttributeError:
 # open a real DB must export HERMES_STATE_DB_GUARD_BYPASS=1 in that child's
 # env instead of stripping markers.
 os.environ["HERMES_TEST_ISOLATION"] = os.environ.get("HERMES_HOME", "") or "1"
+# The commercial runtime gate must never make the suite depend on a real
+# entitlement. Individual gate tests delete this to exercise the refusal.
+os.environ["ZEUS_DEV_UNLOCK"] = "1"
 
 # Lazy-install kill-switch, set before any test module is imported. The per-test
 # fixture below sets it too, but collection runs first: agent/bedrock_adapter.py
@@ -277,6 +280,7 @@ def _hermetic_environment(tmp_path, tmp_path_factory, monkeypatch):
     # defaultHost and silently select the wrong nested config block. Tests of
     # custom host resolution override/delete this explicitly.
     monkeypatch.setenv("HERMES_HONCHO_HOST", "hermes")
+    monkeypatch.setenv("ZEUS_DEV_UNLOCK", "1")
 
     # 3. Isolate both inputs to profile/root resolution. HERMES_HOME alone
     #    is insufficient: get_default_hermes_root() resolves the native root

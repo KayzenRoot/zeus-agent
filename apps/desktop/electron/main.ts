@@ -243,6 +243,7 @@ import { describeDevCdpDecision, resolveDevCdpPort } from './dev-cdp'
 import { preReadyDockLaunchSteps } from './dock-launch-order'
 import { embedHostOrigin } from './embed-host'
 import { installEmbedReferer } from './embed-referer'
+import { registerEntitlementIpc } from './entitlement-ipc'
 import { createAmbientClaimArbiter } from './event-dedupe'
 import { openExternalUrl as externalOpen, type ExternalOpenDeps, reportPreOpenStatFailure } from './external-open'
 import {
@@ -17085,12 +17086,11 @@ registerChallengeWindowIpc({
 
 ipcMain.handle('hermes:openExternal', async (_event, url) => {
   const result = await openExternalUrl(url)
-
   if (result.ok === false && result.reason === 'invalid') {
     throw new Error('Invalid external URL')
   }
 })
-
+registerEntitlementIpc({ hermesHome: HERMES_HOME, openExternal: openExternalUrl })
 // ── Find-in-page (Ctrl/Cmd+F) ─────────────────────────────────────────────
 // The desktop supports multiple BrowserWindows (one primary plus any
 // per-session secondary windows spawned via `hermes:window:openSession`).

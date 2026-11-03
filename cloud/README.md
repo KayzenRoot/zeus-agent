@@ -39,6 +39,8 @@ troque por `https://api.<domínio>`.
 | `POST /api/checkout` | Bearer Clerk JWT | `{ "plan": "monthly" }` → `{ "url", "id" }` |
 | `GET /api/entitlement` | Bearer Clerk JWT | plano, status, fim do período e features |
 | `POST /api/entitlement/token` | Bearer Clerk JWT | `{ "device_id": "..." }` → token Ed25519 de 7 dias |
+| `POST /api/device/authorize` | Bearer Clerk JWT | gera código de ativação de 10 min para o dispositivo |
+| `POST /api/device/exchange` | código de uso único | troca código + `device_id` pelo token assinado |
 | `POST /api/stripe/webhook` | assinatura Stripe | `checkout.session.completed` e `customer.subscription.*` |
 
 O entitlement só fica ativo com status `active`/`trialing` **e** período não expirado.
@@ -50,6 +52,11 @@ O token de `POST /api/entitlement/token` é assinado com **Ed25519**, tem `iss=z
 `plan`, `features`, `seats`, `device_id` e validade de 7 dias (`ZEUS_ENTITLEMENT_TTL_DAYS`). A
 chave pública fica em [`entitlement_public_key.pem`](entitlement_public_key.pem); a privada só no
 `.env`. O runtime valida assinatura, `device_id` e `exp` antes de liberar o app.
+
+Para ativar um dispositivo, o site autenticado chama `/api/device/authorize` (código de 10 min,
+uso único, vinculado ao `device_id`) e entrega o código ao app via `zeus://auth/callback` ou
+digitação. O app troca em `/api/device/exchange` e grava o token em
+`<HERMES_HOME>/zeus-entitlement.json` com permissão 0600.
 
 ## Variáveis de ambiente
 
@@ -97,6 +104,9 @@ Isso não substitui o Clerk em produção e não deve ser habilitado em deploy.
 
 - Chave `sk_live_` é recusada na inicialização até `ZEUS_CLOUD_ALLOW_LIVE=1`, que só deve ser
   definido após o go-live aprovado pelo owner.
+- `ZEUS_DEV_UNLOCK=1` libera o runtime local sem token; nunca usar em produção.
+- `hermes entitlement status`, `hermes entitlement device-id` e `hermes entitlement activate <code>`
+  inspecionam/ativam o dispositivo pelo CLI.
 - O serviço não devolve segredos; `/api/plans` só expõe catálogo e chave publicável.
 - O desktop nunca recebe `CLERK_SECRET_KEY`/`STRIPE_SECRET_KEY`.
 

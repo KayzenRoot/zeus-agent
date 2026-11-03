@@ -19,6 +19,16 @@ CREATE TABLE IF NOT EXISTS entitlements (
 );
 CREATE INDEX IF NOT EXISTS entitlements_subscription
     ON entitlements (stripe_subscription_id);
+CREATE TABLE IF NOT EXISTS device_codes (
+    code_hash TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    expires_at INTEGER NOT NULL,
+    used_at INTEGER,
+    created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS device_codes_user
+    ON device_codes (user_id);
 """
 
 
@@ -104,3 +114,52 @@ class EntitlementStore:
                 (subscription_id,),
             ).fetchone()
         return dict(row) if row else None
+
+    def create_device_code(
+        self,
+        *,
+        code_hash: str,
+        user_id: str,
+        device_id: str,
+        expires_at: int,
+    ) -> None:
+        now = int(time.time())
+        with self._connect() as connection:
+            connection.execute(
+                "DELETE FROM device_codes WHERE expires_at < ?", (now - 3600,)
+            )
+            connection.execute(
+                """
+                INSERT INTO device_codes (
+                    code_hash, user_id, device_id, expires_at, used_at, created_at
+                ) VALUES (?, ?, ?, ?, NULL, ?)
+                """,
+                (code_hash, user_id, device_id, expires_at, now),
+            )
+
+    def consume_device_code(
+        self,
+        *,
+        code_hash: str,
+        device_id: str,
+        now: int,
+    ) -> dict[str, Any] | None:
+        """Atomically burn a code; wrong device, expiry and reuse all fail closed."""
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM device_codes WHERE code_hash = ?", (code_hash,)
+            ).fetchone()
+            if (
+                row is None
+                or row["used_at"] is not None
+                or int(row["expires_at"]) <= now
+                or row["device_id"] != device_id
+            ):
+                return None
+            cursor = connection.execute(
+                "UPDATE device_codes SET used_at = ? WHERE code_hash = ? AND used_at IS NULL",
+                (now, code_hash),
+            )
+            if cursor.rowcount != 1:
+                return None
+            return dict(row)
