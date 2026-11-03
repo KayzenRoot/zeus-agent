@@ -7,7 +7,7 @@ import secrets
 import time
 from typing import Any
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Path, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -33,6 +33,7 @@ class TokenRequest(BaseModel):
 
 class DeviceAuthorizeRequest(BaseModel):
     device_id: str = Field(min_length=8, max_length=128)
+    device_name: str = Field(default="", max_length=64)
 
 
 class DeviceExchangeRequest(BaseModel):
@@ -108,6 +109,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         row = store.get(user)
         if not is_active(row):
             raise HTTPException(status_code=403, detail="no active subscription")
+        if store.device_revoked(body.device_id):
+            raise HTTPException(status_code=403, detail="device is revoked")
         try:
             return sign_entitlement(settings, row, device_id=body.device_id)
         except EntitlementNotConfigured as error:
@@ -120,6 +123,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     ) -> dict[str, Any]:
         if not is_active(store.get(user)):
             raise HTTPException(status_code=403, detail="no active subscription")
+        if not store.upsert_device(
+            device_id=body.device_id,
+            user_id=user,
+            name=body.device_name.strip() or None,
+        ):
+            raise HTTPException(status_code=409, detail="device belongs to another account")
         code = secrets.token_urlsafe(32)
         expires_at = int(time.time()) + 600
         store.create_device_code(
@@ -130,9 +139,33 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         return {"code": code, "expires_at": expires_at}
 
+    @app.get("/api/devices")
+    def devices(user: str = Depends(current_user)) -> list[dict[str, Any]]:
+        return [
+            {
+                "device_id": row["device_id"],
+                "name": row["name"],
+                "created_at": int(row["created_at"]),
+                "last_seen": int(row["last_seen"]),
+                "revoked": row["revoked_at"] is not None,
+            }
+            for row in store.list_devices(user)
+        ]
+
+    @app.post("/api/devices/{device_id}/revoke")
+    def revoke_device(
+        device_id: str = Path(min_length=8, max_length=128),
+        user: str = Depends(current_user),
+    ) -> dict[str, bool]:
+        if not store.revoke_device(user_id=user, device_id=device_id):
+            raise HTTPException(status_code=404, detail="device not found")
+        return {"revoked": True}
+
     @app.post("/api/device/exchange")
     def exchange_device(body: DeviceExchangeRequest) -> dict[str, Any]:
         now = int(time.time())
+        if store.device_revoked(body.device_id):
+            raise HTTPException(status_code=403, detail="device is revoked")
         code_row = store.consume_device_code(
             code_hash=hashlib.sha256(body.code.encode()).hexdigest(),
             device_id=body.device_id,

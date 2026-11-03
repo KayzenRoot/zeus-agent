@@ -142,6 +142,7 @@
       <nav class="nav-links">
         <a href="#produto">Produto</a>
         <a href="#planos">Planos</a>
+        <a href="#dispositivos">Dispositivos</a>
         <a href="#como">Como funciona</a>
       </nav>
       <div class="nav-actions">
@@ -262,6 +263,21 @@
           </div>
           <button class="btn btn-gold" id="activate-button" type="button">Entrar e gerar código</button>
         </div>
+      </div>
+    </section>
+
+    <section class="section" id="dispositivos">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <div class="kicker">Dispositivos</div>
+            <h2>Máquinas ativadas</h2>
+            <p>Revogue um dispositivo perdido ou antigo. O token local expira em até 7 dias.</p>
+          </div>
+          <button class="btn btn-ghost" id="devices-refresh" type="button">Atualizar</button>
+        </div>
+        <div class="plans" id="devices-list"></div>
+        <p class="checkout-status" id="devices-status" role="status" aria-live="polite"></p>
       </div>
     </section>
 
@@ -468,6 +484,80 @@
         }
       });
     }
+
+    const devicesList = document.getElementById("devices-list");
+    const devicesStatus = document.getElementById("devices-status");
+    const setDevicesStatus = (message, kind) => {
+      if (!devicesStatus) return;
+      devicesStatus.textContent = message;
+      devicesStatus.dataset.kind = kind || "info";
+    };
+
+    async function loadDevices() {
+      if (!devicesList) return;
+      devicesList.textContent = "";
+      setDevicesStatus("Carregando dispositivos…");
+      try {
+        const clerk = await getClerk();
+        if (!clerk.user) {
+          setDevicesStatus("Entre com e-mail ou telefone para ver seus dispositivos.");
+          return;
+        }
+        const token = await clerk.session?.getToken();
+        const response = await fetch(`${API_BASE}/api/devices`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) throw new Error(`Não foi possível carregar dispositivos (${response.status}).`);
+        const devices = await response.json();
+        if (!devices.length) {
+          setDevicesStatus("Nenhum dispositivo ativado ainda.");
+          return;
+        }
+        setDevicesStatus("");
+        for (const device of devices) {
+          const card = document.createElement("article");
+          card.className = "plan";
+          const title = document.createElement("h3");
+          title.textContent = device.name || "Dispositivo";
+          const id = document.createElement("p");
+          id.className = "micro";
+          id.textContent = device.device_id;
+          const seen = document.createElement("p");
+          seen.className = "trial";
+          seen.textContent = device.last_seen
+            ? `Visto ${new Date(device.last_seen * 1000).toLocaleString()}`
+            : "Sem registro de uso";
+          const button = document.createElement("button");
+          button.className = "btn btn-ghost";
+          button.type = "button";
+          button.textContent = device.revoked ? "Revogado" : "Revogar";
+          button.disabled = Boolean(device.revoked);
+          button.addEventListener("click", async () => {
+            button.disabled = true;
+            setDevicesStatus("Revogando dispositivo…");
+            try {
+              const freshToken = await clerk.session?.getToken();
+              const revoke = await fetch(
+                `${API_BASE}/api/devices/${encodeURIComponent(device.device_id)}/revoke`,
+                { method: "POST", headers: { Authorization: `Bearer ${freshToken}` } },
+              );
+              if (!revoke.ok) throw new Error(`Falha ao revogar (${revoke.status}).`);
+              await loadDevices();
+            } catch (error) {
+              button.disabled = false;
+              setDevicesStatus(error.message || "Não foi possível revogar.", "error");
+            }
+          });
+          card.append(title, id, seen, button);
+          devicesList.appendChild(card);
+        }
+      } catch (error) {
+        setDevicesStatus(error.message || "Não foi possível carregar dispositivos.", "error");
+      }
+    }
+
+    document.getElementById("devices-refresh")?.addEventListener("click", () => void loadDevices());
+    void loadDevices();
 
     const checkoutState = new URLSearchParams(window.location.search).get("checkout");
     if (checkoutState === "success") {

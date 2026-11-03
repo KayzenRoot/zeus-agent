@@ -29,6 +29,16 @@ CREATE TABLE IF NOT EXISTS device_codes (
 );
 CREATE INDEX IF NOT EXISTS device_codes_user
     ON device_codes (user_id);
+CREATE TABLE IF NOT EXISTS devices (
+    device_id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    name TEXT,
+    created_at INTEGER NOT NULL,
+    last_seen INTEGER NOT NULL,
+    revoked_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS devices_user
+    ON devices (user_id);
 """
 
 
@@ -163,3 +173,47 @@ class EntitlementStore:
             if cursor.rowcount != 1:
                 return None
             return dict(row)
+
+    def upsert_device(self, *, device_id: str, user_id: str, name: str | None) -> bool:
+        """Register a device; refuse a device id already owned by another account."""
+        now = int(time.time())
+        with self._connect() as connection:
+            existing = connection.execute(
+                "SELECT user_id FROM devices WHERE device_id = ?", (device_id,)
+            ).fetchone()
+            if existing is not None and existing["user_id"] != user_id:
+                return False
+            connection.execute(
+                """
+                INSERT INTO devices (device_id, user_id, name, created_at, last_seen, revoked_at)
+                VALUES (?, ?, ?, ?, ?, NULL)
+                ON CONFLICT(device_id) DO UPDATE SET
+                    name = COALESCE(excluded.name, devices.name),
+                    last_seen = excluded.last_seen
+                """,
+                (device_id, user_id, name, now, now),
+            )
+            return True
+
+    def list_devices(self, user_id: str) -> list[dict[str, Any]]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM devices WHERE user_id = ? ORDER BY last_seen DESC",
+                (user_id,),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def revoke_device(self, *, user_id: str, device_id: str) -> bool:
+        with self._connect() as connection:
+            cursor = connection.execute(
+                "UPDATE devices SET revoked_at = ? WHERE user_id = ? AND device_id = ? AND revoked_at IS NULL",
+                (int(time.time()), user_id, device_id),
+            )
+            return cursor.rowcount == 1
+
+    def device_revoked(self, device_id: str) -> bool:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT revoked_at FROM devices WHERE device_id = ?", (device_id,)
+            ).fetchone()
+        return bool(row and row["revoked_at"] is not None)

@@ -320,6 +320,76 @@ def test_tracked_public_key_is_a_valid_ed25519_key() -> None:
     assert isinstance(serialization.load_pem_public_key(pem), Ed25519PublicKey)
 
 
+def test_devices_can_be_listed_and_revoked(client: TestClient) -> None:
+    _seed_active(client, "user_devices")
+    device_id = "device-list-123"
+    client.post(
+        "/api/device/authorize",
+        json={"device_id": device_id, "device_name": "Workstation"},
+        headers=_headers("user_devices"),
+    )
+
+    listed = client.get("/api/devices", headers=_headers("user_devices"))
+    assert listed.status_code == 200
+    rows = listed.json()
+    assert len(rows) == 1
+    assert rows[0]["device_id"] == device_id
+    assert rows[0]["name"] == "Workstation"
+    assert rows[0]["revoked"] is False
+
+    revoked = client.post(
+        f"/api/devices/{device_id}/revoke", headers=_headers("user_devices")
+    )
+    assert revoked.status_code == 200
+    assert client.get("/api/devices", headers=_headers("user_devices")).json()[0]["revoked"] is True
+
+    new_code = client.post(
+        "/api/device/authorize",
+        json={"device_id": device_id},
+        headers=_headers("user_devices"),
+    ).json()["code"]
+    exchange = client.post(
+        "/api/device/exchange",
+        json={"code": new_code, "device_id": device_id},
+    )
+    assert exchange.status_code == 403
+
+    token = client.post(
+        "/api/entitlement/token",
+        json={"device_id": device_id},
+        headers=_headers("user_devices"),
+    )
+    assert token.status_code == 403
+
+
+def test_device_id_cannot_be_claimed_by_another_account(client: TestClient) -> None:
+    _seed_active(client, "user_owner")
+    _seed_active(client, "user_other")
+    device_id = "device-owned-123"
+    assert (
+        client.post(
+            "/api/device/authorize",
+            json={"device_id": device_id},
+            headers=_headers("user_owner"),
+        ).status_code
+        == 200
+    )
+
+    response = client.post(
+        "/api/device/authorize",
+        json={"device_id": device_id},
+        headers=_headers("user_other"),
+    )
+    assert response.status_code == 409
+
+
+def test_revoking_an_unknown_device_returns_404(client: TestClient) -> None:
+    response = client.post(
+        "/api/devices/device-unknown/revoke", headers=_headers("user_unknown")
+    )
+    assert response.status_code == 404
+
+
 def test_checkout_forwards_the_authenticated_user_and_plan(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
