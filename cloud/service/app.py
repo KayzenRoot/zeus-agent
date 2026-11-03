@@ -147,33 +147,16 @@ def _checkout_completed(
         return
 
     subscription_id = session.get("subscription")
-    status = "active"
-    period_end = None
-    if subscription_id and settings.stripe_secret:
-        try:
-            subscription = stripe_api.fetch_subscription(settings, str(subscription_id))
-            status = str(subscription.get("status") or status)
-            period_end = subscription.get("current_period_end")
-        except stripe_api.StripeError:
-            # Fail closed: record the link but grant nothing until a subscription
-            # event (or a retry) supplies a verified status and period end.
-            store.upsert(
-                user_id=str(user_id),
-                plan=str(plan),
-                status="pending",
-                customer_id=session.get("customer"),
-                subscription_id=str(subscription_id),
-                current_period_end=None,
-            )
-            return
-
+    # The authoritative status and period come from customer.subscription.*,
+    # whose object is delivered by Stripe. Never fetch by an ID taken from a
+    # webhook body: that is an SSRF sink and an unnecessary trust hop.
     store.upsert(
         user_id=str(user_id),
         plan=str(plan),
-        status=status,
+        status="pending",
         customer_id=session.get("customer"),
         subscription_id=str(subscription_id) if subscription_id else None,
-        current_period_end=int(period_end) if period_end else None,
+        current_period_end=None,
     )
 
 

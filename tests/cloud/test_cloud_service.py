@@ -204,7 +204,7 @@ def test_webhook_rejects_missing_and_invalid_signatures(client: TestClient) -> N
     assert stale.status_code == 400
 
 
-def test_completed_checkout_grants_the_plan(client: TestClient) -> None:
+def test_completed_checkout_links_subscription_and_stays_pending(client: TestClient) -> None:
     response = _post_event(
         client,
         {
@@ -213,15 +213,40 @@ def test_completed_checkout_grants_the_plan(client: TestClient) -> None:
             "data": {
                 "object": {
                     "id": "cs_test_1",
+                    "mode": "subscription",
+                    "payment_status": "paid",
                     "client_reference_id": "user_123",
                     "customer": "cus_1",
-                    "subscription": None,
+                    "subscription": "sub_1",
                     "metadata": {"zeus_plan": "monthly"},
                 }
             },
         },
     )
     assert response.status_code == 200
+
+    entitlement = client.get("/api/entitlement", headers=_headers()).json()
+    assert entitlement["active"] is False
+    assert entitlement["plan"] == "monthly"
+    assert entitlement["status"] == "pending"
+
+    # The subscription event is the authority for status + period, and the
+    # stored subscription id resolves its owner when metadata is absent.
+    _post_event(
+        client,
+        {
+            "id": "evt_sub_created",
+            "type": "customer.subscription.created",
+            "data": {
+                "object": {
+                    "id": "sub_1",
+                    "customer": "cus_1",
+                    "status": "active",
+                    "current_period_end": int(time.time()) + 2_592_000,
+                }
+            },
+        },
+    )
 
     entitlement = client.get("/api/entitlement", headers=_headers()).json()
     assert entitlement["active"] is True
@@ -254,31 +279,37 @@ def test_unpaid_checkout_does_not_grant_access(client: TestClient) -> None:
     assert entitlement["plan"] is None
 
 
-def test_checkout_reads_trial_state_from_stripe(
-    client: TestClient, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_subscription_created_grants_trial(client: TestClient) -> None:
     period_end = int(time.time()) + 172_800
-    monkeypatch.setattr(
-        "cloud.service.app.stripe_api.fetch_subscription",
-        lambda _settings, subscription_id: {
-            "id": subscription_id,
-            "status": "trialing",
-            "current_period_end": period_end,
-        },
-    )
-
     _post_event(
         client,
         {
-            "id": "evt_trial",
+            "id": "evt_trial_checkout",
             "type": "checkout.session.completed",
             "data": {
                 "object": {
                     "id": "cs_test_trial",
+                    "mode": "subscription",
+                    "payment_status": "no_payment_required",
                     "client_reference_id": "user_trial",
                     "customer": "cus_trial",
                     "subscription": "sub_trial",
                     "metadata": {"zeus_plan": "annual"},
+                }
+            },
+        },
+    )
+    _post_event(
+        client,
+        {
+            "id": "evt_trial_sub",
+            "type": "customer.subscription.created",
+            "data": {
+                "object": {
+                    "id": "sub_trial",
+                    "customer": "cus_trial",
+                    "status": "trialing",
+                    "current_period_end": period_end,
                 }
             },
         },
@@ -300,7 +331,10 @@ def test_cancelled_subscription_revokes_access(client: TestClient) -> None:
             "data": {
                 "object": {
                     "id": "cs_test_2",
+                    "mode": "subscription",
+                    "payment_status": "paid",
                     "client_reference_id": "user_cancel",
+                    "subscription": "sub_cancel",
                     "metadata": {"zeus_plan": "monthly"},
                 }
             },
@@ -329,49 +363,7 @@ def test_cancelled_subscription_revokes_access(client: TestClient) -> None:
     assert entitlement["status"] == "canceled"
 
 
-def test_subscription_fetch_failure_fails_closed(
-    client: TestClient, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    def unreachable(_settings: Settings, _subscription_id: str) -> dict[str, Any]:
-        raise stripe_api.StripeError("temporary Stripe failure")
-
-    monkeypatch.setattr("cloud.service.app.stripe_api.fetch_subscription", unreachable)
-
-    _post_event(
-        client,
-        {
-            "id": "evt_fetch_fail",
-            "type": "checkout.session.completed",
-            "data": {
-                "object": {
-                    "id": "cs_test_fetch_fail",
-                    "mode": "subscription",
-                    "payment_status": "paid",
-                    "client_reference_id": "user_fetch_fail",
-                    "subscription": "sub_fetch_fail",
-                    "metadata": {"zeus_plan": "monthly"},
-                }
-            },
-        },
-    )
-
-    entitlement = client.get("/api/entitlement", headers=_headers("user_fetch_fail")).json()
-    assert entitlement["active"] is False
-    assert entitlement["plan"] == "monthly"
-    assert entitlement["status"] == "pending"
-
-
-def test_subscription_event_resolves_owner_from_stored_subscription(
-    client: TestClient, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr(
-        "cloud.service.app.stripe_api.fetch_subscription",
-        lambda _settings, subscription_id: {
-            "id": subscription_id,
-            "status": "active",
-            "current_period_end": int(time.time()) + 86_400,
-        },
-    )
+def test_subscription_event_resolves_owner_from_stored_subscription(client: TestClient) -> None:
     _post_event(
         client,
         {
@@ -380,6 +372,8 @@ def test_subscription_event_resolves_owner_from_stored_subscription(
             "data": {
                 "object": {
                     "id": "cs_test_link",
+                    "mode": "subscription",
+                    "payment_status": "paid",
                     "client_reference_id": "user_lookup",
                     "subscription": "sub_lookup",
                     "metadata": {"zeus_plan": "monthly"},

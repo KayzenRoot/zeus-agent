@@ -81,14 +81,6 @@ def create_checkout_session(
     )
 
 
-def fetch_subscription(settings: Settings, subscription_id: str) -> dict[str, Any]:
-    return _request(
-        settings.stripe_secret,
-        "GET",
-        f"/subscriptions/{urllib.parse.quote(subscription_id)}",
-    )
-
-
 def verify_webhook(
     payload: bytes,
     signature_header: str,

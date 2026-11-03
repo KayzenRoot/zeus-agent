@@ -40,7 +40,9 @@ troque por `https://api.<domínio>`.
 | `GET /api/entitlement` | Bearer Clerk JWT | plano, status, fim do período e features |
 | `POST /api/stripe/webhook` | assinatura Stripe | `checkout.session.completed` e `customer.subscription.*` |
 
-O entitlement só fica ativo com status `active`/`trialing` **e** período não expirado. O runtime
+O entitlement só fica ativo com status `active`/`trialing` **e** período não expirado.
+`checkout.session.completed` grava `pending`; a ativação usa o objeto autoritativo de
+`customer.subscription.*`, sem buscar a assinatura por um ID recebido no webhook. O runtime
 offline vai aplicar uma janela de tolerância própria (próxima camada).
 
 ## Variáveis de ambiente
@@ -97,8 +99,8 @@ scripts/run_tests.sh tests/cloud/test_cloud_service.py
 ```
 
 Cobrem autenticação, criação de checkout, assinatura de webhook (válida/inválida/expirada),
-trial, cancelamento, expiração de período, checkout não pago, falha de leitura da assinatura em
-fail-closed e a trava de live mode.
+trial, cancelamento, expiração de período, checkout não pago, checkout pending até o evento de
+assinatura e a trava de live mode.
 
 ## Pendências antes do release
 
