@@ -190,3 +190,13 @@ the **CORRECTION REQUIRED** verdict until independent audit confirms DoD.
 - **Evidência**: 15/15 testes; `scripts/check` 12/12; PR #44 **14/14 checks PASS** (CodeQL JS+Python, Sonar gate+analysis, Trivy, desktop-static 26m18s, Evidence/CI audit gate); audit gate da main no merge commit **success** (run 41607735506).
 - **Residual**: o runtime desktop/CLI ainda não consulta o entitlement nem aplica grace offline (próximo incremento); portal/cancelamento, webhook público, domínio, live mode e deploy seguem owner-gated. Nenhuma cobrança real.
 - Evidência: `audits/ZEUS-CLOUD-002-2026-11-02-control-plane.md`.
+
+## 2026-11-03 | Gate comercial completo: token, runtime, desktop, portal e devices
+
+- **#45 MERGED `5b664b48bd`**: token de entitlement **Ed25519 device-bound** (`POST /api/entitlement/token`), TTL 7 dias, chave pública versionada e privada só no `.env`; 20/20 testes na época.
+- **#46 MERGED `17acb56b3b`**: gate no início de `AIAgent.run_conversation` (antes de lease/prompt/modelo) com recusa tipada `entitlement_required`; `ZEUS_DEV_UNLOCK=1`; CLI `hermes entitlement status|activate|device-id`; desktop com verificação Ed25519, IPC, overlay bloqueante e deep link `zeus://auth/callback`; cloud com device codes de 10 min/uso único. **E2E real no PC**: sem token o overlay bloqueia; deep link gravou `zeus-entitlement.json` 0600 e liberou o app sem reiniciar. 7/7 testes de runtime + 4/4 Electron + 8/8 deep link.
+- **#47 MERGED `85277cda51`**: **Stripe Customer Portal** (`POST /api/billing/portal`) para cancelar/trocar plano/recibos, com botão autenticado na landing; 29/29 testes na época.
+- **#49 MERGED `b651fcb71a`**: **gestão de dispositivos** — tabela `devices`, listagem e revogação; dispositivo revogado não recebe novo código/token; seção Dispositivos na landing. (#48 foi fechado como superseded após rebase, sem force-push.)
+- **Evidência final**: 32/32 testes cloud no branch combinado, 7/7 runtime, `scripts/check` 12/12; audit gate da main no merge `b651fcb71a` **success** (run 41652890848). Test token de test mode ativo no home real até 2026-11-10 (pode ser removido para voltar ao gate).
+- **Residual/owner-gated**: issues **#50** (auto-healing com aprovação do owner), **#51** (seats/SSO/auditoria enterprise) e **#52** (live mode/domínio/deploy/termos). Nenhuma cobrança real, VPS ou deploy.
+- Evidências: `audits/ZEUS-CLOUD-003-2026-11-03-signed-entitlement-token.md`, `ZEUS-CLOUD-004-2026-11-03-runtime-gate.md`, `ZEUS-CLOUD-005-2026-11-03-billing-portal.md`, `ZEUS-CLOUD-006-2026-11-03-device-management.md`.
