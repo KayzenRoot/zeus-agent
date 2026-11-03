@@ -170,6 +170,26 @@ def build_skills_parser(subparsers, *, cmd_skills: Callable) -> None:
     tap_rm = tap_subparsers.add_parser("remove", help="Remove a tap")
     tap_rm.add_argument("name", help="Tap name to remove")
 
+    skills_review = skills_subparsers.add_parser(
+        "review",
+        help="Review agent-generated skill writes staged for owner approval",
+        description="List, diff, approve or reject SKILL.md writes staged by "
+                    "skills.write_approval. Approval requires an interactive terminal and the "
+                    "exact word APPROVE.",
+    )
+    review_sub = skills_review.add_subparsers(dest="review_action")
+    review_list = review_sub.add_parser("list", help="List pending skill writes")
+    add_json_flag(review_list, "Output JSON instead of text")
+    review_diff = review_sub.add_parser(
+        "diff", help="Show the exact diff an approval would apply")
+    review_diff.add_argument("proposal_id", help="Pending write id")
+    review_approve = review_sub.add_parser(
+        "approve", help="Apply one pending write after owner approval")
+    review_approve.add_argument("proposal_id", help="Pending write id")
+    review_reject = review_sub.add_parser(
+        "reject", help="Discard one pending write without applying it")
+    review_reject.add_argument("proposal_id", help="Pending write id")
+
     # config sub-action: interactive enable/disable
     skills_subparsers.add_parser(
         "config", help="Interactive skill configuration — enable/disable individual skills")

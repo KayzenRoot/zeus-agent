@@ -1455,9 +1455,16 @@ Subcommands:
 | `opt-out` | Stop bundled skills from being seeded into the active profile. Writes a `.no-bundled-skills` marker so the installer, `hermes update`, and any sync skip bundled-skill seeding. Safe by default — nothing on disk is touched. With `--remove`, also deletes already-present bundled skills that are **unmodified** (user-edited, hub-installed, and hand-written skills are never removed; previews and confirms first, `--yes` to skip). |
 | `opt-in` | Undo `opt-out` by removing the `.no-bundled-skills` marker so bundled skills are seeded again on the next `hermes update`. With `--sync`, re-seed immediately. |
 | `publish` | Publish a skill to a registry. |
+| `review` | List, diff, approve or reject agent-generated skill writes staged by `skills.write_approval`. Approval requires an interactive terminal and the exact word `APPROVE`. |
 | `snapshot` | Export/import skill configurations. |
 | `tap` | Manage custom skill sources. |
 | `config` | Interactive enable/disable configuration for skills by platform. |
+
+When `skills.write_approval: true`, the agent's `skill_manage` creates/edits/patches are staged
+under `<HERMES_HOME>/pending/skills/` instead of written. `hermes skills review list` shows them,
+`review diff <id>` renders the exact unified diff an approval would commit, `review approve <id>`
+requires TTY + `APPROVE`, and `review reject <id>` discards without writing. The same commands are
+available in chat as `/skills pending|diff|approve|reject`.
 
 Common examples:
 
