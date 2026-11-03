@@ -19,6 +19,7 @@ from fastapi.testclient import TestClient
 
 from cloud.service import stripe_api
 from cloud.service.app import create_app
+from cloud.service.auth import Identity, current_identity
 from cloud.service.settings import Settings
 
 WEBHOOK_SECRET = "whsec_test_secret"
@@ -455,6 +456,39 @@ def test_audit_lists_device_actions_without_secrets(client: TestClient) -> None:
 
 def test_audit_rejects_an_out_of_range_limit(client: TestClient) -> None:
     assert client.get("/api/audit?limit=0", headers=_headers()).status_code == 422
+
+
+def test_identity_exposes_the_clerk_organization(client: TestClient) -> None:
+    client.app.dependency_overrides[current_identity] = lambda: Identity(
+        "user_org", "org_1", "org:admin"
+    )
+    try:
+        response = client.get("/api/identity", headers=_headers())
+    finally:
+        client.app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {"user_id": "user_org", "org_id": "org_1", "org_role": "org:admin"}
+
+
+def test_audit_exports_json_and_csv(client: TestClient) -> None:
+    _seed_active(client, "user_export")
+    client.post(
+        "/api/device/authorize",
+        json={"device_id": "export-device-1", "device_name": "Export"},
+        headers=_headers("user_export"),
+    )
+
+    json_export = client.get("/api/audit/export?format=json", headers=_headers("user_export"))
+    assert json_export.status_code == 200
+    assert json_export.headers["content-disposition"].endswith('"zeus-audit.json"')
+    assert json_export.json()["events"][0]["event"] == "device.authorize"
+
+    csv_export = client.get("/api/audit/export?format=csv", headers=_headers("user_export"))
+    assert csv_export.status_code == 200
+    assert csv_export.headers["content-type"].startswith("text/csv")
+    assert "device.authorize" in csv_export.text
+    assert "export-device-1" in csv_export.text
 
 
 def test_devices_can_be_listed_and_revoked(client: TestClient) -> None:

@@ -104,6 +104,9 @@
     .checkout-status { min-height: 1.3em; margin: 16px 0 0; color: var(--teal); font-size: .8rem; }
     .checkout-status[data-kind="error"] { color: #f0a6a6; }
     .activate-code { margin: 12px 0 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: rgba(0,0,0,.25); color: var(--gold-soft); font-size: .85rem; word-break: break-all; }
+    .audit-list { display: grid; border-top: 1px solid var(--line); }
+    .audit-row { display: grid; grid-template-columns: 190px 1fr; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: .82rem; }
+    .audit-row span:first-child { color: var(--gold-soft); }
     .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
     .step { border: 1px solid var(--line); border-radius: 16px; background: var(--panel); padding: 22px; }
     .step .n { display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid rgba(232,194,122,.35); color: var(--gold); font-size: .72rem; font-weight: 700; }
@@ -278,6 +281,25 @@
         </div>
         <div class="plans" id="devices-list"></div>
         <p class="checkout-status" id="devices-status" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <section class="section" id="atividade">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <div class="kicker">Auditoria</div>
+            <h2>Atividade da conta</h2>
+            <p>Últimos eventos de assinatura, dispositivos e portal.</p>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap">
+            <button class="btn btn-ghost" id="audit-refresh" type="button">Atualizar</button>
+            <button class="btn btn-ghost" data-audit-export="csv" type="button">CSV</button>
+            <button class="btn btn-ghost" data-audit-export="json" type="button">JSON</button>
+          </div>
+        </div>
+        <div class="audit-list" id="audit-list"></div>
+        <p class="checkout-status" id="audit-status" role="status" aria-live="polite"></p>
       </div>
     </section>
 
@@ -615,6 +637,83 @@
 
     document.getElementById("devices-refresh")?.addEventListener("click", () => void loadDevices());
     void loadDevices();
+
+    const auditList = document.getElementById("audit-list");
+    const auditStatus = document.getElementById("audit-status");
+    const setAuditStatus = (message, kind) => {
+      if (!auditStatus) return;
+      auditStatus.textContent = message;
+      auditStatus.dataset.kind = kind || "info";
+    };
+
+    async function loadAudit() {
+      if (!auditList) return;
+      auditList.textContent = "";
+      setAuditStatus("Carregando atividade…");
+      try {
+        const clerk = await getClerk();
+        if (!clerk.user) {
+          setAuditStatus("Entre com e-mail ou telefone para ver a atividade.");
+          return;
+        }
+        const token = await clerk.session?.getToken();
+        const response = await fetch(`${API_BASE}/api/audit?limit=20`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) throw new Error(`Não foi possível carregar a auditoria (${response.status}).`);
+        const events = (await response.json()).events;
+        if (!events.length) {
+          setAuditStatus("Nenhum evento registrado ainda.");
+          return;
+        }
+        setAuditStatus("");
+        for (const event of events) {
+          const row = document.createElement("div");
+          row.className = "audit-row";
+          const when = document.createElement("span");
+          when.textContent = new Date(event.created_at * 1000).toLocaleString();
+          const detail = document.createElement("span");
+          const device = event.detail?.device_id ? ` · ${event.detail.device_id}` : "";
+          detail.textContent = `${event.event}${device}`;
+          row.append(when, detail);
+          auditList.appendChild(row);
+        }
+      } catch (error) {
+        setAuditStatus(error.message || "Não foi possível carregar a auditoria.", "error");
+      }
+    }
+
+    async function exportAudit(format) {
+      try {
+        const clerk = await getClerk();
+        if (!clerk.user) {
+          setAuditStatus("Entre com e-mail ou telefone para exportar.");
+          return;
+        }
+        const token = await clerk.session?.getToken();
+        const response = await fetch(`${API_BASE}/api/audit/export?format=${format}&limit=100`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) throw new Error(`Exportação indisponível (${response.status}).`);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `zeus-audit.${format}`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        setAuditStatus(error.message || "Não foi possível exportar.", "error");
+      }
+    }
+
+    document.getElementById("audit-refresh")?.addEventListener("click", () => void loadAudit());
+    document.querySelectorAll("[data-audit-export]").forEach(button => {
+      button.addEventListener("click", () => void exportAudit(button.dataset.auditExport));
+    });
+    void loadAudit();
 
     const checkoutState = new URLSearchParams(window.location.search).get("checkout");
     if (checkoutState === "success") {

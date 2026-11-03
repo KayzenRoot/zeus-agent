@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass
 from functools import lru_cache
 
 import jwt
@@ -17,10 +18,17 @@ def _jwks_client(url: str) -> jwt.PyJWKClient:
     return jwt.PyJWKClient(url)
 
 
-def current_user(
+@dataclass(frozen=True)
+class Identity:
+    user_id: str
+    org_id: str | None = None
+    org_role: str | None = None
+
+
+def current_identity(
     authorization: str | None = Header(default=None),
     settings: Settings = Depends(get_settings),
-) -> str:
+) -> Identity:
     scheme, _, token = (authorization or "").partition(" ")
     if scheme.lower() != "bearer" or not token:
         raise HTTPException(status_code=401, detail="missing bearer token")
@@ -32,7 +40,7 @@ def current_user(
             raise HTTPException(status_code=403, detail="dev auth is disabled with a live Stripe key")
         user_id = token[4:].strip()
         if user_id:
-            return user_id
+            return Identity(user_id=user_id)
 
     if not settings.clerk_frontend_api:
         raise HTTPException(status_code=503, detail="Clerk frontend API is not configured")
@@ -52,4 +60,14 @@ def current_user(
     subject = payload.get("sub")
     if not subject:
         raise HTTPException(status_code=401, detail="token has no subject")
-    return str(subject)
+    org_id = payload.get("org_id")
+    org_role = payload.get("org_role")
+    return Identity(
+        user_id=str(subject),
+        org_id=str(org_id) if org_id else None,
+        org_role=str(org_role) if org_role else None,
+    )
+
+
+def current_user(identity: Identity = Depends(current_identity)) -> str:
+    return identity.user_id
