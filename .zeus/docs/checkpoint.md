@@ -215,3 +215,9 @@ the **CORRECTION REQUIRED** verdict until independent audit confirms DoD.
 - **Sem correção silenciosa**: `apply` recusa ação fora do plano, recusa sem TTY e exige `APPROVE` digitado pelo owner; só `restart-gateway` é executado nesta camada. Auditoria em `logs/heal-audit.jsonl` 0600.
 - **Verificação**: 6/6 testes; smoke real `gateway running`, 60.2 GB, entitlement active, sem problemas; `scripts/check` 12/12; CI #55 14/14 verde.
 - **Residual**: orquestrador mestre/distribuição de skills, aprovação no desktop e outras ações (lock órfão, rotação de logs, reparo com backup) ficam para a próxima WO. Evidência: `audits/ZEUS-HEAL-001-2026-11-03-owner-approved-healing.md`.
+
+## 2026-11-03 | Enterprise: seats e auditoria (#56 merged)
+
+- **PR #56 MERGED `4ae8ae7846`**: seats por plano (5/5/8/10) aplicados em `/api/device/authorize` (409 no limite; reautorização não consome seat; revogado não conta), `seats` em `/api/entitlement`, `audit_events` + `GET /api/audit?limit=1..100` e contador “N de S seats” na landing.
+- **Verificação**: cloud 36/36 testes; `scripts/check` 12/12; CI #56 14/14 verde (desktop 27m33s).
+- **Residual #51**: SSO/SAML/OIDC e seats por Organization dependem do Clerk; export CSV/JSON e UI de auditoria no dashboard ficam para a próxima camada. Evidência: `audits/ZEUS-ENTERPRISE-001-2026-11-03-seats-audit.md`.
