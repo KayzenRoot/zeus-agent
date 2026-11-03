@@ -25,6 +25,7 @@ class Settings:
     allowed_origins: tuple[str, ...] = ()
     entitlement_private_key_b64: str = ""
     entitlement_ttl_days: int = 7
+    portal_return_url: str = "http://127.0.0.1:9120/?portal=done"
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -48,6 +49,9 @@ class Settings:
             allowed_origins=origins,
             entitlement_private_key_b64=os.getenv("ZEUS_ENTITLEMENT_PRIVATE_KEY_B64", "").strip(),
             entitlement_ttl_days=int(os.getenv("ZEUS_ENTITLEMENT_TTL_DAYS", "7")),
+            portal_return_url=os.getenv(
+                "ZEUS_CLOUD_PORTAL_RETURN_URL", "http://127.0.0.1:9120/?portal=done"
+            ),
         )
 
     def plans(self) -> dict[str, Any]:

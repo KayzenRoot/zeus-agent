@@ -100,6 +100,27 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "features": plan_features(row["plan"]) if row and active else [],
         }
 
+    @app.post("/api/billing/portal")
+    def billing_portal(user: str = Depends(current_user)) -> dict[str, Any]:
+        row = store.get(user)
+        if not is_active(row):
+            raise HTTPException(status_code=403, detail="no active subscription")
+        customer_id = row.get("stripe_customer_id") if row else None
+        if not customer_id:
+            raise HTTPException(status_code=404, detail="no Stripe customer for this account")
+        try:
+            session = stripe_api.create_billing_portal_session(
+                settings,
+                customer_id=str(customer_id),
+                return_url=settings.portal_return_url,
+            )
+        except stripe_api.StripeError as error:
+            raise HTTPException(status_code=502, detail="billing portal unavailable") from error
+        url = session.get("url")
+        if not url:
+            raise HTTPException(status_code=502, detail="Stripe returned no portal URL")
+        return {"url": url}
+
     @app.post("/api/entitlement/token")
     def entitlement_token(
         body: TokenRequest,

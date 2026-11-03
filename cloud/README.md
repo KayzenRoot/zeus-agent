@@ -41,6 +41,7 @@ troque por `https://api.<domínio>`.
 | `POST /api/entitlement/token` | Bearer Clerk JWT | `{ "device_id": "..." }` → token Ed25519 de 7 dias |
 | `POST /api/device/authorize` | Bearer Clerk JWT | gera código de ativação de 10 min para o dispositivo |
 | `POST /api/device/exchange` | código de uso único | troca código + `device_id` pelo token assinado |
+| `POST /api/billing/portal` | Bearer Clerk JWT | abre o Customer Portal do Stripe (cancelar/trocar plano) |
 | `POST /api/stripe/webhook` | assinatura Stripe | `checkout.session.completed` e `customer.subscription.*` |
 
 O entitlement só fica ativo com status `active`/`trialing` **e** período não expirado.
@@ -78,7 +79,8 @@ ZEUS_ENTITLEMENT_TTL_DAYS=7
 ```
 
 Opcionais: `ZEUS_CLOUD_DB` (default `~/.zeus-cloud/entitlements.db`), `ZEUS_CLOUD_PORT` (default
-`9121`), `ZEUS_CLOUD_ALLOWED_ORIGINS`, `ZEUS_CLOUD_SUCCESS_URL`, `ZEUS_CLOUD_CANCEL_URL`.
+`9121`), `ZEUS_CLOUD_ALLOWED_ORIGINS`, `ZEUS_CLOUD_SUCCESS_URL`, `ZEUS_CLOUD_CANCEL_URL`,
+`ZEUS_CLOUD_PORTAL_RETURN_URL`.
 
 Nunca coloque `CLERK_SECRET_KEY` ou `STRIPE_SECRET_KEY` no cliente/desktop. O desktop fala com o
 Zeus Cloud, que guarda a chave e emite o entitlement.
@@ -118,7 +120,7 @@ scripts/run_tests.sh tests/cloud/test_cloud_service.py
 
 Cobrem autenticação, criação de checkout, assinatura de webhook (válida/inválida/expirada),
 trial, cancelamento, expiração de período, checkout não pago, checkout pending até o evento de
-assinatura e a trava de live mode.
+assinatura, ativação por device code, portal do cliente e a trava de live mode.
 
 ## Pendências antes do release
 
