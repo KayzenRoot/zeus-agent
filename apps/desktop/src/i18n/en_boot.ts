@@ -93,7 +93,7 @@ export const enBoot = {
       since: time => `Waiting since ${time}`,
       lastChecked: time => `Last checked ${time}`,
       recoveryHint:
-        'This usually clears in a few minutes. If it does not: quit Zeus, end leftover git or hermes processes (or restart the computer), then open Zeus again.',
+        'This usually clears in a few minutes. If it does not: quit Zeus, end leftover git or zeus processes (or restart the computer), then open Zeus again.',
       checkAgain: 'Check again',
       quit: 'Quit Zeus',
       openLogs: 'Open logs',

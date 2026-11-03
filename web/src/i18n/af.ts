@@ -95,7 +95,7 @@ export const af: Translations = {
   status: {
     actionFailed: "Aksie het misluk",
     actionFinished: "Voltooi",
-    actionFinishedOwed: "Bygewerk, maar nog uitstaande (voer `hermes update` weer uit om klaar te maak)",
+    actionFinishedOwed: "Bygewerk, maar nog uitstaande (voer `zeus update` weer uit om klaar te maak)",
     actions: "Aksies",
     agent: "Agent",
     activeSessions: "Aktiewe Sessies",
@@ -334,7 +334,7 @@ export const af: Translations = {
       "Gestoor — herbegin die gateway om die verandering toe te pas.",
     forceReinstall: "Forseer herinstallasie (skrap eers bestaande gids)",
     headline:
-      "Ontdek, installeer, aktiveer en werk Zeus-inproppe op (`hermes plugins` ekwivalent).",
+      "Ontdek, installeer, aktiveer en werk Zeus-inproppe op (`zeus plugins` ekwivalent).",
     identifierLabel: "Git-URL of owner/repo",
     inactive: "onaktief",
     installBtn: "Installeer",

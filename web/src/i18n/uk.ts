@@ -95,7 +95,7 @@ export const uk: Translations = {
   status: {
     actionFailed: "Дія не вдалася",
     actionFinished: "Завершено",
-    actionFinishedOwed: "Оновлено, але роботу ще не завершено (запустіть `hermes update` знову, щоб завершити)",
+    actionFinishedOwed: "Оновлено, але роботу ще не завершено (запустіть `zeus update` знову, щоб завершити)",
     actions: "Дії",
     agent: "Агент",
     activeSessions: "Активні сесії",
@@ -335,7 +335,7 @@ export const uk: Translations = {
       "Збережено — перезапустіть шлюз, щоб застосувати зміну.",
     forceReinstall: "Примусово перевстановити (спершу видалити наявну теку)",
     headline:
-      "Знаходьте, встановлюйте, вмикайте та оновлюйте плагіни Zeus (паритет з `hermes plugins`).",
+      "Знаходьте, встановлюйте, вмикайте та оновлюйте плагіни Zeus (паритет з `zeus plugins`).",
     identifierLabel: "Git URL або owner/repo",
     inactive: "неактивний",
     installBtn: "Встановити",

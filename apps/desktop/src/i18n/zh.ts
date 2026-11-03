@@ -291,7 +291,7 @@ export const zhOverrides = {
     doneDescription: '调试包已私密上传。在您的支持会话中分享以下链接，团队即可查看您的日志。',
     failedTitle: '上传失败',
     failedHint:
-      '您也可以在终端运行 `hermes debug share --nous`，或运行 `hermes debug share --local` 在不上传的情况下查看报告。',
+      '您也可以在终端运行 `zeus debug share --nous`，或运行 `zeus debug share --local` 在不上传的情况下查看报告。',
     handoffLead: '在以下位置继续讨论:',
     links: {
       github: 'GitHub Issues',
@@ -1503,7 +1503,7 @@ export const zhOverrides = {
       sshKeyTitle: '密钥文件',
       sshKeyDesc: '私钥路径。留空 = ssh-agent 或 ~/.ssh/config。',
       sshHermesPathTitle: 'Zeus 路径（可选）',
-      sshHermesPathDesc: '远程 hermes 可执行文件的完整路径。留空 = 自动检测。',
+      sshHermesPathDesc: '远程 zeus 可执行文件的完整路径。留空 = 自动检测。',
       sshHermesPathPlaceholder: '自动检测',
       sshTestConnection: '测试 SSH',
       sshConnect: '连接',
@@ -2044,7 +2044,7 @@ export const zhOverrides = {
     edit: '编辑',
     archive: '归档',
     skillArchivedTitle: '技能已归档',
-    skillArchivedMessage: '可通过 hermes curator restore 恢复。',
+    skillArchivedMessage: '可通过 zeus curator restore 恢复。',
     tabPlugins: '插件',
     plugins: {
       agentTitle: 'Agent 插件',
@@ -2597,7 +2597,7 @@ export const zhOverrides = {
       wecom: '在企业微信中添加群机器人，复制其 webhook key 作为 WECOM_BOT_ID。仅可发送——双向请用企业微信 (应用) 选项。',
       wecom_callback: '设置一个企业微信自建应用，暴露其回调 URL，并提供 corp ID、secret、agent ID 和 AES key。',
       weixin:
-        '运行 `hermes gateway setup`，选择 Weixin，然后使用个人微信账号扫描并确认二维码。Zeus 会通过腾讯 iLink Bot API 连接并保存凭据。',
+        '运行 `zeus gateway setup`，选择 Weixin，然后使用个人微信账号扫描并确认二维码。Zeus 会通过腾讯 iLink Bot API 连接并保存凭据。',
       qqbot: '在 QQ 开放平台 (q.qq.com) 注册一个应用，复制 App ID 和 Client Secret。',
       api_server:
         '把 Zeus 暴露为兼容 OpenAI 的 API。设置一个鉴权密钥，然后把 Open WebUI / LobeChat 等指向 host:port。',
@@ -3675,9 +3675,9 @@ export const zhOverrides = {
     versionDetailsDistributionDesktopMsix: '桌面应用 (MSIX)',
     versionDetailsDistributionDesktopInstaller: '桌面应用（安装器）',
     versionDetailsDistributionSourceInstaller: '源码（安装脚本）',
-    versionDetailsDistributionSourceInstallerDesktop: '源码（安装脚本）+ hermes desktop',
+    versionDetailsDistributionSourceInstallerDesktop: '源码（安装脚本）+ zeus desktop',
     versionDetailsDistributionSource: '源码',
-    versionDetailsDistributionSourceDesktop: '源码 + hermes desktop',
+    versionDetailsDistributionSourceDesktop: '源码 + zeus desktop',
     versionDetailsDistributionStore: 'Microsoft Store',
     versionDetailsRuntime: '运行时',
     versionDetailsRuntimeEmbedded: '嵌入式（捆绑）',
@@ -4678,7 +4678,7 @@ export const zhOverrides = {
       success: platform => `已移交到 ${platform}。随时可在此处恢复。`,
       systemNote: platform => `↻ 已移交到 ${platform} — 随时可在此处恢复。`,
       failed: error => `移交失败：${error}`,
-      timedOut: '等待网关超时。`hermes gateway` 是否正在运行？'
+      timedOut: '等待网关超时。`zeus gateway` 是否正在运行？'
     }
   },
 
