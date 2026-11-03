@@ -241,3 +241,12 @@ the **CORRECTION REQUIRED** verdict until independent audit confirms DoD.
 - **Verificação**: cloud **43/43** testes; `python scripts/check` **12/12**; links/refs das três páginas validados; CI #59 **14/14 verde** (desktop 28m29s, CodeQL Python 18m29s). Sonar reprovou a primeira versão por **6,3% de duplicação**; a extração de `legal.css` levou o gate a **pass**.
 - **Residual owner-gated**: compra do domínio, DNS/TLS, webhook público, preços live, deploy com backup e revisão jurídica. SSO/SAML/OIDC segue dependente do IdP no Clerk. Nenhum gasto, cobrança real, deploy ou publicação foi executado.
 - Evidência: `audits/ZEUS-PROD-001-2026-11-03-production-readiness.md`.
+
+## 2026-11-03 | Auto-healing camada 2: propostas e sinais (#60 merged)
+
+- **PR #60 MERGED `6e52772baa`**: sinais read-only em `state.db` (`stuck-turn`, `stuck-worker`, `tool-failures-repeated`) sem ação automática; propostas 0600 em `<HERMES_HOME>/heal-proposals/` com TTL de 10 min, ID hexadecimal validado, rollback documentado e status `pending/approved/rejected/expired/stale/executed/failed`.
+- **CLI**: `zeus heal propose|proposals|show|approve|reject`; `approve` exige TTY + palavra exata `APPROVE`, re-diagnostica antes de executar e recusa proposta expirada ou fora do plano. `apply` mantém o caminho direto.
+- **Auditoria**: `proposal.created` (motivo + sinais), `approved`, `rejected`, `expired`, `stale`, `executed` (resultado + rollback) e `failed`, tudo em `logs/heal-audit.jsonl` 0600. Nenhum caminho executa sem aprovação; nenhum sinal propõe ação destrutiva.
+- **Verificação**: 20/20 testes; `scripts/check` 12/12; smoke real em `HERMES_HOME` temporário (propose → show → reject, sem execução); CI #60 14/14 verde (desktop 21m33s, CodeQL Python 13m32s).
+- **Residual #50**: aprovação nativa no desktop e distribuição de skills ficam para a próxima camada; só `restart-gateway` é executável.
+- Evidência: `audits/ZEUS-HEAL-002-2026-11-03-heal-proposals.md`.
