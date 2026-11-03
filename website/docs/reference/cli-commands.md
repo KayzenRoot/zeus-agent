@@ -996,6 +996,36 @@ Custom-endpoint config checks (both warn-only; `--fix` does not rewrite them):
 
 **Config Structure** also flags any list/mapping setting stored as one quoted string (`plugins.enabled: '["a","b"]'`, `model_catalog.excluded_providers: '["openai-api"]'` — the shape older `config set` versions wrote): every reader ignores such a string, so the plugins silently stay unmounted and the exclusion never applies. The finding names the key and the `hermes config set <key> '<literal>'` command that stores a real list; the same warning appears in the startup banner. `--fix` does not rewrite the file.
 
+## `hermes heal`
+
+```bash
+hermes heal <status|plan|propose|proposals|show|approve|reject|apply> [...]
+```
+
+Deterministic, owner-gated self-healing for the local runtime. Diagnosis is read-only; an action
+runs only after the owner approves it. The agent may create a proposal, but cannot approve one.
+
+| Subcommand | Description |
+|------------|-------------|
+| `status [--json]` | Report gateway liveness, `state.db` health, disk, entitlement and read-only runtime signals (stuck turn/worker, repeated tool failures). |
+| `plan [--json]` | List actions the current diagnosis would propose. |
+| `propose [--json]` | Persist one expiring proposal per actionable finding under `<HERMES_HOME>/heal-proposals/`. |
+| `proposals [--json]` | List proposals and their status (`pending`, `rejected`, `expired`, `stale`, `executed`, `failed`). |
+| `show <id> [--json]` | Show the action, reason, signals, rollback and expiry. |
+| `approve <id>` | Interactive terminal only: print the action and rollback, require the exact word `APPROVE`, then execute and audit. |
+| `reject <id>` | Close a pending proposal without executing anything. |
+| `apply <action>` | Direct one-shot approval path with the same TTY + `APPROVE` requirement. |
+
+Proposals expire after ten minutes. Approval re-runs the diagnosis first; if the action is no
+longer recommended the proposal becomes `stale` and does not execute. Every transition is appended
+to `<HERMES_HOME>/logs/heal-audit.jsonl` (0600): the proposal carries its signal snapshot, then
+`proposal.created`, `proposal.approved`/`proposal.rejected`, and `proposal.executed` with the
+rollback instructions. A failed execution still closes the audit trail with `failed`.
+
+The only action implemented in this layer is `restart-gateway`; its rollback is another
+`hermes gateway restart` or `hermes gateway stop`. Destructive, network, credential, financial and
+deploy actions are out of scope.
+
 ## `hermes dump`
 
 ```bash
