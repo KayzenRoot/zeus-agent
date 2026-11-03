@@ -250,3 +250,12 @@ the **CORRECTION REQUIRED** verdict until independent audit confirms DoD.
 - **Verificação**: 20/20 testes; `scripts/check` 12/12; smoke real em `HERMES_HOME` temporário (propose → show → reject, sem execução); CI #60 14/14 verde (desktop 21m33s, CodeQL Python 13m32s).
 - **Residual #50**: aprovação nativa no desktop e distribuição de skills ficam para a próxima camada; só `restart-gateway` é executável.
 - Evidência: `audits/ZEUS-HEAL-002-2026-11-03-heal-proposals.md`.
+
+## 2026-11-03 | Auto-healing camada 3: aprovação no desktop (#61 merged)
+
+- **PR #61 MERGED `3c6fa7e21a`**: watcher em `apps/desktop/electron/heal-approval.ts` lê apenas propostas `pending` não expiradas (ID hexadecimal + nome de arquivo coincidente) e mostra modal nativo com ação, motivo, até três sinais, rollback e expiração.
+- **Aprovação explícita**: `Aprovar` spawna `zeus heal approve <id>` em PTY, espera o prompt `Type APPROVE to continue:` e só então escreve `APPROVE`; fechar/cancelar/rejeitar registra rejeição e não executa. Janela oculta/backend ausente falha fechado e mantém a proposta pendente.
+- **Ratchet**: `backend-identity.ts` extraiu `processIdentityMatches`/`backendParentMatches` do `main.ts` para compensar as linhas novas; `scripts/check` 12/12.
+- **Verificação**: 7/7 testes Electron, `tsc` PASS, ESLint 0 errors, PTY real no Windows (prompt → APPROVE → exit 0), CI #61 14/14 verde (desktop 28m0s, CodeQL Python 14m53s).
+- **Residual #50**: distribuição/aprendizado de skills com revisão do curator fica para a próxima camada; criação de proposta continua via CLI/agente.
+- Evidência: `audits/ZEUS-HEAL-003-2026-11-03-desktop-approval.md`.
