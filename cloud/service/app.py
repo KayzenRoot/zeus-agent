@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from . import stripe_api
-from .auth import Identity, current_identity, current_user
+from .auth import Identity, current_identity
 from .entitlements import (
     EntitlementNotConfigured,
     is_active,
@@ -83,13 +83,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post("/api/checkout")
     def checkout(
         body: CheckoutRequest,
-        user: str = Depends(current_user),
+        identity: Identity = Depends(current_identity),
     ) -> dict[str, Any]:
+        user = identity.user_id
+        if identity.org_id and identity.org_role not in {"org:admin", "org:owner"}:
+            raise HTTPException(status_code=403, detail="organization admin required")
         try:
             session = stripe_api.create_checkout_session(
                 settings,
                 user_id=user,
                 plan_key=body.plan,
+                org_id=identity.org_id,
             )
         except ValueError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
@@ -98,14 +102,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         url = session.get("url")
         if not url:
             raise HTTPException(status_code=502, detail="Stripe returned no checkout URL")
-        store.audit(user_id=user, event="checkout.created", detail={"plan": body.plan})
+        store.audit(
+            user_id=user,
+            org_id=identity.org_id,
+            event="checkout.created",
+            detail={"plan": body.plan},
+        )
         return {"url": url, "id": session.get("id")}
 
     @app.get("/api/entitlement")
-    def entitlement(user: str = Depends(current_user)) -> dict[str, Any]:
-        row = store.get(user)
+    def entitlement(identity: Identity = Depends(current_identity)) -> dict[str, Any]:
+        row = store.get_for_identity(identity.user_id, identity.org_id)
         current_period_end = int(row["current_period_end"]) if row and row["current_period_end"] else None
         active = is_active(row)
+        scope = "organization" if identity.org_id and row and row.get("org_id") else "user"
         return {
             "active": active,
             "plan": row["plan"] if row else None,
@@ -113,11 +123,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "current_period_end": current_period_end,
             "seats": plan_seats(row["plan"]) if row and active else 0,
             "features": plan_features(row["plan"]) if row and active else [],
+            "scope": scope,
         }
 
     @app.post("/api/billing/portal")
-    def billing_portal(user: str = Depends(current_user)) -> dict[str, Any]:
-        row = store.get(user)
+    def billing_portal(identity: Identity = Depends(current_identity)) -> dict[str, Any]:
+        user = identity.user_id
+        if identity.org_id and identity.org_role not in {"org:admin", "org:owner"}:
+            raise HTTPException(status_code=403, detail="organization admin required")
+        row = store.get_for_identity(user, identity.org_id)
         if not is_active(row):
             raise HTTPException(status_code=403, detail="no active subscription")
         customer_id = row.get("stripe_customer_id") if row else None
@@ -134,15 +148,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         url = session.get("url")
         if not url:
             raise HTTPException(status_code=502, detail="Stripe returned no portal URL")
-        store.audit(user_id=user, event="billing.portal", detail={"customer_id": str(customer_id)})
+        store.audit(
+            user_id=user,
+            org_id=identity.org_id,
+            event="billing.portal",
+            detail={"customer_id": str(customer_id)},
+        )
         return {"url": url}
 
     @app.post("/api/entitlement/token")
     def entitlement_token(
         body: TokenRequest,
-        user: str = Depends(current_user),
+        identity: Identity = Depends(current_identity),
     ) -> dict[str, Any]:
-        row = store.get(user)
+        row = store.get_for_identity(identity.user_id, identity.org_id)
         if not is_active(row):
             raise HTTPException(status_code=403, detail="no active subscription")
         if store.device_revoked(body.device_id):
@@ -155,22 +174,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post("/api/device/authorize")
     def authorize_device(
         body: DeviceAuthorizeRequest,
-        user: str = Depends(current_user),
+        identity: Identity = Depends(current_identity),
     ) -> dict[str, Any]:
-        row = store.get(user)
+        user = identity.user_id
+        row = store.get_for_identity(user, identity.org_id)
         if not is_active(row):
             raise HTTPException(status_code=403, detail="no active subscription")
+        scope_org = str(row["org_id"]) if row and row.get("org_id") else None
         existing = store.get_device(body.device_id)
-        if existing is not None and existing["user_id"] != user:
+        if existing is not None and existing["user_id"] != user and existing.get("org_id") != scope_org:
             raise HTTPException(status_code=409, detail="device belongs to another account")
         if existing is not None and existing["revoked_at"] is not None:
             raise HTTPException(status_code=403, detail="device is revoked")
-        if existing is None and store.count_active_devices(user) >= plan_seats(row["plan"]):
+        if existing is None and store.count_active_devices(user, scope_org) >= plan_seats(row["plan"]):
             raise HTTPException(status_code=409, detail="seat limit reached")
         if not store.upsert_device(
             device_id=body.device_id,
             user_id=user,
             name=body.device_name.strip() or None,
+            org_id=scope_org,
         ):
             raise HTTPException(status_code=409, detail="device belongs to another account")
         code = secrets.token_urlsafe(32)
@@ -183,13 +205,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         store.audit(
             user_id=user,
+            org_id=scope_org,
             event="device.authorize",
             detail={"device_id": body.device_id, "name": body.device_name.strip() or None},
         )
         return {"code": code, "expires_at": expires_at}
 
     @app.get("/api/devices")
-    def devices(user: str = Depends(current_user)) -> list[dict[str, Any]]:
+    def devices(identity: Identity = Depends(current_identity)) -> list[dict[str, Any]]:
         return [
             {
                 "device_id": row["device_id"],
@@ -198,25 +221,38 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "last_seen": int(row["last_seen"]),
                 "revoked": row["revoked_at"] is not None,
             }
-            for row in store.list_devices(user)
+            for row in store.list_devices(identity.user_id, identity.org_id)
         ]
 
     @app.post("/api/devices/{device_id}/revoke")
     def revoke_device(
         device_id: str = Path(min_length=8, max_length=128),
-        user: str = Depends(current_user),
+        identity: Identity = Depends(current_identity),
     ) -> dict[str, bool]:
-        if not store.revoke_device(user_id=user, device_id=device_id):
+        if identity.org_id and identity.org_role not in {"org:admin", "org:owner"}:
+            raise HTTPException(status_code=403, detail="organization admin required")
+        if not store.revoke_device(
+            user_id=identity.user_id, device_id=device_id, org_id=identity.org_id
+        ):
             raise HTTPException(status_code=404, detail="device not found")
-        store.audit(user_id=user, event="device.revoke", detail={"device_id": device_id})
+        store.audit(
+            user_id=identity.user_id,
+            org_id=identity.org_id,
+            event="device.revoke",
+            detail={"device_id": device_id},
+        )
         return {"revoked": True}
 
     @app.get("/api/audit")
     def audit(
         limit: int = Query(default=50, ge=1, le=100),
-        user: str = Depends(current_user),
+        identity: Identity = Depends(current_identity),
     ) -> dict[str, Any]:
-        return {"events": store.list_audit(user, limit=limit)}
+        return {
+            "events": store.list_audit(
+                identity.user_id, limit=limit, org_id=identity.org_id
+            )
+        }
 
     @app.get("/api/audit/export")
     def export_audit(
@@ -224,7 +260,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         limit: int = Query(default=100, ge=1, le=100),
         identity: Identity = Depends(current_identity),
     ) -> Response:
-        events = store.list_audit(identity.user_id, limit=limit)
+        events = store.list_audit(
+            identity.user_id, limit=limit, org_id=identity.org_id
+        )
         if format == "csv":
             buffer = io.StringIO()
             writer = csv.writer(buffer)
@@ -321,6 +359,7 @@ def _checkout_completed(
 ) -> None:
     metadata = session.get("metadata") or {}
     user_id = session.get("client_reference_id") or metadata.get("zeus_user_id")
+    org_id = metadata.get("zeus_org_id")
     plan = metadata.get("zeus_plan") or settings.plan_for_price(_first_price(session) or "")
     if not user_id or not plan:
         return
@@ -335,9 +374,10 @@ def _checkout_completed(
     # The authoritative status and period come from customer.subscription.*,
     # whose object is delivered by Stripe. Never fetch by an ID taken from a
     # webhook body: that is an SSRF sink and an unnecessary trust hop.
-    if store.get(str(user_id)) is None:
+    if store.get_for_identity(str(user_id), str(org_id) if org_id else None) is None:
         store.upsert(
             user_id=str(user_id),
+            org_id=str(org_id) if org_id else None,
             plan=str(plan),
             status="pending",
             customer_id=session.get("customer"),
@@ -348,6 +388,7 @@ def _checkout_completed(
         # A subscription event may have arrived first; only attach the ids.
         store.link(
             user_id=str(user_id),
+            org_id=str(org_id) if org_id else None,
             customer_id=session.get("customer"),
             subscription_id=str(subscription_id) if subscription_id else None,
         )
@@ -362,7 +403,8 @@ def _subscription_changed(
     metadata = subscription.get("metadata") or {}
     subscription_id = subscription.get("id")
     user_id = metadata.get("zeus_user_id")
-    row = store.get(str(user_id)) if user_id else None
+    org_id = metadata.get("zeus_org_id")
+    row = store.get_for_identity(str(user_id), str(org_id) if org_id else None) if user_id else None
     if row is None and subscription_id:
         row = store.find_by_subscription(str(subscription_id))
     if not user_id and row:
@@ -380,6 +422,7 @@ def _subscription_changed(
     )
     store.upsert(
         user_id=str(user_id),
+        org_id=str(org_id) if org_id else None,
         plan=str(plan),
         status=status,
         customer_id=subscription.get("customer"),
