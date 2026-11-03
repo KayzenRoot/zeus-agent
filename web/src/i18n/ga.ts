@@ -95,7 +95,7 @@ export const ga: Translations = {
   status: {
     actionFailed: "Theip ar an ngníomh",
     actionFinished: "Críochnaithe",
-    actionFinishedOwed: "Nuashonraithe, ach fós le críochnú (rith `hermes update` arís chun é a chríochnú)",
+    actionFinishedOwed: "Nuashonraithe, ach fós le críochnú (rith `zeus update` arís chun é a chríochnú)",
     actions: "Gníomhartha",
     agent: "Agent",
     activeSessions: "Seisiúin ghníomhacha",
@@ -342,7 +342,7 @@ export const ga: Translations = {
       "Sábháilte — atosaigh an gateway chun an t-athrú a chur i bhfeidhm.",
     forceReinstall: "Cuir iallach ar athshuiteáil (scrios an fillteán atá ann ar dtús)",
     headline:
-      "Faigh, suiteáil, cumasaigh agus nuashonraigh plugins Zeus (paireacht le `hermes plugins`).",
+      "Faigh, suiteáil, cumasaigh agus nuashonraigh plugins Zeus (paireacht le `zeus plugins`).",
     identifierLabel: "URL Git nó owner/repo",
     inactive: "neamhghníomhach",
     installBtn: "Suiteáil",

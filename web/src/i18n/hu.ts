@@ -95,7 +95,7 @@ export const hu: Translations = {
   status: {
     actionFailed: "Művelet sikertelen",
     actionFinished: "Befejezve",
-    actionFinishedOwed: "Frissítve, de még függőben (futtasd újra a `hermes update` parancsot a befejezéshez)",
+    actionFinishedOwed: "Frissítve, de még függőben (futtasd újra a `zeus update` parancsot a befejezéshez)",
     actions: "Műveletek",
     agent: "Ügynök",
     activeSessions: "Aktív munkamenetek",
@@ -334,7 +334,7 @@ export const hu: Translations = {
       "Mentve — indítsa újra az átjárót a módosítás alkalmazásához.",
     forceReinstall: "Kényszerített újratelepítés (a meglévő mappa előbb törlődik)",
     headline:
-      "Zeus-bővítmények felfedezése, telepítése, engedélyezése és frissítése (a `hermes plugins` paritás).",
+      "Zeus-bővítmények felfedezése, telepítése, engedélyezése és frissítése (a `zeus plugins` paritás).",
     identifierLabel: "Git URL vagy owner/repo",
     inactive: "inaktív",
     installBtn: "Telepítés",
@@ -532,7 +532,7 @@ export const hu: Translations = {
       highest_tier: "Legmagasabb szint",
       highest_tier_hint: "Copper → Silver → Gold → Diamond → Olympian",
       latest: "Legutóbbi",
-      latest_hint_empty: "futtasd többet a Hermest",
+      latest_hint_empty: "futtasd többet a Zeust",
       none_yet: "Még semmi",
     },
     state: {

@@ -92,7 +92,7 @@ export const frBoot = {
       since: time => `En attente depuis ${time}`,
       lastChecked: time => `Dernière vérification ${time}`,
       recoveryHint:
-        "Cela se règle généralement en quelques minutes. Sinon : quittez Zeus, arrêtez les processus git ou hermes restants (ou redémarrez l'ordinateur), puis rouvrez Zeus.",
+        "Cela se règle généralement en quelques minutes. Sinon : quittez Zeus, arrêtez les processus git ou zeus restants (ou redémarrez l'ordinateur), puis rouvrez Zeus.",
       checkAgain: 'Vérifier à nouveau',
       quit: 'Quitter Zeus',
       openLogs: 'Ouvrir les journaux',

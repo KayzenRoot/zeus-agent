@@ -95,7 +95,7 @@ export const fr: Translations = {
   status: {
     actionFailed: "Action échouée",
     actionFinished: "Terminé",
-    actionFinishedOwed: "Mis à jour, mais encore en attente (relancez `hermes update` pour terminer)",
+    actionFinishedOwed: "Mis à jour, mais encore en attente (relancez `zeus update` pour terminer)",
     actions: "Actions",
     agent: "Agent",
     activeSessions: "Sessions actives",
@@ -335,7 +335,7 @@ export const fr: Translations = {
       "Enregistré — redémarrez la passerelle pour appliquer la modification.",
     forceReinstall: "Forcer la réinstallation (supprimer d'abord le dossier existant)",
     headline:
-      "Découvrez, installez, activez et mettez à jour les plugins Zeus (parité avec `hermes plugins`).",
+      "Découvrez, installez, activez et mettez à jour les plugins Zeus (parité avec `zeus plugins`).",
     identifierLabel: "URL Git ou owner/repo",
     inactive: "inactif",
     installBtn: "Installer",

@@ -506,7 +506,7 @@ export const en: Translations = {
       'Your bundle was uploaded privately. Share the link below in your support thread so the team can see your logs.',
     failedTitle: 'Upload failed',
     failedHint:
-      'You can also run `hermes debug share --nous` from a terminal, or `hermes debug share --local` to print the report without uploading.',
+      'You can also run `zeus debug share --nous` from a terminal, or `zeus debug share --local` to print the report without uploading.',
     handoffLead: 'Pick up the discussion in:',
     links: {
       github: 'GitHub Issues',
@@ -1466,7 +1466,7 @@ export const en: Translations = {
       sshKeyTitle: 'Identity file',
       sshKeyDesc: 'Private key path. Blank = ssh-agent or ~/.ssh/config.',
       sshHermesPathTitle: 'Zeus path (optional)',
-      sshHermesPathDesc: 'Full path to the remote hermes binary. Blank = auto-detect.',
+      sshHermesPathDesc: 'Full path to the remote zeus binary. Blank = auto-detect.',
       sshHermesPathPlaceholder: 'auto-detect',
       sshTestConnection: 'Test SSH',
       sshConnect: 'Connect',
@@ -2081,7 +2081,7 @@ export const en: Translations = {
     edit: 'Edit',
     archive: 'Archive',
     skillArchivedTitle: 'Skill archived',
-    skillArchivedMessage: 'Restorable via hermes curator restore.',
+    skillArchivedMessage: 'Restorable via zeus curator restore.',
     tabPlugins: 'Plugins',
     plugins: {
       agentTitle: 'Agent plugins',
@@ -3763,7 +3763,7 @@ export const en: Translations = {
       notAvailable: 'Update not available for this backend.',
       failed: 'Backend update failed.',
       noReturn: 'Backend didn’t come back online. The update may not have completed — check the backend host.',
-      owed: steps => `Backend updated, but still owed: ${steps}. Re-run \`hermes update\` to finish them.`
+      owed: steps => `Backend updated, but still owed: ${steps}. Re-run \`zeus update\` to finish them.`
     },
     appName: 'Zeus', // Update-status overlay + version-details (mechanism-aware update UI).
     version: (value: string) => `Version ${value}`,
@@ -3801,9 +3801,9 @@ export const en: Translations = {
     versionDetailsDistributionDesktopMsix: 'Desktop app (MSIX)',
     versionDetailsDistributionDesktopInstaller: 'Desktop app (installer)',
     versionDetailsDistributionSourceInstaller: 'Source (install script)',
-    versionDetailsDistributionSourceInstallerDesktop: 'Source (install script) + hermes desktop',
+    versionDetailsDistributionSourceInstallerDesktop: 'Source (install script) + zeus desktop',
     versionDetailsDistributionSource: 'Source',
-    versionDetailsDistributionSourceDesktop: 'Source + hermes desktop',
+    versionDetailsDistributionSourceDesktop: 'Source + zeus desktop',
     versionDetailsDistributionStore: 'Microsoft Store',
     versionDetailsRuntime: 'Runtime',
     versionDetailsRuntimeEmbedded: 'Embedded runtime',

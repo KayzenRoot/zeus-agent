@@ -89,7 +89,7 @@ export const esBoot = {
       since: time => `Esperando desde ${time}`,
       lastChecked: time => `Última comprobación ${time}`,
       recoveryHint:
-        'Esto suele resolverse en unos minutos. Si no: cierra Zeus, termina los procesos git o hermes que queden (o reinicia el equipo) y vuelve a abrir Zeus.',
+        'Esto suele resolverse en unos minutos. Si no: cierra Zeus, termina los procesos git o zeus que queden (o reinicia el equipo) y vuelve a abrir Zeus.',
       checkAgain: 'Comprobar de nuevo',
       quit: 'Salir de Zeus',
       openLogs: 'Abrir registros',

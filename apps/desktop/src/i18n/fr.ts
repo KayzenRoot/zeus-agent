@@ -512,7 +512,7 @@ export const frOverrides = {
       "Votre paquet a été téléversé de manière privée. Partagez le lien ci-dessous dans votre fil d'assistance afin que l'équipe puisse consulter vos journaux.",
     failedTitle: "Échec de l'envoi",
     failedHint:
-      'Vous pouvez également exécuter `hermes debug share --nous` dans un terminal, ou `hermes debug share --local` pour afficher le rapport sans le téléverser.',
+      'Vous pouvez également exécuter `zeus debug share --nous` dans un terminal, ou `zeus debug share --local` pour afficher le rapport sans le téléverser.',
     handoffLead: 'Poursuivez la discussion sur :',
     links: {
       github: 'Issues GitHub',
@@ -1818,7 +1818,7 @@ export const frOverrides = {
       sshKeyTitle: "Fichier d'identité",
       sshKeyDesc: 'Chemin de la clé privée. Vide = ssh-agent ou ~/.ssh/config.',
       sshHermesPathTitle: 'Chemin Zeus (facultatif)',
-      sshHermesPathDesc: 'Chemin complet vers le binaire hermes distant. Vide = détection automatique.',
+      sshHermesPathDesc: 'Chemin complet vers le binaire zeus distant. Vide = détection automatique.',
       sshHermesPathPlaceholder: 'détection automatique',
       sshTestConnection: 'Tester SSH',
       sshConnect: 'Se connecter',
@@ -2446,7 +2446,7 @@ export const frOverrides = {
     edit: 'Modifier',
     archive: 'Archiver',
     skillArchivedTitle: 'Skill archivé',
-    skillArchivedMessage: 'Restaurable via hermes curator restore.',
+    skillArchivedMessage: 'Restaurable via zeus curator restore.',
     tabPlugins: 'Plugins',
     plugins: {
       agentTitle: "Plugins de l'agent",
@@ -4124,9 +4124,9 @@ export const frOverrides = {
     versionDetailsDistributionDesktopMsix: 'Application Desktop (MSIX)',
     versionDetailsDistributionDesktopInstaller: 'Application Desktop (installateur)',
     versionDetailsDistributionSourceInstaller: "Code source (script d'installation)",
-    versionDetailsDistributionSourceInstallerDesktop: "Code source (script d'installation) + hermes desktop",
+    versionDetailsDistributionSourceInstallerDesktop: "Code source (script d'installation) + zeus desktop",
     versionDetailsDistributionSource: 'Code source',
-    versionDetailsDistributionSourceDesktop: 'Code source + hermes desktop',
+    versionDetailsDistributionSourceDesktop: 'Code source + zeus desktop',
     versionDetailsDistributionStore: 'Microsoft Store',
     versionDetailsRuntime: "Environnement d'exécution",
     versionDetailsRuntimeEmbedded: "Environnement d'exécution intégré",
@@ -5489,7 +5489,7 @@ export const frOverrides = {
       success: platform => `Transféré vers ${platform}. Reprenez ici à tout moment.`,
       systemNote: platform => `↻ Transféré vers ${platform} — reprenez ici à tout moment.`,
       failed: error => `Échec du transfert : ${error}`,
-      timedOut: "Délai d'expiration en attendant la Gateway. `hermes gateway` est-il en cours d'exécution ?",
+      timedOut: "Délai d'expiration en attendant la Gateway. `zeus gateway` est-il en cours d'exécution ?",
       startMessaging: 'Démarrer la messagerie'
     }
   },

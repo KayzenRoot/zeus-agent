@@ -168,7 +168,7 @@ export function primaryRuntimeConnectionId(connection: Pick<HermesConnection, 'c
 // A freshly spawned backend can block its event loop for 15-30s while it
 // connects MCP servers and discovers plugins, so a single initial connect
 // attempt races backend cold-start and loses intermittently — the renderer
-// surfaced "Could not connect to Hermes gateway" even though the backend
+// surfaced "Could not connect to Zeus gateway" even though the backend
 // became healthy moments later (#49645). Retry the initial dial, re-minting
 // the WS URL on every attempt (OAuth tickets are single-use), instead of
 // failing the whole boot on the first transport error. Reauth failures
@@ -481,7 +481,7 @@ export function useGatewayBoot({
               }) ?? Promise.reject(new Error('Registry gateway connection is unavailable')))
             : desktop.getConnection(primaryConnection?.profile),
           RECONNECT_ATTEMPT_TIMEOUT_MS,
-          'Timed out reconnecting to Hermes backend'
+          'Timed out reconnecting to Zeus backend'
         )
 
         // A boot/connection apply that recorded a newer primary route during
@@ -504,7 +504,7 @@ export function useGatewayBoot({
         // Re-mint the WS URL before reconnecting. OAuth tickets are single-use
         // with a short TTL, so the ticket baked into the cached conn.wsUrl is
         // dead on every reconnect after the initial boot — reusing it surfaces
-        // as an opaque "Could not connect to Hermes gateway". resolveGatewayWsUrl
+        // as an opaque "Could not connect to Zeus gateway". resolveGatewayWsUrl
         // mints a fresh ticket rather than connecting with a stale one. An
         // explicit auth rejection asks for sign-in; transport failures stay in
         // this reconnect loop. For local/token gateways the URL carries a
@@ -843,7 +843,7 @@ export function useGatewayBoot({
         const conn = await withTimeout(
           getWindowBackend(),
           BACKEND_BOOT_WAIT_TIMEOUT_MS,
-          'Timed out reconnecting to Hermes backend'
+          'Timed out reconnecting to Zeus backend'
         )
 
         if (!ownsSwitch()) {
@@ -946,7 +946,7 @@ export function useGatewayBoot({
         return
       }
 
-      // Soft switch / post-boot startHermes re-emits progress — ignore so the
+      // Soft switch / post-boot startZeus re-emits progress — ignore so the
       // cold-boot CONNECTING overlay stays down. A boot that ended in failure
       // is concluded too: replaying its steps would take the recovery overlay
       // back down. Post-boot errors are gated:
@@ -1043,7 +1043,7 @@ export function useGatewayBoot({
     configureGatewayRegistry({
       onServerRequest: request => {
         if (!callbacksRef.current.handleServerRequest(request)) {
-          request.fail(JSON_RPC_METHOD_NOT_FOUND, `Hermes Desktop cannot answer ${request.method}`)
+          request.fail(JSON_RPC_METHOD_NOT_FOUND, `Zeus Desktop cannot answer ${request.method}`)
         }
       },
       // The primary socket has no secondary entry to carry registry identity.
@@ -1232,7 +1232,7 @@ export function useGatewayBoot({
         activeGateway()?.close()
 
         if (!(await ensureActiveGatewayOpen({ explicit: true }))) {
-          throw new Error('Hermes gateway is not connected')
+          throw new Error('Zeus gateway is not connected')
         }
 
         return
@@ -1473,7 +1473,7 @@ export function useGatewayBoot({
         const conn = await withTimeout(
           getWindowBackend(true),
           BACKEND_BOOT_WAIT_TIMEOUT_MS,
-          'Timed out connecting to Hermes backend'
+          'Timed out connecting to Zeus backend'
         )
 
         if (cancelled) {
@@ -1542,7 +1542,7 @@ export function useGatewayBoot({
           // still stall its event loop for seconds on the first WS handshake —
           // a local boot failure is latched non-retryable, so without this
           // retry the one lost race ended the boot in "Could not connect to
-          // Hermes gateway". The first attempt reuses the URL minted at the
+          // Zeus gateway". The first attempt reuses the URL minted at the
           // boot boundary above — the mint count stays observable (#93454) —
           // while later attempts re-mint; local token URLs are long-lived, so
           // the re-mint is a cheap no-op.
@@ -1594,7 +1594,7 @@ export function useGatewayBoot({
           // already open by this point — a failed sidebar fetch (transient
           // blip, or an endpoint the fallback couldn't cover) must leave the
           // app usable with an empty sidebar (the reconnect/turn refreshes
-          // retry it), not brick boot behind the "Hermes couldn't start"
+          // retry it), not brick boot behind the "Zeus couldn't start"
           // overlay. Matches the reconnect + softSwitch call sites.
           callbacksRef.current.refreshSessions().catch(() => {
             setSessionsLoading(false)

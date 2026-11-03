@@ -4,62 +4,47 @@
 
 # Zeus Agent ⚡
 
-**Agente de IA com interface visual, desenvolvido primeiro no computador local.**
+**Agente de IA local-first com constelação de agentes, orquestração e assinatura.**
 
-[Repositório Zeus](https://github.com/KayzenRoot/zeus-agent) · [PR de integração e identidade #1](https://github.com/KayzenRoot/zeus-agent/pull/1) · [Documentação do projeto](.zeus/docs/README.md)
+[Repositório](https://github.com/KayzenRoot/zeus-agent) · [Documentação](.zeus/docs/README.md) · [Roadmap](.zeus/docs/product-roadmap-experience-v2.md)
 
-> **Status: desenvolvimento.** A importação do código e histórico upstream e a primeira camada de identidade Zeus estão na branch `work/ZEUS-001-import-brand`. Não há ainda versão Zeus integralmente testada ou publicada para instalação em produção.
+> **Status:** produção local em evolução. O runtime, o dashboard, o instalador e o gate de assinatura
+> têm evidência de testes; release assinada (MSIX/DMG) e live mode seguem owner-gated.
 
-## O que estamos construindo
+## O que está pronto
 
-Zeus Agent é uma evolução personalizada do projeto de código aberto Hermes Agent, com identidade própria e uma central visual no navegador para acompanhar e supervisionar agentes, suas tarefas e ferramentas.
+- **Runtime Zeus** com agente principal, subagentes, memória, skills, cron, Kanban e gateway.
+- **Dashboard/constelação** com tema escuro, avatares e linhas de energia entre agentes.
+- **Gate de assinatura**: entitlement Ed25519 vinculado ao dispositivo, com grace offline.
+- **Zeus Cloud** (test mode): Clerk (e-mail/telefone), Stripe Checkout com trial de 2 dias,
+  Customer Portal e gestão de dispositivos.
+- **Instalador Zeus-owned** (`scripts/zeus-install.*`) com root isolado, launcher rápido e
+  desinstalação que preserva dados.
+- **Desktop Electron 44.9.3** com marca Zeus, onboarding por provedor e ativação por
+  `zeus://auth/callback`.
 
-A arquitetura mantém o núcleo do agente e as integrações atuais enquanto substitui gradualmente marca, componentes visuais e experiência de uso. O dashboard existente do upstream é nosso ponto de partida, não será construído um segundo chat incompatível.
-
-### Entregue na branch de trabalho
-
-- Código e histórico original do Hermes importados com rastreabilidade Git e licença MIT preservada.
-- Primeiros SVGs originais do Zeus: ícone de raio e wordmark.
-- Título, favicon e cabeçalho do dashboard adaptados para Zeus.
-- Primeira conversão de imagens e mensagens visíveis para web e desktop.
-- Testes automáticos de branding, TypeScript, lint e build do dashboard configurados no GitHub Actions.
-
-**Em andamento:** revisão de todos os elementos de interface, marca e documentação; validação local Windows/WSL2; correções de bugs e evolução do monitor de agentes. O trabalho só recebe status de aprovado quando existir evidência de funcionamento e testes suficientes.
-
-## Desenvolvimento local (Windows / WSL2)
-
-Não use os instaladores oficiais da Nous Research para instalar o *Zeus*: eles instalam/atualizam o software original, não a nossa distribuição.
-
-Para obter o código que estamos desenvolvendo:
+## Desenvolvimento local
 
 ```powershell
-git clone --branch work/ZEUS-001-import-brand https://github.com/KayzenRoot/zeus-agent.git
-cd zeus-agent
-```
-
-Com Node.js 24 e npm compatíveis, execute as verificações de frontend utilizadas pelo CI:
-
-```powershell
+# frontend
 npm ci
 npm run --workspace web check
 npm run --workspace web build
+
+# testes Python (runner canônico, ambiente isolado)
+scripts/run_tests.sh
+
+# gate de lint/saúde
+python scripts/check
 ```
 
-Para os testes do branding (Python 3):
-
-```powershell
-python -m unittest discover -s .zeus/tests -p "test_*.py"
-```
-
-### Instalação local Zeus-owned (fluxo B)
-
-A partir de um clone verificado deste repositório (remoto `KayzenRoot/zeus-agent`, HEAD commitado, árvore limpa), instale o Zeus num diretório isolado — sem executar instaladores da Nous, sem tocar num perfil Hermes/Zeus existente e sem habilitar update/bootstrap:
+### Instalação local
 
 ```powershell
 # Windows
-.\scripts\zeus-install.ps1 --plan    # valida e mostra o plano (não escreve nada)
-.\scripts\zeus-install.ps1           # constrói o ambiente e instala launcher + recibo
-.\scripts\zeus-install.ps1 --uninstall --yes   # remover; --purge-data apaga o HERMES_HOME isolado
+.\scripts\zeus-install.ps1 --plan
+.\scripts\zeus-install.ps1
+.\scripts\zeus-install.ps1 --uninstall --yes
 ```
 
 ```bash
@@ -69,28 +54,33 @@ A partir de um clone verificado deste repositório (remoto `KayzenRoot/zeus-agen
 ./scripts/zeus-install.sh --uninstall --yes
 ```
 
-O root padrão é `%LOCALAPPDATA%\ZeusAgent` (Windows) ou `$XDG_DATA_HOME/zeus-agent` (POSIX); `HERMES_HOME` fica em `<root>/home`, isolado. O launcher executa o venv gravado enquanto `uv.lock`, `pyproject.toml` e `pm/lock.json` não mudarem (fast path); qualquer mudança cai no `activate` do checkout, que re-sincroniza antes de rodar. O recibo em `<root>/receipt.json` registra checkout, SHA, origem, alvo do launcher, digests dos inputs e caminhos criados; a desinstalação espelha o recibo e preserva sessões/memórias sem `--purge-data`. Release assinada (MSIX/DMG/publisher) continua NO-GO na issue #4.
+O root padrão é `%LOCALAPPDATA%\ZeusAgent` (Windows) ou `$XDG_DATA_HOME/zeus-agent` (POSIX);
+o home do runtime fica em `<root>/home`, isolado. O recibo em `<root>/receipt.json` registra
+checkout, SHA, origem, launcher, digests e caminhos; a desinstalação preserva sessões/memórias
+sem `--purge-data`.
 
-Esses comandos **validam código e build**, mas não equivalem a testar uma sessão real com modelo e gateway. Para o chat embutido do dashboard, o upstream depende de PTY POSIX: execute o backend no WSL2 até existir suporte nativo equivalente. O ambiente Python deve seguir o gerenciador definido pelo upstream, sem instalar pacotes aleatórios globalmente.
+### Zeus Cloud (test mode)
 
-**Compatibilidade temporária:** comandos `hermes`, nomes de pacotes, variáveis `HERMES_*`, caminhos de dados, endpoints e chaves de configuração podem continuar com nomes originais para não quebrar integrações. A interface pública deverá usar a marca Zeus. Não renomeie esses identificadores sem migração e testes.
+```bash
+python -m cloud.service                 # API em 127.0.0.1:9121
+python -m http.server 9120 --directory cloud/site
+```
 
-**Proteção de atualização:** até existir um canal Zeus com origem, assinatura e rollback auditados, `zeus update` e `hermes update` são bloqueados preventivamente neste checkout; a interface desktop também recusa consulta, aplicação e troca de canal, e novos builds não embutem feeds de atualização. Isso evita importar uma versão upstream não revisada para o Zeus. Para consultar commits da própria branch, use `git fetch origin` e faça revisão antes de qualquer integração. Nunca execute o instalador ou o atualizador oficial do Hermes para "atualizar" o Zeus.
+Chaves ficam apenas no `.env` do home; nunca no cliente. Veja [`cloud/README.md`](cloud/README.md).
+
+## Compatibilidade
+
+A marca pública é **Zeus**. O comando oficial é `zeus`; `hermes` permanece como alias e os
+identificadores internos do upstream (pacotes, variáveis de ambiente e caminhos de dados)
+continuam por compatibilidade. Não os renomeie sem uma migração testada.
+
+`zeus update` e o updater upstream são bloqueados até existir um canal Zeus assinado com rollback.
 
 ## Segurança e licença
 
-O repositório é **público por decisão do proprietário**. Nunca envie `.env` com credenciais, tokens, logs de sessões, chaves, arquivos locais de estado ou dados particulares.
+O repositório é **público por decisão do proprietário**. Nunca envie `.env` com credenciais,
+tokens, logs de sessão, chaves ou dados particulares.
 
-A base original é [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent), licenciada sob a **MIT License**. A licença e o aviso de copyright da Nous Research estão preservados no arquivo [LICENSE](LICENSE). Zeus Agent é uma personalização independente; a referência à origem não implica patrocínio ou endosso da Nous Research.
-
-## Planejamento e evidências
-
-- [Escopo e requisitos](.zeus/docs/scope.md)
-- [Arquitetura](.zeus/docs/architecture.md)
-- [Segurança](.zeus/docs/security.md)
-- [Definition of Done](.zeus/docs/definition-of-done.md)
-- [Checkpoint verificado](.zeus/docs/checkpoint.md)
-- [Work Order ZEUS-001](.zeus/docs/work-orders/ZEUS-001.md)
-- [Matriz de validação Windows/WSL2 e distribuição](.zeus/docs/windows-validation.md)
-
-**Próxima etapa:** terminar a identidade e a validação local da ZEUS-001 antes de integrar na `main`. Implantação na VPS está fora do escopo atual.
+A base upstream é um projeto open source sob **MIT License**; o aviso de copyright original está
+preservado em [LICENSE](LICENSE). Zeus Agent é uma personalização independente e não implica
+patrocínio ou endosso do projeto original.

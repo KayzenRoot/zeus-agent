@@ -95,7 +95,7 @@ export const ja: Translations = {
   status: {
     actionFailed: "アクションが失敗しました",
     actionFinished: "完了",
-    actionFinishedOwed: "更新済みですが未完了の処理があります（完了するには `hermes update` を再実行してください）",
+    actionFinishedOwed: "更新済みですが未完了の処理があります（完了するには `zeus update` を再実行してください）",
     actions: "アクション",
     agent: "エージェント",
     activeSessions: "アクティブなセッション",
@@ -333,7 +333,7 @@ export const ja: Translations = {
       "保存しました — 変更を適用するにはゲートウェイを再起動してください。",
     forceReinstall: "強制再インストール (既存のフォルダを先に削除)",
     headline:
-      "Zeus プラグインを発見、インストール、有効化、更新します (`hermes plugins` 相当)。",
+      "Zeus プラグインを発見、インストール、有効化、更新します (`zeus plugins` 相当)。",
     identifierLabel: "Git URL または owner/repo",
     inactive: "非アクティブ",
     installBtn: "インストール",

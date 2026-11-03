@@ -15,7 +15,7 @@ export const arDiagnostics = {
     doneDescription: 'تم رفع الحزمة بشكل خاص. شارك الرابط أدناه في محادثة الدعم لكي يتمكن الفريق من رؤية سجلاتك.',
     failedTitle: 'فشل الرفع',
     failedHint:
-      'يمكنك أيضاً تشغيل `hermes debug share --nous` من الطرفية، أو `hermes debug share --local` لعرض التقرير دون رفعه.',
+      'يمكنك أيضاً تشغيل `zeus debug share --nous` من الطرفية، أو `zeus debug share --local` لعرض التقرير دون رفعه.',
     handoffLead: 'تابع النقاش في:',
     links: {
       github: 'GitHub Issues',

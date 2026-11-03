@@ -95,7 +95,7 @@ export const es: Translations = {
   status: {
     actionFailed: "Acción fallida",
     actionFinished: "Finalizado",
-    actionFinishedOwed: "Actualizado, pero aún pendiente (vuelve a ejecutar `hermes update` para terminar)",
+    actionFinishedOwed: "Actualizado, pero aún pendiente (vuelve a ejecutar `zeus update` para terminar)",
     actions: "Acciones",
     agent: "Agente",
     activeSessions: "Sesiones activas",
@@ -335,7 +335,7 @@ export const es: Translations = {
       "Guardado: reinicia el gateway para aplicar el cambio.",
     forceReinstall: "Forzar reinstalación (eliminar carpeta existente primero)",
     headline:
-      "Descubre, instala, habilita y actualiza complementos de Zeus (equivalente a `hermes plugins`).",
+      "Descubre, instala, habilita y actualiza complementos de Zeus (equivalente a `zeus plugins`).",
     identifierLabel: "URL de Git u owner/repo",
     inactive: "inactivo",
     installBtn: "Instalar",
