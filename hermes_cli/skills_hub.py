@@ -1537,6 +1537,11 @@ def _tap_cli(args) -> None:
     do_tap(tap_action, repo=getattr(args, "repo", "") or getattr(args, "name", ""))
 
 
+def _review_cli(args):
+    from hermes_cli.skills_review import cmd_review
+    return cmd_review(args)
+
+
 # `hermes skills <action>` -> handler(args). Lambdas late-bind the do_* names so
 # tests that patch("hermes_cli.skills_hub.do_install") still intercept.
 _CLI_ACTIONS = {
@@ -1564,6 +1569,7 @@ _CLI_ACTIONS = {
                                                     skip_confirm=getattr(a, "yes", False)),
     "publish": lambda a: do_publish(a.skill_path, target=getattr(a, "to", "github"),
                                     repo=getattr(a, "repo", "")),
+    "review": _review_cli,
     "snapshot": _snapshot_cli, "tap": _tap_cli}
 
 
@@ -1571,14 +1577,17 @@ def skills_command(args) -> Optional[int]:
     """Router for `hermes skills <subcommand>` — called from hermes_cli/main.py."""
     handler = _CLI_ACTIONS.get(getattr(args, "skills_action", None))
     if handler is None:
-        _console.print("Usage: hermes skills [browse|search|install|inspect|list|list-modified|diff|check|update|audit|uninstall|reset|opt-out|opt-in|publish|snapshot|tap]\n")
+        _console.print("Usage: hermes skills [browse|search|install|inspect|list|list-modified|diff|check|update|audit|uninstall|reset|opt-out|opt-in|publish|review|snapshot|tap]\n")
         _console.print("Run 'hermes skills <command> --help' for details.\n")
         return None
     # A handler reporting a real failure (install/update/uninstall's False) must exit non-zero: the
     # Desktop Hub reads the spawned action's exit code to decide whether to toast, so an exit-0
     # failure renders as "the button did nothing" while the reason sits unread in the action log.
     # Returned, not sys.exit()-ed: `hermes` turns a handler's int into the exit code.
-    return 1 if handler(args) is False else None
+    result = handler(args)
+    if isinstance(result, bool):
+        return 1 if result is False else None
+    return result or None
 
 
 # --- Slash command entry point (/skills in chat) ---
