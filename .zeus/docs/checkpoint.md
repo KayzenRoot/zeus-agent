@@ -232,3 +232,12 @@ the **CORRECTION REQUIRED** verdict until independent audit confirms DoD.
 - **PR #58 MERGED `3de8468b2d`**: `org_id` em entitlements/devices/audit, propagado pelo checkout e webhooks; membros compartilham entitlement e seats; admin/owner podem revogar/abrir portal; member não pode checkout/portal/revogação; auditoria/export no escopo da Organization.
 - **Verificação**: cloud 40/40 testes, `scripts/check` 12/12, CI #58 14/14 (desktop 26m50s).
 - **Residual #51**: SSO/SAML/OIDC exige o IdP do owner no Clerk; papéis finos e convites/remoção de membros ficam no Clerk. Live mode/deploy seguem owner-gated. Evidência: `audits/ZEUS-ENTERPRISE-003-2026-11-03-org-seats.md`.
+
+## 2026-11-03 | Produção: readiness e páginas legais (#59 merged)
+
+- **PR #59 MERGED `247b51b311`**: `GET /api/readiness` público e sem segredos valida Stripe, webhook, Clerk, chave Ed25519 + TTL, os quatro preços e o SQLite; `ready` é a conjunção e falha fechado. `signing_key_configured()` e `EntitlementStore.ping()` dão suporte determinístico.
+- **Documentos legais**: `cloud/site/terms.html` e `privacy.html` em pt-BR, com placeholders de razão social/CNPJ/endereço/suporte/DPO/foro e aviso de revisão jurídica; CSS compartilhado em `legal.css`; rodapé da landing linka os dois.
+- **Checklist**: `cloud/README.md` separa o que está pronto (checkout, trial, webhook, entitlement, seats, auditoria, readiness, documentos) do que o owner precisa executar (domínio, DNS/TLS, preços live, webhook público, deploy, revisão jurídica, `ZEUS_CLOUD_ALLOW_LIVE=1`).
+- **Verificação**: cloud **43/43** testes; `python scripts/check` **12/12**; links/refs das três páginas validados; CI #59 **14/14 verde** (desktop 28m29s, CodeQL Python 18m29s). Sonar reprovou a primeira versão por **6,3% de duplicação**; a extração de `legal.css` levou o gate a **pass**.
+- **Residual owner-gated**: compra do domínio, DNS/TLS, webhook público, preços live, deploy com backup e revisão jurídica. SSO/SAML/OIDC segue dependente do IdP no Clerk. Nenhum gasto, cobrança real, deploy ou publicação foi executado.
+- Evidência: `audits/ZEUS-PROD-001-2026-11-03-production-readiness.md`.

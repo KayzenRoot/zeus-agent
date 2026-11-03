@@ -20,8 +20,11 @@ Stripe live ficam owner-gated.
 
 - `tests/cloud/test_cloud_service.py` — **43/43 PASS**, incluindo readiness pronto, falta de
   preço, webhook/chave ausentes, ausência de segredos na resposta e DB acessível.
-- `python scripts/check` — a executar no commit.
+- `python scripts/check` — **12/12 OK**.
 - Links legais validados contra os arquivos de `cloud/site/`.
+- CI #59 — **14/14 PASS**. A primeira versão reprovou no Sonar com **6,3% de duplicação**
+  (requisito ≤ 3%); as duas páginas passaram a compartilhar `cloud/site/legal.css` e o gate
+  ficou verde. Merge commit `247b51b311`.
 
 ## Residual
 
