@@ -43,6 +43,10 @@
 - Fluxo real no PC: usuário ativo no SQLite → `/api/device/authorize` 200 → `device-id` local →
   `hermes entitlement activate <code>` 200 → `hermes entitlement status` ativo com plano annual e
   expiração de 7 dias, verificado pela chave pública versionada. Nenhum segredo impresso.
+- Desktop empacotado (`release/win-unpacked`, Electron 44.9.3) no PC: sem token, o overlay
+  “Ative sua assinatura” bloqueia o chat; com um código novo, `zeus://auth/callback?code=…` foi
+  entregue ao app, o main gravou `zeus-entitlement.json` (0600, 495 bytes) e o overlay sumiu sem
+  reiniciar o processo. O runtime relê o arquivo como `active`, plano annual, 10 seats.
 - `tests/hermes_cli/test_finite_chat_delegation.py` — **6/6 PASS** com o gate ativo.
 - Desktop: `npm run typecheck` e `npm run lint` (0 erros); `entitlement.test.ts` **4/4**;
   `deeplink-routes.test.ts` **8/8**.
@@ -52,5 +56,5 @@
 1. O gateway de mensageria ainda não recusa o boot sem assinatura; o gate cobre os turnos e o
    desktop. Um gate de boot pode ser adicionado sem bloquear a UI de ativação.
 2. Revogação/denylist online, rotação por `kid` e reconciliação periódica ainda não existem.
-3. E2E visual do desktop com o app empacotado (abrir, ativar via deep link, reiniciar) fica para o
-   próximo ciclo de build.
+3. O E2E visual do desktop foi validado no PC (overlay → deep link → app liberado); o pacote
+   segue UNSIGNED e o gate de boot do gateway fica para o próximo ciclo.

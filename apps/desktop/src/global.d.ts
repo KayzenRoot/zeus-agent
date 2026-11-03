@@ -423,11 +423,11 @@ declare global {
       setPreviewGuestHidden?: (webContentsId: number, hidden: boolean) => void
       openExternal: (url: string) => Promise<void>
       /** Zeus subscription status for this machine, verified locally. */
-      entitlementStatus: () => Promise<ZeusEntitlementStatus>
+      entitlementStatus?: () => Promise<ZeusEntitlementStatus>
       /** Exchange a one-time activation code and persist the signed token. */
-      entitlementActivate: (code: string) => Promise<ZeusEntitlementStatus>
+      entitlementActivate?: (code: string) => Promise<ZeusEntitlementStatus>
       /** Open the Zeus site with this device id pre-filled. */
-      openEntitlementActivation: () => Promise<void>
+      openEntitlementActivation?: () => Promise<void>
       onExternalOpenFailed?: (callback: (payload: ExternalOpenFailedPayload) => void) => () => void
       /** The free tier's browser challenge (electron/challenge-window.ts): load
        *  the account service's page in a hidden window, revealed only if the
