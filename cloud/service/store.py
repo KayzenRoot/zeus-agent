@@ -136,6 +136,11 @@ class EntitlementStore:
             ).fetchone()
         return dict(row) if row else None
 
+    def ping(self) -> bool:
+        with self._connect() as connection:
+            connection.execute("SELECT 1").fetchone()
+        return True
+
     def get_for_identity(self, user_id: str, org_id: str | None) -> dict[str, Any] | None:
         if org_id:
             with self._connect() as connection:

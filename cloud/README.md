@@ -36,6 +36,7 @@ troque por `https://api.<domínio>`.
 | Rota | Auth | Função |
 |---|---|---|
 | `GET /health` | pública | status e modo (`test`/`live`) |
+| `GET /api/readiness` | pública | checagens booleanas de configuração, sem segredos |
 | `GET /api/plans` | pública | catálogo de `cloud/plans.json` |
 | `POST /api/checkout` | Bearer Clerk JWT | `{ "plan": "monthly" }` → `{ "url", "id" }` |
 | `GET /api/entitlement` | Bearer Clerk JWT | plano, status, fim do período e features |
@@ -140,6 +141,37 @@ podem ativar dispositivos dentro dos seats. SSO/SAML/OIDC exige configurar o IdP
 
 1. SSO/SAML/OIDC e seats por Organization: requerem o IdP do owner configurado no Clerk; o
    contexto `org_id`/`org_role` já chega em `/api/identity`.
-2. Migrar para live mode com os mesmos quatro preços (revisão do owner), domínio público,
-   webhook público e termos/privacidade.
-3. Release assinada (MSIX/DMG/publisher) — issue #4.
+2. Domínio público, DNS/TLS, webhook público em `https://api.<domínio>/api/stripe/webhook` e
+   deploy do serviço/landing — **owner-gated** até a compra do domínio.
+3. Live mode com os mesmos quatro preços, revisão do owner e `ZEUS_CLOUD_ALLOW_LIVE=1` apenas no
+   go-live aprovado.
+4. Revisão jurídica dos termos/privacidade e preenchimento dos dados do controlador.
+5. Release assinada (MSIX/DMG/publisher) — issue #4.
+
+## Checklist de produção (#52)
+
+O que já está pronto e testado sem domínio nem live mode:
+
+- [x] Checkout autenticado por Clerk (e-mail/telefone) com 2 dias de trial.
+- [x] Quatro planos BRL em test mode; compra nunca usa Payment Link público.
+- [x] Webhook Stripe assinado (HMAC, tolerância de 300 s, comparação constante).
+- [x] Entitlement Ed25519 vinculado ao dispositivo, com assinatura verificada no runtime.
+- [x] Seats e escopo por usuário/Organization; portal, dispositivos e auditoria.
+- [x] `GET /api/readiness` valida Stripe, webhook, Clerk, chave de assinatura, quatro preços e DB
+      sem devolver segredos; responde `{"ready": false, "checks": {...}}` se faltar configuração.
+- [x] Termos de uso e Política de Privacidade em `cloud/site/terms.html` e
+      `cloud/site/privacy.html`, linkados no rodapé da landing.
+- [x] Landing sem referências visuais ao Hermes; atribuição MIT no README/termos.
+
+Antes do go-live, o owner precisa fornecer/executar:
+
+- [ ] Comprar o domínio e definir `api.<domínio>`/`<domínio>`.
+- [ ] Criar os quatro preços **live** no Stripe e configurar o webhook público.
+- [ ] Preencher `RAZÃO SOCIAL`, `CNPJ`, endereço, e-mail de suporte, DPO e foro nos documentos
+      legais; revisão jurídica.
+- [ ] Definir `ZEUS_CLOUD_ALLOW_LIVE=1` somente na janela de go-live aprovada.
+- [ ] Deploy do serviço/landing com TLS e backup do SQLite.
+- [ ] Confirmar `GET /api/readiness` → `ready: true`, `mode: "live"` no ambiente final.
+
+Enquanto o domínio não for comprado, o serviço permanece em `127.0.0.1:9121`, test mode, sem
+deploy público e sem cobrança real. Nada nesta etapa autoriza gastos ou operações financeiras.

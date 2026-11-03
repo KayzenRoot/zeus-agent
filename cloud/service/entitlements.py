@@ -38,6 +38,14 @@ def plan_seats(plan: str | None) -> int:
     return SEATS.get(plan or "", 1)
 
 
+def signing_key_configured(settings: Settings) -> bool:
+    try:
+        _signing_key(settings)
+    except EntitlementNotConfigured:
+        return False
+    return True
+
+
 def is_active(row: dict[str, Any] | None, *, now: int | None = None) -> bool:
     if not row or row.get("status") not in {"active", "trialing"}:
         return False

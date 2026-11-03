@@ -39,14 +39,24 @@ def settings(tmp_path: Path) -> Settings:
                         "amount": 99000,
                         "interval": "month",
                         "price_id": "price_monthly",
-                        "payment_link": "https://buy.stripe.com/test_monthly",
+                    },
+                    "quarterly": {
+                        "name": "Zeus Pro - Trimestral",
+                        "amount": 267000,
+                        "interval": "3 months",
+                        "price_id": "price_quarterly",
+                    },
+                    "semiannual": {
+                        "name": "Zeus Pro - Semestral",
+                        "amount": 504000,
+                        "interval": "6 months",
+                        "price_id": "price_semiannual",
                     },
                     "annual": {
                         "name": "Zeus Pro - Anual",
                         "amount": 948000,
                         "interval": "year",
                         "price_id": "price_annual",
-                        "payment_link": "https://buy.stripe.com/test_annual",
                     },
                 },
             }
@@ -106,6 +116,70 @@ def test_health_and_plans_are_public(client: TestClient) -> None:
     plans = client.get("/api/plans")
     assert plans.status_code == 200
     assert plans.json()["plans"]["monthly"]["price_id"] == "price_monthly"
+
+
+def test_readiness_is_public_and_reports_every_configuration_check(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("ZEUS_CLOUD_DEV_AUTH", "1")
+    client = TestClient(create_app(replace(settings, clerk_frontend_api="clerk.example.com")))
+
+    response = client.get("/api/readiness")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "ready": True,
+        "checks": {
+            "stripe": True,
+            "stripe_webhook": True,
+            "clerk": True,
+            "entitlement_signing": True,
+            "plans": True,
+            "database": True,
+        },
+        "mode": "test",
+    }
+    assert "sk_test_fake" not in response.text
+    assert WEBHOOK_SECRET not in response.text
+
+
+def test_readiness_fails_closed_when_a_plan_price_is_missing(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("ZEUS_CLOUD_DEV_AUTH", "1")
+    settings.plans_path.write_text(
+        json.dumps({"plans": {"monthly": {"price_id": "price_monthly"}}}),
+        encoding="utf-8",
+    )
+    client = TestClient(create_app(replace(settings, clerk_frontend_api="clerk.example.com")))
+
+    body = client.get("/api/readiness").json()
+
+    assert body["ready"] is False
+    assert body["checks"]["plans"] is False
+    assert body["checks"]["database"] is True
+
+
+def test_readiness_flags_missing_webhook_and_signing_key(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("ZEUS_CLOUD_DEV_AUTH", "1")
+    client = TestClient(
+        create_app(
+            replace(
+                settings,
+                clerk_frontend_api="clerk.example.com",
+                stripe_webhook_secret="",
+                entitlement_private_key_b64="",
+            )
+        )
+    )
+
+    body = client.get("/api/readiness").json()
+
+    assert body["ready"] is False
+    assert body["checks"]["stripe_webhook"] is False
+    assert body["checks"]["entitlement_signing"] is False
 
 
 def test_entitlement_requires_a_bearer_token(client: TestClient) -> None:
