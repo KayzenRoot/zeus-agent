@@ -259,3 +259,11 @@ the **CORRECTION REQUIRED** verdict until independent audit confirms DoD.
 - **Verificação**: 7/7 testes Electron, `tsc` PASS, ESLint 0 errors, PTY real no Windows (prompt → APPROVE → exit 0), CI #61 14/14 verde (desktop 28m0s, CodeQL Python 14m53s).
 - **Residual #50**: distribuição/aprendizado de skills com revisão do curator fica para a próxima camada; criação de proposta continua via CLI/agente.
 - Evidência: `audits/ZEUS-HEAL-003-2026-11-03-desktop-approval.md`.
+
+## 2026-11-03 | Skills com revisão do owner (#62 merged)
+
+- **PR #62 MERGED `ccd8bfad9a`**: `hermes skills review list|diff|approve|reject` sobre o gate existente `skills.write_approval`; listar/diff não escrevem, approve exige TTY + palavra exata `APPROVE`, reject descarta. O roteador `hermes skills` agora propaga o exit code do review.
+- **Gate ativado** na config local do owner (`skills.write_approval: true`); o chat/TUI/desktop continua com `/skills pending|diff|approve|reject`. Reversão: `zeus config set skills.write_approval false`.
+- **Verificação**: `tests/hermes_cli/test_skills_review.py` 8/8; `scripts/check` 12/12; E2E em `HERMES_HOME` temporário provou `skill_manage(create) → staged: true`, nada instalado, approve em PTY com `APPROVE` → exit 0 e `SKILL.md` instalado. CI #62 14/14 verde (desktop 27m31s).
+- **Residual #50**: distribuição de skills entre subagentes do orquestrador não mudou; o gate é config do owner, não default upstream.
+- Evidência: `audits/ZEUS-HEAL-004-2026-11-03-skills-review.md`.
