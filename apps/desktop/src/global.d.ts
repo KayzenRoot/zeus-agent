@@ -30,6 +30,16 @@ export {}
 
 export type DesktopMachineProfile = MachineProfile
 
+export interface ZeusEntitlementStatus {
+  active: boolean
+  reason: string
+  plan: string | null
+  features: string[]
+  seats: number | null
+  expires_at: number | null
+  device_id: string | null
+}
+
 declare global {
   interface Window {
     hermesDesktop: {
@@ -412,6 +422,12 @@ declare global {
       /** Tell main a preview guest is off screen, so focused-guest gestures skip it. */
       setPreviewGuestHidden?: (webContentsId: number, hidden: boolean) => void
       openExternal: (url: string) => Promise<void>
+      /** Zeus subscription status for this machine, verified locally. */
+      entitlementStatus?: () => Promise<ZeusEntitlementStatus>
+      /** Exchange a one-time activation code and persist the signed token. */
+      entitlementActivate?: (code: string) => Promise<ZeusEntitlementStatus>
+      /** Open the Zeus site with this device id pre-filled. */
+      openEntitlementActivation?: () => Promise<void>
       onExternalOpenFailed?: (callback: (payload: ExternalOpenFailedPayload) => void) => () => void
       /** The free tier's browser challenge (electron/challenge-window.ts): load
        *  the account service's page in a hidden window, revealed only if the

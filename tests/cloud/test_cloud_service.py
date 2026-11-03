@@ -216,6 +216,104 @@ def test_entitlement_token_fails_closed_without_a_signing_key(
     assert response.status_code == 503
 
 
+def test_device_code_exchange_returns_a_signed_token(
+    client: TestClient, settings: Settings
+) -> None:
+    _seed_active(client, "user_device")
+    authorized = client.post(
+        "/api/device/authorize",
+        json={"device_id": "device-abcdefgh"},
+        headers=_headers("user_device"),
+    )
+    assert authorized.status_code == 200
+    code = authorized.json()["code"]
+
+    exchanged = client.post(
+        "/api/device/exchange",
+        json={"code": code, "device_id": "device-abcdefgh"},
+    )
+    assert exchanged.status_code == 200
+    body = exchanged.json()
+    assert body["plan"] == "annual"
+    claims = jwt.decode(body["token"], _public_key(settings), algorithms=["EdDSA"])
+    assert claims["device_id"] == "device-abcdefgh"
+    assert claims["sub"] == "user_device"
+
+    reused = client.post(
+        "/api/device/exchange",
+        json={"code": code, "device_id": "device-abcdefgh"},
+    )
+    assert reused.status_code == 400
+
+
+def test_device_code_is_bound_to_the_requesting_device(client: TestClient) -> None:
+    _seed_active(client, "user_device_bind")
+    code = client.post(
+        "/api/device/authorize",
+        json={"device_id": "device-abcdefgh"},
+        headers=_headers("user_device_bind"),
+    ).json()["code"]
+
+    wrong = client.post(
+        "/api/device/exchange",
+        json={"code": code, "device_id": "device-other-123"},
+    )
+    assert wrong.status_code == 400
+
+    correct = client.post(
+        "/api/device/exchange",
+        json={"code": code, "device_id": "device-abcdefgh"},
+    )
+    assert correct.status_code == 200
+
+
+def test_device_authorization_requires_an_active_subscription(client: TestClient) -> None:
+    response = client.post(
+        "/api/device/authorize",
+        json={"device_id": "device-abcdefgh"},
+        headers=_headers("user_no_sub"),
+    )
+    assert response.status_code == 403
+
+
+def test_expired_device_code_is_rejected(client: TestClient) -> None:
+    _seed_active(client, "user_expired_code")
+    code = "expired-code-abcdefgh"
+    client.app.state.store.create_device_code(
+        code_hash=hashlib.sha256(code.encode()).hexdigest(),
+        user_id="user_expired_code",
+        device_id="device-abcdefgh",
+        expires_at=int(time.time()) - 1,
+    )
+
+    response = client.post(
+        "/api/device/exchange",
+        json={"code": code, "device_id": "device-abcdefgh"},
+    )
+    assert response.status_code == 400
+
+
+def test_device_exchange_rechecks_the_subscription(client: TestClient) -> None:
+    _seed_active(client, "user_canceled_device")
+    code = client.post(
+        "/api/device/authorize",
+        json={"device_id": "device-abcdefgh"},
+        headers=_headers("user_canceled_device"),
+    ).json()["code"]
+    client.app.state.store.upsert(
+        user_id="user_canceled_device",
+        plan="annual",
+        status="canceled",
+        current_period_end=int(time.time()) + 86_400,
+    )
+
+    response = client.post(
+        "/api/device/exchange",
+        json={"code": code, "device_id": "device-abcdefgh"},
+    )
+    assert response.status_code == 403
+
+
 def test_tracked_public_key_is_a_valid_ed25519_key() -> None:
     root = Path(__file__).resolve().parents[2]
     pem = (root / "cloud" / "entitlement_public_key.pem").read_bytes()

@@ -14,6 +14,7 @@ export type DeepLinkAction =
   | { type: 'skill-install'; identifier: string }
   | { type: 'composer-blueprint'; name: string; params: Record<string, string> }
   | { type: 'connection-done'; op: string; status: string }
+  | { type: 'auth-callback'; code: string; deviceId: string }
   | { type: 'ignore' }
 
 function truthyParam(value: string | undefined, defaultValue = false): boolean {
@@ -44,6 +45,18 @@ export function resolveDeepLinkAction(payload: DeepLinkPayload | null | undefine
     return op ? { type: 'connection-done', op, status: (payload.params?.status || '').trim() } : { type: 'ignore' }
   }
 
+  if (payload.kind === 'auth' && payload.name === 'callback') {
+    const code = (payload.params?.code || '').trim()
+
+    return code.length >= 16
+      ? { type: 'auth-callback', code, deviceId: (payload.params?.device_id || '').trim() }
+      : { type: 'ignore' }
+  }
+
+  return resolvePluginAction(payload) || { type: 'ignore' }
+}
+
+function resolvePluginAction(payload: DeepLinkPayload): DeepLinkAction | null {
   // A `catalog` param claims the link outright: even when a `repo` rides along
   // (or the name is empty/bogus) the outcome is the catalog lookup's verdict,
   // never a git-path install of whatever else the link carried.
@@ -56,7 +69,7 @@ export function resolveDeepLinkAction(payload: DeepLinkPayload | null | undefine
 
     return payload.name === 'install' && identifier && identifier === identifier.trim()
       ? { type: 'skill-install', identifier }
-      : { type: 'ignore' }
+      : null
   }
 
   const repo = (
@@ -96,5 +109,5 @@ export function resolveDeepLinkAction(payload: DeepLinkPayload | null | undefine
     }
   }
 
-  return { type: 'ignore' }
+  return null
 }

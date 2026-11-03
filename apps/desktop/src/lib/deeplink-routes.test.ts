@@ -118,6 +118,24 @@ describe('resolveDeepLinkAction', () => {
     ).toEqual({ type: 'ignore' })
   })
 
+  it('routes a browser activation callback and ignores a short code', () => {
+    expect(
+      resolveDeepLinkAction({
+        kind: 'auth',
+        name: 'callback',
+        params: { code: 'code-abcdefghijklmnop', device_id: 'device-abcdefgh' }
+      })
+    ).toEqual({
+      type: 'auth-callback',
+      code: 'code-abcdefghijklmnop',
+      deviceId: 'device-abcdefgh'
+    })
+
+    expect(
+      resolveDeepLinkAction({ kind: 'auth', name: 'callback', params: { code: 'short' } })
+    ).toEqual({ type: 'ignore' })
+  })
+
   it('routes blueprint composer inserts', () => {
     expect(
       resolveDeepLinkAction({

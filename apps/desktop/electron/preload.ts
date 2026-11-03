@@ -415,6 +415,9 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
   setPreviewGuestHidden: (webContentsId, hidden) =>
     ipcRenderer.send('hermes:preview-guest-hidden', { webContentsId, hidden: Boolean(hidden) }),
   openExternal: url => ipcRenderer.invoke('hermes:openExternal', url),
+  entitlementStatus: () => ipcRenderer.invoke('zeus:entitlement:status'),
+  entitlementActivate: code => ipcRenderer.invoke('zeus:entitlement:activate', code),
+  openEntitlementActivation: () => ipcRenderer.invoke('zeus:entitlement:open'),
   freeTierChallenge: {
     // Load the account service's challenge page in a hidden window (revealed
     // only if the page asks for the human). Resolves with how it ended.

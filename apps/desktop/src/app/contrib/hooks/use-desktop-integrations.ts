@@ -14,6 +14,7 @@ import { pathFromHermesDeepLink, resolveHermesOpenPath } from '@/lib/hermes-open
 import { storedSessionIdForNotification } from '@/lib/session-ids'
 import { announceNewSessionDraftKey } from '@/store/composer'
 import { recordAction } from '@/store/desktop-metrics'
+import { activateEntitlement } from '@/store/entitlement'
 import { requestMcpInstallFromDeepLink } from '@/store/mcp-deeplink-install'
 import { startMcpHealthChecker, stopMcpHealthChecker } from '@/store/mcp-health'
 import {
@@ -442,6 +443,14 @@ export function useDesktopIntegrations({
 
             return viaLocalMap !== runtimeId ? viaLocalMap : (storedSessionIdForRuntimeId(runtimeId) ?? runtimeId)
           })
+        })
+
+        return
+      }
+
+      if (action.type === 'auth-callback') {
+        void activateEntitlement(action.code).catch(() => {
+          // The activation overlay owns the user-facing error.
         })
 
         return

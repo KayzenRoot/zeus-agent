@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
+import secrets
+import time
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -25,6 +28,15 @@ class CheckoutRequest(BaseModel):
 
 
 class TokenRequest(BaseModel):
+    device_id: str = Field(min_length=8, max_length=128)
+
+
+class DeviceAuthorizeRequest(BaseModel):
+    device_id: str = Field(min_length=8, max_length=128)
+
+
+class DeviceExchangeRequest(BaseModel):
+    code: str = Field(min_length=16, max_length=256)
     device_id: str = Field(min_length=8, max_length=128)
 
 
@@ -98,6 +110,41 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(status_code=403, detail="no active subscription")
         try:
             return sign_entitlement(settings, row, device_id=body.device_id)
+        except EntitlementNotConfigured as error:
+            raise HTTPException(status_code=503, detail="entitlement signing is not configured") from error
+
+    @app.post("/api/device/authorize")
+    def authorize_device(
+        body: DeviceAuthorizeRequest,
+        user: str = Depends(current_user),
+    ) -> dict[str, Any]:
+        if not is_active(store.get(user)):
+            raise HTTPException(status_code=403, detail="no active subscription")
+        code = secrets.token_urlsafe(32)
+        expires_at = int(time.time()) + 600
+        store.create_device_code(
+            code_hash=hashlib.sha256(code.encode()).hexdigest(),
+            user_id=user,
+            device_id=body.device_id,
+            expires_at=expires_at,
+        )
+        return {"code": code, "expires_at": expires_at}
+
+    @app.post("/api/device/exchange")
+    def exchange_device(body: DeviceExchangeRequest) -> dict[str, Any]:
+        now = int(time.time())
+        code_row = store.consume_device_code(
+            code_hash=hashlib.sha256(body.code.encode()).hexdigest(),
+            device_id=body.device_id,
+            now=now,
+        )
+        if code_row is None:
+            raise HTTPException(status_code=400, detail="invalid or expired activation code")
+        row = store.get(str(code_row["user_id"]))
+        if not is_active(row, now=now):
+            raise HTTPException(status_code=403, detail="no active subscription")
+        try:
+            return sign_entitlement(settings, row, device_id=body.device_id, now=now)
         except EntitlementNotConfigured as error:
             raise HTTPException(status_code=503, detail="entitlement signing is not configured") from error
 
