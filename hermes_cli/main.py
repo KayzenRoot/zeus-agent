@@ -3330,8 +3330,8 @@ def _build_cli_parser():
     build_auth_parser(subparsers, cmd_auth=cmd_auth)
     build_status_parser(subparsers, cmd_status=cmd_status)
     build_pause_parser(subparsers)
-    from hermes_cli.entitlement_cmd import build_parser as _build_entitlement_parser
-    _build_entitlement_parser(subparsers)
+    from hermes_cli.entitlement_cmd import build_parser as _build_entitlement_parser; _build_entitlement_parser(subparsers)
+    from hermes_cli.heal_cmd import build_parser as _build_heal_parser; _build_heal_parser(subparsers)
     build_cron_parser(subparsers, cmd_cron=cmd_cron)
     build_webhook_parser(subparsers, cmd_webhook=cmd_webhook)
 
