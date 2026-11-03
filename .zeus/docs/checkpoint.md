@@ -221,3 +221,8 @@ the **CORRECTION REQUIRED** verdict until independent audit confirms DoD.
 - **PR #56 MERGED `4ae8ae7846`**: seats por plano (5/5/8/10) aplicados em `/api/device/authorize` (409 no limite; reautorização não consome seat; revogado não conta), `seats` em `/api/entitlement`, `audit_events` + `GET /api/audit?limit=1..100` e contador “N de S seats” na landing.
 - **Verificação**: cloud 36/36 testes; `scripts/check` 12/12; CI #56 14/14 verde (desktop 27m33s).
 - **Residual #51**: SSO/SAML/OIDC e seats por Organization dependem do Clerk; export CSV/JSON e UI de auditoria no dashboard ficam para a próxima camada. Evidência: `audits/ZEUS-ENTERPRISE-001-2026-11-03-seats-audit.md`.
+
+## 2026-11-03 | Enterprise camada 2: Organization e export de auditoria (#57 merged)
+
+- **PR #57 MERGED `eb0bdbaf5f`**: `current_identity` extrai `org_id`/`org_role` do Clerk; `GET /api/identity`; `GET /api/audit/export?format=csv|json`; seção Auditoria na landing com export; 38/38 testes cloud, CI 14/14.
+- **Residual #51**: SSO/SAML/OIDC exige o IdP do owner no Clerk; seats e auditoria agregados por Organization exigem mapear a Organization assinante. Live mode/deploy seguem owner-gated. Evidência: `audits/ZEUS-ENTERPRISE-002-2026-11-03-org-context-audit-export.md`.
