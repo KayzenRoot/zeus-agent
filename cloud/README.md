@@ -46,6 +46,8 @@ troque por `https://api.<domínio>`.
 | `GET /api/devices` | Bearer Clerk JWT | lista dispositivos e status de revogação |
 | `POST /api/devices/{device_id}/revoke` | Bearer Clerk JWT | revoga um dispositivo |
 | `GET /api/audit?limit=50` | Bearer Clerk JWT | eventos de ativação/revogação/portal/checkout |
+| `GET /api/audit/export?format=csv\|json` | Bearer Clerk JWT | exporta a auditoria |
+| `GET /api/identity` | Bearer Clerk JWT | usuário + `org_id`/`org_role` do Clerk |
 | `POST /api/stripe/webhook` | assinatura Stripe | `checkout.session.completed` e `customer.subscription.*` |
 
 O entitlement só fica ativo com status `active`/`trialing` **e** período não expirado.
@@ -125,11 +127,12 @@ scripts/run_tests.sh tests/cloud/test_cloud_service.py
 Cobrem autenticação, criação de checkout, assinatura de webhook (válida/inválida/expirada),
 trial, cancelamento, expiração de período, checkout não pago, checkout pending até o evento de
 assinatura, ativação por device code, portal do cliente, seats, listagem/revogação de
-dispositivos, auditoria e a trava de live mode.
+dispositivos, auditoria/export e a trava de live mode.
 
 ## Pendências antes do release
 
-1. Gate de assinatura no runtime (desktop/CLI) com grace offline assinado.
-2. Portal do cliente/cancelamento e troca de plano.
-3. Migrar para live mode com os mesmos quatro preços (revisão do owner) e domínio público.
-4. Publicar termos/privacidade e configurar o endpoint de webhook no dashboard Stripe.
+1. SSO/SAML/OIDC e seats por Organization: requerem o IdP do owner configurado no Clerk; o
+   contexto `org_id`/`org_role` já chega em `/api/identity`.
+2. Migrar para live mode com os mesmos quatro preços (revisão do owner), domínio público,
+   webhook público e termos/privacidade.
+3. Release assinada (MSIX/DMG/publisher) — issue #4.

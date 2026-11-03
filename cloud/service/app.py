@@ -2,17 +2,20 @@
 
 from __future__ import annotations
 
+import csv
 import hashlib
+import io
+import json
 import secrets
 import time
 from typing import Any
 
-from fastapi import Depends, FastAPI, HTTPException, Path, Query, Request
+from fastapi import Depends, FastAPI, HTTPException, Path, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from . import stripe_api
-from .auth import current_user
+from .auth import Identity, current_identity, current_user
 from .entitlements import (
     EntitlementNotConfigured,
     is_active,
@@ -68,6 +71,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/api/plans")
     def public_plans() -> dict[str, Any]:
         return settings.plans()
+
+    @app.get("/api/identity")
+    def identity(identity: Identity = Depends(current_identity)) -> dict[str, Any]:
+        return {
+            "user_id": identity.user_id,
+            "org_id": identity.org_id,
+            "org_role": identity.org_role,
+        }
 
     @app.post("/api/checkout")
     def checkout(
@@ -206,6 +217,37 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         user: str = Depends(current_user),
     ) -> dict[str, Any]:
         return {"events": store.list_audit(user, limit=limit)}
+
+    @app.get("/api/audit/export")
+    def export_audit(
+        format: str = Query(default="json", pattern="^(json|csv)$"),
+        limit: int = Query(default=100, ge=1, le=100),
+        identity: Identity = Depends(current_identity),
+    ) -> Response:
+        events = store.list_audit(identity.user_id, limit=limit)
+        if format == "csv":
+            buffer = io.StringIO()
+            writer = csv.writer(buffer)
+            writer.writerow(["id", "event", "created_at", "detail"])
+            for event in events:
+                writer.writerow(
+                    [
+                        event["id"],
+                        event["event"],
+                        event["created_at"],
+                        json.dumps(event["detail"], ensure_ascii=False),
+                    ]
+                )
+            return Response(
+                content=buffer.getvalue(),
+                media_type="text/csv",
+                headers={"Content-Disposition": 'attachment; filename="zeus-audit.csv"'},
+            )
+        return Response(
+            content=json.dumps({"events": events}, ensure_ascii=False),
+            media_type="application/json",
+            headers={"Content-Disposition": 'attachment; filename="zeus-audit.json"'},
+        )
 
     @app.post("/api/device/exchange")
     def exchange_device(body: DeviceExchangeRequest) -> dict[str, Any]:
