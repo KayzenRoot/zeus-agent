@@ -8,7 +8,8 @@ Este diretório guarda apenas configuração **não secreta**. Chaves ficam no `
 - **Clerk**: app `Zeus`, B2B com Organizations, e-mail + telefone (SMS) habilitados, redirect
   nativo `zeus://auth/callback`.
 - **Stripe**: 4 produtos/preços BRL em test mode, trial de **2 dias**, Checkout Sessions criadas
-  pelo serviço (os Payment Links continuam no `plans.json` apenas como catálogo).
+  pelo serviço. Os Payment Links foram removidos do catálogo; a compra sempre passa pelo checkout
+  autenticado.
 - **Serviço `zeus-cloud`**: FastAPI em `cloud/service/`, com checkout autenticado, webhook Stripe
   assinado e entitlement em SQLite.
 - **Landing**: `cloud/site/index.html` usa Clerk no navegador e chama o serviço; a compra fica
