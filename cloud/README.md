@@ -135,7 +135,8 @@ dispositivos, auditoria/export e a trava de live mode.
 Quando o JWT do Clerk traz `org_id`, o checkout grava a Organization na sessão/assinatura e o
 entitlement passa a valer para os membros dessa Organization. Seats e dispositivos são contados
 por Organization; `org:admin`/`org:owner` podem revogar dispositivos e abrir o portal. Membros
-podem ativar dispositivos dentro dos seats. SSO/SAML/OIDC exige configurar o IdP no Clerk.
+podem ativar dispositivos dentro dos seats; o device code carrega a Organization e o exchange
+resolve o entitlement da Organization. SSO/SAML/OIDC exige configurar o IdP no Clerk.
 
 ## Pendências antes do release
 

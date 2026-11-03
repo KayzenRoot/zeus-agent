@@ -24,6 +24,7 @@ CREATE INDEX IF NOT EXISTS entitlements_subscription
 CREATE TABLE IF NOT EXISTS device_codes (
     code_hash TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
+    org_id TEXT,
     device_id TEXT NOT NULL,
     expires_at INTEGER NOT NULL,
     used_at INTEGER,
@@ -62,6 +63,7 @@ class EntitlementStore:
         with self._connect() as connection:
             connection.executescript(SCHEMA)
             self._ensure_column(connection, "entitlements", "org_id", "TEXT")
+            self._ensure_column(connection, "device_codes", "org_id", "TEXT")
             self._ensure_column(connection, "devices", "org_id", "TEXT")
             self._ensure_column(connection, "audit_events", "org_id", "TEXT")
             connection.execute(
@@ -189,6 +191,7 @@ class EntitlementStore:
         user_id: str,
         device_id: str,
         expires_at: int,
+        org_id: str | None = None,
     ) -> None:
         now = int(time.time())
         with self._connect() as connection:
@@ -198,10 +201,10 @@ class EntitlementStore:
             connection.execute(
                 """
                 INSERT INTO device_codes (
-                    code_hash, user_id, device_id, expires_at, used_at, created_at
-                ) VALUES (?, ?, ?, ?, NULL, ?)
+                    code_hash, user_id, org_id, device_id, expires_at, used_at, created_at
+                ) VALUES (?, ?, ?, ?, ?, NULL, ?)
                 """,
-                (code_hash, user_id, device_id, expires_at, now),
+                (code_hash, user_id, org_id, device_id, expires_at, now),
             )
 
     def consume_device_code(

@@ -751,6 +751,72 @@ def test_organization_entitlement_and_seat_scope(client: TestClient) -> None:
         client.app.dependency_overrides.clear()
 
 
+def test_org_member_device_code_exchange_uses_the_org_entitlement(
+    client: TestClient, settings: Settings
+) -> None:
+    client.app.state.store.upsert(
+        user_id="org_owner",
+        org_id="org_1",
+        plan="monthly",
+        status="active",
+        customer_id="cus_org",
+        current_period_end=int(time.time()) + 86_400,
+    )
+    client.app.dependency_overrides[current_identity] = lambda: Identity(
+        "member", "org_1", "org:member"
+    )
+    try:
+        authorized = client.post(
+            "/api/device/authorize",
+            json={"device_id": "org-member-device"},
+            headers=_headers("member"),
+        )
+        assert authorized.status_code == 200
+
+        exchanged = client.post(
+            "/api/device/exchange",
+            json={"code": authorized.json()["code"], "device_id": "org-member-device"},
+        )
+        assert exchanged.status_code == 200
+        body = exchanged.json()
+        assert body["plan"] == "monthly"
+        claims = jwt.decode(body["token"], _public_key(settings), algorithms=["EdDSA"])
+        assert claims["device_id"] == "org-member-device"
+        assert claims["sub"] == "org_owner"
+    finally:
+        client.app.dependency_overrides.clear()
+
+
+def test_org_member_revoked_device_cannot_exchange_a_fresh_code(
+    client: TestClient,
+) -> None:
+    client.app.state.store.upsert(
+        user_id="org_owner",
+        org_id="org_1",
+        plan="monthly",
+        status="active",
+        customer_id="cus_org",
+        current_period_end=int(time.time()) + 86_400,
+    )
+    store = client.app.state.store
+    store.create_device_code(
+        code_hash=hashlib.sha256(b"first-code-abcdefgh").hexdigest(),
+        user_id="member",
+        device_id="org-member-device",
+        expires_at=int(time.time()) + 600,
+    )
+    store.upsert_device(
+        device_id="org-member-device", user_id="member", name=None, org_id="org_1"
+    )
+    store.revoke_device(user_id="member", device_id="org-member-device", org_id="org_1")
+
+    response = client.post(
+        "/api/device/exchange",
+        json={"code": "first-code-abcdefgh", "device_id": "org-member-device"},
+    )
+    assert response.status_code == 403
+
+
 def test_checkout_rejects_an_unknown_plan(client: TestClient) -> None:
     response = client.post("/api/checkout", json={"plan": "lifetime"}, headers=_headers())
     assert response.status_code == 400
