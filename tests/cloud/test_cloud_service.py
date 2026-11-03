@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
 import json
@@ -10,11 +11,14 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
+import jwt
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 from fastapi.testclient import TestClient
 
-from cloud.service.app import create_app
 from cloud.service import stripe_api
+from cloud.service.app import create_app
 from cloud.service.settings import Settings
 
 WEBHOOK_SECRET = "whsec_test_secret"
@@ -57,6 +61,13 @@ def settings(tmp_path: Path) -> Settings:
         success_url="http://127.0.0.1:9120/?checkout=success",
         cancel_url="http://127.0.0.1:9120/?checkout=cancel",
         trial_days=2,
+        entitlement_private_key_b64=base64.b64encode(
+            Ed25519PrivateKey.generate().private_bytes(
+                serialization.Encoding.Raw,
+                serialization.PrivateFormat.Raw,
+                serialization.NoEncryption(),
+            )
+        ).decode(),
     )
 
 
@@ -125,6 +136,90 @@ def test_unknown_user_has_no_entitlement(client: TestClient) -> None:
         "current_period_end": None,
         "features": [],
     }
+
+
+def _public_key(settings: Settings) -> bytes:
+    raw = base64.b64decode(settings.entitlement_private_key_b64)
+    private = Ed25519PrivateKey.from_private_bytes(raw)
+    return private.public_key().public_bytes(
+        serialization.Encoding.PEM,
+        serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+
+
+def _seed_active(client: TestClient, user_id: str, plan: str = "annual") -> None:
+    client.app.state.store.upsert(
+        user_id=user_id,
+        plan=plan,
+        status="active",
+        current_period_end=int(time.time()) + 86_400,
+    )
+
+
+def test_entitlement_token_is_device_bound_and_signed(
+    client: TestClient, settings: Settings
+) -> None:
+    _seed_active(client, "user_signed")
+
+    response = client.post(
+        "/api/entitlement/token",
+        json={"device_id": "device-abcdefgh"},
+        headers=_headers("user_signed"),
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["plan"] == "annual"
+    assert body["seats"] == 10
+    assert "agents:10" in body["features"]
+    claims = jwt.decode(body["token"], _public_key(settings), algorithms=["EdDSA"])
+    assert claims["iss"] == "zeus-cloud"
+    assert claims["sub"] == "user_signed"
+    assert claims["plan"] == "annual"
+    assert claims["device_id"] == "device-abcdefgh"
+    assert claims["seats"] == 10
+    assert claims["exp"] - claims["iat"] == 7 * 86_400
+
+
+def test_entitlement_token_rejects_an_inactive_subscription(client: TestClient) -> None:
+    response = client.post(
+        "/api/entitlement/token",
+        json={"device_id": "device-abcdefgh"},
+        headers=_headers("user_inactive"),
+    )
+    assert response.status_code == 403
+
+
+def test_entitlement_token_requires_a_device_id(client: TestClient) -> None:
+    _seed_active(client, "user_no_device")
+
+    response = client.post(
+        "/api/entitlement/token",
+        json={"device_id": "short"},
+        headers=_headers("user_no_device"),
+    )
+    assert response.status_code == 422
+
+
+def test_entitlement_token_fails_closed_without_a_signing_key(
+    client: TestClient, settings: Settings
+) -> None:
+    _seed_active(client, "user_no_key")
+    app = create_app(replace(settings, entitlement_private_key_b64=""))
+    unsigned = TestClient(app)
+
+    response = unsigned.post(
+        "/api/entitlement/token",
+        json={"device_id": "device-abcdefgh"},
+        headers=_headers("user_no_key"),
+    )
+    assert response.status_code == 503
+
+
+def test_tracked_public_key_is_a_valid_ed25519_key() -> None:
+    root = Path(__file__).resolve().parents[2]
+    pem = (root / "cloud" / "entitlement_public_key.pem").read_bytes()
+    assert isinstance(serialization.load_pem_public_key(pem), Ed25519PublicKey)
 
 
 def test_checkout_forwards_the_authenticated_user_and_plan(
