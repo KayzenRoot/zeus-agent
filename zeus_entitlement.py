@@ -22,6 +22,9 @@ MCowBQYDK2VwAyEAfnOaaYWOq76IAhosov89hflCjYD340F1ydVLCtX5vQg=
 
 DEFAULT_CLOUD_URL = "http://127.0.0.1:9121"
 DEV_UNLOCK_ENV = "ZEUS_DEV_UNLOCK"
+ONLINE_CHECK_TTL_SECONDS = 300
+ONLINE_OFFLINE_TTL_SECONDS = 60
+ONLINE_CHECK_TIMEOUT_SECONDS = 2.0
 
 
 class EntitlementError(RuntimeError):
@@ -60,6 +63,10 @@ def entitlement_path() -> Path:
 
 def device_id_path() -> Path:
     return get_default_hermes_root() / "zeus-device-id"
+
+
+def online_check_cache_path() -> Path:
+    return get_default_hermes_root() / "zeus-entitlement-check.json"
 
 
 def _read_json(path: Path) -> dict[str, object] | None:
@@ -124,8 +131,76 @@ def status() -> EntitlementStatus:
     return verify_token(token, device_id=local_device_id())
 
 
+def _write_online_cache(*, device_id: str, active: bool, reason: str, offline: bool = False) -> None:
+    try:
+        atomic_json_write(
+            online_check_cache_path(),
+            {
+                "device_id": device_id,
+                "active": active,
+                "reason": reason,
+                "offline": offline,
+                "checked_at": int(time.time()),
+            },
+            mode=0o600,
+        )
+    except OSError:
+        pass
+
+
+def _online_verdict(current: EntitlementStatus, token: str) -> EntitlementStatus:
+    """Keep the signed offline grace unless the cloud says the device is revoked/inactive."""
+    device = local_device_id()
+    now = int(time.time())
+    cached = _read_json(online_check_cache_path())
+    if cached and str(cached.get("device_id") or "") == device:
+        ttl = ONLINE_OFFLINE_TTL_SECONDS if cached.get("offline") else ONLINE_CHECK_TTL_SECONDS
+        if now - int(cached.get("checked_at") or 0) < ttl:
+            if cached.get("active") is False:
+                return EntitlementStatus(
+                    False,
+                    str(cached.get("reason") or "inactive"),
+                    plan=current.plan,
+                    features=current.features,
+                    seats=current.seats,
+                    expires_at=current.expires_at,
+                    source="online",
+                )
+            return current
+    try:
+        body = _post_json(
+            f"{_cloud_url(None)}/api/device/check",
+            {"token": token, "device_id": device},
+            timeout=ONLINE_CHECK_TIMEOUT_SECONDS,
+        )
+    except (EntitlementError, ValueError):
+        _write_online_cache(
+            device_id=device, active=True, reason="offline", offline=True
+        )
+        return current
+    active = body.get("active") is True
+    reason = str(body.get("reason") or ("active" if active else "inactive"))
+    _write_online_cache(device_id=device, active=active, reason=reason)
+    if active:
+        return current
+    return EntitlementStatus(
+        False,
+        reason,
+        plan=current.plan,
+        features=current.features,
+        seats=current.seats,
+        expires_at=current.expires_at,
+        source="online",
+    )
+
+
 def require_entitlement() -> EntitlementStatus:
     current = status()
+    if current.active and current.source != "dev_unlock":
+        data = _read_json(entitlement_path()) or {}
+        token = str(data.get("token") or "")
+        if token:
+            current = _online_verdict(current, token)
     if current.active:
         return current
     raise EntitlementRequired(
@@ -143,7 +218,9 @@ def _cloud_url(value: str | None) -> str:
     return candidate
 
 
-def _post_json(url: str, payload: dict[str, object]) -> dict[str, object]:
+def _post_json(
+    url: str, payload: dict[str, object], *, timeout: float = 15.0
+) -> dict[str, object]:
     request = urllib.request.Request(
         url,
         data=json.dumps(payload).encode(),
@@ -151,11 +228,11 @@ def _post_json(url: str, payload: dict[str, object]) -> dict[str, object]:
         headers={"Content-Type": "application/json"},
     )
     try:
-        with urllib.request.urlopen(request, timeout=15) as response:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
             body = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as error:
         detail = error.read().decode("utf-8", "replace")[:300]
-        raise EntitlementError(f"activation failed ({error.code}): {detail}") from error
+        raise EntitlementError(f"cloud request failed ({error.code}): {detail}") from error
     except urllib.error.URLError as error:
         raise EntitlementError(f"Zeus Cloud unreachable: {error.reason}") from error
     return body if isinstance(body, dict) else {}
@@ -182,6 +259,10 @@ def activate_with_code(
         mode=0o600,
         fsync_dir=True,
     )
+    try:
+        online_check_cache_path().unlink(missing_ok=True)
+    except OSError:
+        pass
     return verdict
 
 

@@ -43,6 +43,7 @@ troque por `https://api.<domínio>`.
 | `POST /api/entitlement/token` | Bearer Clerk JWT | `{ "device_id": "..." }` → token Ed25519 de 7 dias |
 | `POST /api/device/authorize` | Bearer Clerk JWT | gera código de ativação de 10 min para o dispositivo |
 | `POST /api/device/exchange` | código de uso único | troca código + `device_id` pelo token assinado |
+| `POST /api/device/check` | token Ed25519 | revalida dispositivo/assinatura e informa `active`/`revoked`/`inactive`; não exige Clerk |
 | `POST /api/billing/portal` | Bearer Clerk JWT | abre o Customer Portal do Stripe (cancelar/trocar plano) |
 | `GET /api/devices` | Bearer Clerk JWT | lista dispositivos e status de revogação |
 | `POST /api/devices/{device_id}/revoke` | Bearer Clerk JWT | revoga um dispositivo |
@@ -65,6 +66,11 @@ Para ativar um dispositivo, o site autenticado chama `/api/device/authorize` (c�
 uso único, vinculado ao `device_id`) e entrega o código ao app via `zeus://auth/callback` ou
 digitação. O app troca em `/api/device/exchange` e grava o token em
 `<HERMES_HOME>/zeus-entitlement.json` com permissão 0600.
+
+O runtime consulta `POST /api/device/check` antes de liberar um turno, com timeout de 2 s e cache
+local de 300 s (60 s quando a nuvem está indisponível). Resposta `active: false` bloqueia o turno
+mesmo com o token ainda dentro da validade; falha de rede preserva a janela offline de 7 dias.
+Ativação bem-sucedida limpa o cache.
 
 ## Variáveis de ambiente
 

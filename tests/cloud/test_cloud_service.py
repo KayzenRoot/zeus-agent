@@ -817,6 +817,66 @@ def test_org_member_revoked_device_cannot_exchange_a_fresh_code(
     assert response.status_code == 403
 
 
+def test_device_check_reports_active_and_revoked(client: TestClient) -> None:
+    _seed_active(client, "user_check")
+    authorized = client.post(
+        "/api/device/authorize",
+        json={"device_id": "check-device-1"},
+        headers=_headers("user_check"),
+    )
+    token = client.post(
+        "/api/device/exchange",
+        json={"code": authorized.json()["code"], "device_id": "check-device-1"},
+    ).json()["token"]
+
+    active = client.post(
+        "/api/device/check", json={"token": token, "device_id": "check-device-1"}
+    )
+    assert active.status_code == 200
+    assert active.json()["active"] is True
+    assert active.json()["plan"] == "annual"
+
+    client.app.state.store.revoke_device(
+        user_id="user_check", device_id="check-device-1"
+    )
+    revoked = client.post(
+        "/api/device/check", json={"token": token, "device_id": "check-device-1"}
+    )
+    assert revoked.json() == {"active": False, "reason": "revoked"}
+
+
+def test_device_check_rejects_a_tampered_token(client: TestClient) -> None:
+    response = client.post(
+        "/api/device/check",
+        json={"token": "x" * 32, "device_id": "check-device-1"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"active": False, "reason": "invalid"}
+
+
+def test_device_check_reports_an_inactive_subscription(client: TestClient) -> None:
+    _seed_active(client, "user_check_inactive")
+    authorized = client.post(
+        "/api/device/authorize",
+        json={"device_id": "check-device-2"},
+        headers=_headers("user_check_inactive"),
+    )
+    token = client.post(
+        "/api/device/exchange",
+        json={"code": authorized.json()["code"], "device_id": "check-device-2"},
+    ).json()["token"]
+    client.app.state.store.upsert(
+        user_id="user_check_inactive", plan="annual", status="canceled"
+    )
+
+    response = client.post(
+        "/api/device/check", json={"token": token, "device_id": "check-device-2"}
+    )
+
+    assert response.json() == {"active": False, "reason": "inactive"}
+
+
 def test_checkout_rejects_an_unknown_plan(client: TestClient) -> None:
     response = client.post("/api/checkout", json={"plan": "lifetime"}, headers=_headers())
     assert response.status_code == 400

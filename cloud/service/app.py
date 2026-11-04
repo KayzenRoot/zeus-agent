@@ -25,6 +25,7 @@ from .entitlements import (
     plan_seats,
     sign_entitlement,
     signing_key_configured,
+    verify_entitlement_token,
 )
 from .settings import Settings
 from .store import EntitlementStore
@@ -45,6 +46,11 @@ class DeviceAuthorizeRequest(BaseModel):
 
 class DeviceExchangeRequest(BaseModel):
     code: str = Field(min_length=16, max_length=256)
+    device_id: str = Field(min_length=8, max_length=128)
+
+
+class DeviceCheckRequest(BaseModel):
+    token: str = Field(min_length=16, max_length=8192)
     device_id: str = Field(min_length=8, max_length=128)
 
 
@@ -336,6 +342,33 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             detail={"device_id": body.device_id},
         )
         return token
+
+    @app.post("/api/device/check")
+    def check_device(body: DeviceCheckRequest) -> dict[str, Any]:
+        """Online revocation/liveness probe for a runtime that already holds a signed token."""
+        claims = verify_entitlement_token(settings, body.token, device_id=body.device_id)
+        if claims is None:
+            return {"active": False, "reason": "invalid"}
+        device = store.get_device(body.device_id)
+        if device is not None:
+            if device["revoked_at"] is not None:
+                return {"active": False, "reason": "revoked"}
+            row = store.get_for_identity(
+                str(device["user_id"]),
+                str(device["org_id"]) if device["org_id"] else None,
+            )
+        else:
+            # Tokens minted before device registration (legacy direct token path) still resolve
+            # through the subject; registered devices get revocation on top.
+            row = store.get(str(claims.get("sub") or ""))
+        if not is_active(row):
+            return {"active": False, "reason": "inactive"}
+        return {
+            "active": True,
+            "reason": "active",
+            "plan": row["plan"] if row else None,
+            "seats": plan_seats(row["plan"]) if row else 0,
+        }
 
     @app.post("/api/stripe/webhook")
     async def stripe_webhook(request: Request) -> dict[str, bool]:

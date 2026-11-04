@@ -98,3 +98,22 @@ def sign_entitlement(
         "features": payload["features"],
         "seats": payload["seats"],
     }
+
+
+def verify_entitlement_token(
+    settings: Settings, token: str, *, device_id: str
+) -> dict[str, Any] | None:
+    """Verify a token this service signed; never trust a caller-supplied device claim alone."""
+    try:
+        claims = jwt.decode(
+            token,
+            _signing_key(settings).public_key(),
+            algorithms=["EdDSA"],
+            issuer="zeus-cloud",
+            options={"require": ["exp", "iat", "sub", "device_id"]},
+        )
+    except (EntitlementNotConfigured, jwt.InvalidTokenError):
+        return None
+    if str(claims.get("device_id") or "") != device_id:
+        return None
+    return claims
