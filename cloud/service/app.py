@@ -222,6 +222,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             user_id=user,
             device_id=body.device_id,
             expires_at=expires_at,
+            org_id=scope_org,
         )
         store.audit(
             user_id=user,
@@ -319,7 +320,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         if code_row is None:
             raise HTTPException(status_code=400, detail="invalid or expired activation code")
-        row = store.get(str(code_row["user_id"]))
+        user_id = str(code_row["user_id"])
+        org_id = str(code_row["org_id"]) if code_row["org_id"] else None
+        row = store.get_for_identity(user_id, org_id)
         if not is_active(row, now=now):
             raise HTTPException(status_code=403, detail="no active subscription")
         try:
@@ -327,7 +330,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except EntitlementNotConfigured as error:
             raise HTTPException(status_code=503, detail="entitlement signing is not configured") from error
         store.audit(
-            user_id=str(code_row["user_id"]),
+            user_id=user_id,
+            org_id=org_id,
             event="device.exchange",
             detail={"device_id": body.device_id},
         )
