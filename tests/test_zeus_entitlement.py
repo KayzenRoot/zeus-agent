@@ -149,6 +149,97 @@ def test_require_entitlement_refuses_without_a_token(
         zeus_entitlement.require_entitlement()
 
 
+def _seed_active_token(paths, monkeypatch: pytest.MonkeyPatch) -> Path:
+    token_path, device_path = paths
+    private, public = _keys()
+    monkeypatch.setattr(zeus_entitlement, "PUBLIC_KEY_PEM", public)
+    monkeypatch.delenv("ZEUS_DEV_UNLOCK", raising=False)
+    device_path.write_text("device-abcdefgh", encoding="utf-8")
+    token_path.write_text(
+        json.dumps({"token": _token(private), "device_id": "device-abcdefgh"}),
+        encoding="utf-8",
+    )
+    cache = token_path.parent / "zeus-entitlement-check.json"
+    monkeypatch.setattr(zeus_entitlement, "online_check_cache_path", lambda: cache)
+    return cache
+
+
+def test_online_check_blocks_a_revoked_device_and_caches_the_verdict(
+    paths, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _seed_active_token(paths, monkeypatch)
+    calls: list[tuple[str, dict, float]] = []
+
+    def revoked(url, payload, *, timeout=15):
+        calls.append((url, payload, timeout))
+        return {"active": False, "reason": "revoked"}
+
+    monkeypatch.setattr(zeus_entitlement, "_post_json", revoked)
+
+    with pytest.raises(zeus_entitlement.EntitlementRequired, match="revoked"):
+        zeus_entitlement.require_entitlement()
+
+    assert calls[0][0].endswith("/api/device/check")
+    assert calls[0][2] == zeus_entitlement.ONLINE_CHECK_TIMEOUT_SECONDS
+
+    monkeypatch.setattr(
+        zeus_entitlement,
+        "_post_json",
+        lambda *_args, **_kwargs: {"active": True, "reason": "active"},
+    )
+    with pytest.raises(zeus_entitlement.EntitlementRequired, match="revoked"):
+        zeus_entitlement.require_entitlement()
+    assert len(calls) == 1
+
+
+def test_online_check_preserves_offline_grace(
+    paths, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _seed_active_token(paths, monkeypatch)
+    calls: list[str] = []
+
+    def offline(url, *_args, **_kwargs):
+        calls.append(url)
+        raise zeus_entitlement.EntitlementError("cloud unreachable")
+
+    monkeypatch.setattr(zeus_entitlement, "_post_json", offline)
+
+    active = zeus_entitlement.require_entitlement()
+    assert active.active is True
+    assert len(calls) == 1
+
+    assert zeus_entitlement.require_entitlement().active is True
+    assert len(calls) == 1
+
+
+def test_online_check_caches_an_active_verdict(
+    paths, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _seed_active_token(paths, monkeypatch)
+    calls: list[str] = []
+
+    def active(url, *_args, **_kwargs):
+        calls.append(url)
+        return {"active": True, "reason": "active"}
+
+    monkeypatch.setattr(zeus_entitlement, "_post_json", active)
+
+    assert zeus_entitlement.require_entitlement().active is True
+    assert zeus_entitlement.require_entitlement().active is True
+    assert len(calls) == 1
+
+
+def test_dev_unlock_skips_the_online_check(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ZEUS_DEV_UNLOCK", "1")
+    monkeypatch.setattr(
+        zeus_entitlement,
+        "_post_json",
+        lambda *_args, **_kwargs: pytest.fail("online check must not run under dev unlock"),
+    )
+
+    assert zeus_entitlement.require_entitlement().active is True
+
+
 def test_turn_gate_returns_a_typed_refusal(monkeypatch: pytest.MonkeyPatch) -> None:
     def refuse() -> None:
         raise zeus_entitlement.EntitlementRequired("Zeus subscription required")
