@@ -275,3 +275,11 @@ the **CORRECTION REQUIRED** verdict until independent audit confirms DoD.
 - **Verificação**: cloud **45/45** testes; `scripts/check` 12/12; CI #63 14/14 verde (desktop 24m7s).
 - **Residual #51**: seats por membro/console admin, revogação online em um ciclo e SSO seguem abertos; domínio/deploy seguem owner-gated.
 - Evidência: `audits/ZEUS-ENTERPRISE-004-2026-11-03-org-member-device-exchange.md`.
+
+## 2026-11-03 | Revogação online do entitlement (#64 merged)
+
+- **PR #64 MERGED `835b570a3c`**: `POST /api/device/check` verifica token Ed25519, `device_id`, registro/revogação e status do entitlement; devolve só `active`/`reason`/`plan`/`seats`, sem Clerk e sem segredos.
+- **Runtime**: `require_entitlement()` consulta o endpoint com timeout de 2 s e cache 0600 (`zeus-entitlement-check.json`): 300 s para veredito, 60 s para falha de rede. Revogado/cancelado bloqueia antes do `exp` de 7 dias; rede indisponível preserva o offline grace; ativação limpa o cache; `ZEUS_DEV_UNLOCK` segue bypass explícito.
+- **Verificação**: cloud 48/48, runtime 11/11, `scripts/check` 12/12, CI #64 14/14 verde (desktop 20m50s).
+- **Residual #51**: rate limit do endpoint, seats por membro/console admin, convite/remoção e SSO/SAML/OIDC seguem abertos; domínio/deploy owner-gated.
+- Evidência: `audits/ZEUS-ENTERPRISE-005-2026-11-03-online-revocation.md`.
