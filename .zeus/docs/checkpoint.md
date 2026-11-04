@@ -267,3 +267,11 @@ the **CORRECTION REQUIRED** verdict until independent audit confirms DoD.
 - **Verificação**: `tests/hermes_cli/test_skills_review.py` 8/8; `scripts/check` 12/12; E2E em `HERMES_HOME` temporário provou `skill_manage(create) → staged: true`, nada instalado, approve em PTY com `APPROVE` → exit 0 e `SKILL.md` instalado. CI #62 14/14 verde (desktop 27m31s).
 - **Residual #50**: distribuição de skills entre subagentes do orquestrador não mudou; o gate é config do owner, não default upstream.
 - Evidência: `audits/ZEUS-HEAL-004-2026-11-03-skills-review.md`.
+
+## 2026-11-03 | Organization member device activation (#63 merged)
+
+- **PR #63 MERGED `b8319c456e`**: `device_codes.org_id` (migração automática) e exchange por `get_for_identity(user_id, org_id)`. Antes, member autorizava o dispositivo e recebia **403** porque o código perdia a Organization.
+- **Contratos**: member autoriza + troca código e recebe token com o plano da Organization; dispositivo revogado não troca código novo.
+- **Verificação**: cloud **45/45** testes; `scripts/check` 12/12; CI #63 14/14 verde (desktop 24m7s).
+- **Residual #51**: seats por membro/console admin, revogação online em um ciclo e SSO seguem abertos; domínio/deploy seguem owner-gated.
+- Evidência: `audits/ZEUS-ENTERPRISE-004-2026-11-03-org-member-device-exchange.md`.
